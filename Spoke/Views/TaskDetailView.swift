@@ -54,12 +54,20 @@ struct TaskDetailView: View {
             .frame(maxWidth: .infinity)
             .padding(.bottom, 20)
 
-            VoiceButton(
-                state: voiceButtonState,
-                onStart: handleStart,
-                onRelease: handleRelease
-            )
-            .frame(maxWidth: .infinity)
+            VStack(spacing: 8) {
+                VoiceButton(
+                    state: voiceButtonState,
+                    onStart: handleStart,
+                    onRelease: handleRelease
+                )
+                .frame(maxWidth: .infinity)
+
+                if recorder.recordingState == .idle {
+                    Text("Speak to edit this task")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             .padding(.bottom, 24)
         }
         .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
