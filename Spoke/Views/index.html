@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spoke — Your day, dictated.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #f9f9f8;
+      color: #0d0d0d;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: #f9f9f8;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px;
+    }
+    .nav-wordmark {
+      font-size: 1rem; font-weight: 500; color: #0d0d0d;
+      letter-spacing: -0.01em; text-decoration: none;
+    }
+    .nav-cta {
+      font-size: 0.875rem; font-weight: 500; color: #0d0d0d;
+      border: 1.5px solid #0d0d0d; border-radius: 999px;
+      padding: 8px 18px; text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .nav-cta:hover { background: #0d0d0d; color: #f9f9f8; }
+
+    /* ── Sections ── */
+    .section { padding: 160px 40px; }
+
+    /* ── Scroll animations ── */
+    .fade-up {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity 0.75s ease, transform 0.75s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    /* ──────────────────────────────────────────────
+       HERO
+    ────────────────────────────────────────────── */
+    #hero {
+      padding: 180px 24px 140px;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+    }
+
+    /* Wordmark + animation — verbatim from spoke-hero.html */
+    .hero-wordmark {
+      user-select: none;
+      font-size: clamp(5rem, 17vw, 15rem);
+      line-height: 1; white-space: nowrap;
+    }
+    #typed-text {
+      display: inline; font-weight: 500; color: #0d0d0d; letter-spacing: -0.03em;
+    }
+    #cursor {
+      display: inline-block;
+      width: clamp(2px, 0.28vw, 5px); height: 1em;
+      background: #0d0d0d; border-radius: 2px; margin-left: 0.06em;
+      vertical-align: baseline;
+      animation: blink 1.4s step-end infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    #dot-container {
+      display: inline-block; position: relative;
+      width: 0; height: 0.2em; margin-left: 0;
+      vertical-align: 2px; opacity: 0;
+    }
+    #dot-container.pop-in {
+      animation: springIn 0s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes springIn {
+      0%   { opacity: 0; transform: scale(0); width: 0; margin-left: 0; }
+      100% { opacity: 1; transform: scale(1); width: 0.2em; margin-left: calc(0.12em - 4px); }
+    }
+    .dot {
+      position: absolute; inset: 0; background: #FF6147; border-radius: 50%; z-index: 2;
+      box-shadow: 0 4px 12px rgba(255, 97, 71, 0.4);
+    }
+    .dot svg {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); width: 55%; height: 55%;
+    }
+    .pulsing .dot { animation: dotBeat 1.4s ease-in-out infinite; }
+    @keyframes dotBeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+    .ripple {
+      position: absolute; inset: 0; border-radius: 50%;
+      background: transparent; border: 2px solid #FF6147; opacity: 0; z-index: 1;
+    }
+    .pulsing .ripple-1 { animation: rippleOut 1.4s ease-out 0s infinite; }
+    .pulsing .ripple-2 { animation: rippleOut 1.4s ease-out 0.7s infinite; }
+    @keyframes rippleOut {
+      0%   { transform: scale(1);   opacity: 0.5; }
+      100% { transform: scale(1.6); opacity: 0;   }
+    }
+
+    /* Hero tagline + badge */
+    .hero-tagline {
+      margin-top: 2.5rem;
+      font-size: clamp(1rem, 2.5vw, 1.5rem);
+      font-weight: 400; color: #888; letter-spacing: 0.01em;
+      opacity: 0; transform: translateY(8px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .hero-tagline.visible { opacity: 1; transform: translateY(0); }
+
+    .hero-badge {
+      margin-top: 2.5rem;
+      opacity: 0; transform: translateY(8px);
+      transition: opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s;
+    }
+    .hero-badge.visible { opacity: 1; transform: translateY(0); }
+
+    .badge-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: #0d0d0d; color: white; text-decoration: none;
+      border-radius: 14px; padding: 13px 24px;
+      font-size: 0.875rem; font-weight: 500; letter-spacing: -0.01em;
+      transition: opacity 0.2s;
+    }
+    .badge-btn:hover { opacity: 0.75; }
+    .badge-btn .apple-icon { width: 18px; height: 18px; fill: white; flex-shrink: 0; }
+
+    /* ──────────────────────────────────────────────
+       STATEMENT
+    ────────────────────────────────────────────── */
+    #statement { text-align: center; }
+    .statement-headline {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; color: #0d0d0d;
+      max-width: 680px; margin: 0 auto;
+    }
+
+    /* ──────────────────────────────────────────────
+       HOW IT WORKS
+    ────────────────────────────────────────────── */
+    #how .steps-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 56px;
+      max-width: 880px; margin: 0 auto;
+    }
+    .step { display: flex; flex-direction: column; gap: 20px; }
+    .step-label {
+      font-size: 0.75rem; font-weight: 500; text-transform: uppercase;
+      letter-spacing: 0.12em; color: #FF6147;
+    }
+    /* Small pulsing mic — reuses same keyframes */
+    .mic-small {
+      position: relative; width: 48px; height: 48px; flex-shrink: 0;
+    }
+    .mic-small .sm-dot {
+      position: absolute; inset: 0; background: #FF6147; border-radius: 50%; z-index: 2;
+      box-shadow: 0 2px 8px rgba(255, 97, 71, 0.35);
+      animation: dotBeat 1.4s ease-in-out infinite;
+    }
+    .mic-small .sm-dot svg {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); width: 55%; height: 55%;
+    }
+    .mic-small .sm-ripple {
+      position: absolute; inset: 0; border-radius: 50%;
+      background: transparent; border: 2px solid #FF6147; opacity: 0; z-index: 1;
+    }
+    .mic-small .sm-ripple-1 { animation: rippleOut 1.4s ease-out 0s infinite; }
+    .mic-small .sm-ripple-2 { animation: rippleOut 1.4s ease-out 0.7s infinite; }
+    .step-title { font-size: 1.25rem; font-weight: 500; color: #0d0d0d; letter-spacing: -0.01em; }
+    .step-desc { font-size: 1rem; color: #888; line-height: 1.6; }
+
+    /* ──────────────────────────────────────────────
+       FEATURE ROWS
+    ────────────────────────────────────────────── */
+    .feature-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px;
+      align-items: center; max-width: 980px; margin: 0 auto;
+    }
+    .feature-row.flip { direction: rtl; }
+    .feature-row.flip > * { direction: ltr; }
+    .feature-text { display: flex; flex-direction: column; gap: 1.5rem; }
+    .feature-headline {
+      font-size: clamp(2rem, 4.5vw, 3.75rem);
+      font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; color: #0d0d0d;
+    }
+    .feature-body { font-size: 1.125rem; color: #888; line-height: 1.6; }
+    .feature-visual { display: flex; justify-content: center; }
+
+    /* ──────────────────────────────────────────────
+       IPHONE CHROME + SCREENSHOT
+    ────────────────────────────────────────────── */
+    .iphone-frame {
+      position: relative;
+      display: inline-block;
+      padding: 11px;
+      background: linear-gradient(160deg, #e6e6e4 0%, #c8c8c6 40%, #d4d4d2 65%, #bcbcba 100%);
+      border-radius: 56px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.4),
+        inset 0 -1px 0 rgba(0,0,0,0.08),
+        0 0 0 0.5px rgba(0,0,0,0.22),
+        0 48px 96px rgba(0,0,0,0.22),
+        0 12px 28px rgba(0,0,0,0.10);
+    }
+    .app-screenshot {
+      width: 260px;
+      border-radius: 46px;
+      display: block;
+      box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.06);
+    }
+    /* Physical side buttons */
+    .btn-power, .btn-vol-up, .btn-vol-down {
+      position: absolute;
+      width: 3.5px;
+      background: linear-gradient(to left, #c2c2c0, #d4d4d2);
+      border-radius: 2px 0 0 2px;
+      box-shadow: 0 0 0 0.5px rgba(0,0,0,0.14);
+    }
+    .btn-power {
+      right: -3.5px; top: 29%;
+      height: 68px;
+      background: linear-gradient(to right, #c2c2c0, #d4d4d2);
+      border-radius: 0 2px 2px 0;
+    }
+    .btn-vol-up  { left: -3.5px; top: 21%; height: 38px; }
+    .btn-vol-down { left: -3.5px; top: 31%; height: 38px; }
+
+    /* ──────────────────────────────────────────────
+       BOTTOM CTA
+    ────────────────────────────────────────────── */
+    #cta {
+      text-align: center; padding: 160px 40px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .cta-wordmark {
+      font-size: clamp(4rem, 12vw, 10rem); font-weight: 500;
+      letter-spacing: -0.03em; color: #0d0d0d; line-height: 1; margin-bottom: 1.5rem;
+    }
+    .cta-tagline { font-size: clamp(1rem, 2vw, 1.25rem); color: #888; margin-bottom: 2.5rem; }
+    .cta-caption { margin-top: 1.5rem; font-size: 0.875rem; color: #aaa; }
+
+    /* ──────────────────────────────────────────────
+       RESPONSIVE
+    ────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      nav { padding: 20px 24px; }
+      .section { padding: 100px 24px; }
+      #hero { padding: 100px 24px 80px; }
+      #how .steps-grid { grid-template-columns: 1fr; gap: 48px; }
+      .feature-row, .feature-row.flip { grid-template-columns: 1fr; direction: ltr; gap: 48px; }
+      .feature-row.flip .feature-visual { order: -1; }
+      #cta { padding: 100px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <a href="#" class="nav-wordmark">spoke</a>
+  <a href="https://apps.apple.com" class="nav-cta">Download</a>
+</nav>
+
+<!-- ── Hero ── -->
+<section id="hero">
+  <div class="hero-wordmark"><!--
+  --><span id="typed-text"></span><!--
+  --><span id="dot-container">
+      <span class="ripple ripple-1"></span>
+      <span class="ripple ripple-2"></span>
+      <span class="dot">
+        <svg viewBox="0 0 24 24" fill="none">
+          <rect x="9" y="2" width="6" height="13" rx="3" fill="white"/>
+          <path d="M5 11c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="white" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+          <line x1="12" y1="18" x2="12" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="8.5" y1="21.5" x2="15.5" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </span>
+    </span><!--
+  --><span id="cursor"></span>
+  </div>
+
+  <p class="hero-tagline" id="hero-tagline">Your day, dictated.</p>
+
+  <div class="hero-badge" id="hero-badge">
+    <a href="https://apps.apple.com" class="badge-btn">
+      <svg class="apple-icon" viewBox="0 0 814 1000">
+        <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46 790.7 0 663 0 541.8c0-207.3 134.4-317 266.5-317 63 0 122.3 41.8 164.7 41.8 40.3 0 103.3-44 176.1-44 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
+      </svg>
+      Download on the App Store
+    </a>
+  </div>
+</section>
+
+<!-- ── Feature A: No typing ── -->
+<section id="feature-a" class="section">
+  <div class="feature-row fade-up">
+    <div class="feature-text">
+      <h2 class="feature-headline">No typing.<br>Ever.</h2>
+      <p class="feature-body">Press. Talk. Done. Spoke turns your words into clean, readable tasks — no reformatting required.</p>
+    </div>
+    <div class="feature-visual">
+      <div class="iphone-frame">
+        <span class="btn-power"></span>
+        <span class="btn-vol-up"></span>
+        <span class="btn-vol-down"></span>
+        <img src="screenshot-tasks.png" alt="Spoke task list" class="app-screenshot">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Feature B: Edit by voice ── -->
+<section id="feature-b" class="section">
+  <div class="feature-row flip fade-up">
+    <div class="feature-text">
+      <h2 class="feature-headline">Edit, add detail, mark done — all by voice.</h2>
+      <p class="feature-body">Hold the mic on any task to update it. Spoke rewrites it in place.</p>
+    </div>
+    <div class="feature-visual">
+      <div class="iphone-frame">
+        <span class="btn-power"></span>
+        <span class="btn-vol-up"></span>
+        <span class="btn-vol-down"></span>
+        <img src="screenshot-detail.png" alt="Spoke task detail" class="app-screenshot">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Bottom CTA ── -->
+<section id="cta">
+  <p class="cta-wordmark fade-up">spoke</p>
+  <p class="cta-tagline fade-up" style="transition-delay:0.1s">Your day, dictated.</p>
+  <div class="fade-up" style="transition-delay:0.2s">
+    <a href="https://apps.apple.com" class="badge-btn">
+      <svg class="apple-icon" viewBox="0 0 814 1000">
+        <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46 790.7 0 663 0 541.8c0-207.3 134.4-317 266.5-317 63 0 122.3 41.8 164.7 41.8 40.3 0 103.3-44 176.1-44 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
+      </svg>
+      Download on the App Store
+    </a>
+  </div>
+  <p class="cta-caption fade-up" style="transition-delay:0.3s">Free. iPhone only.</p>
+</section>
+
+<script>
+  // ── Hero animation (verbatim from spoke-hero.html) ──
+  const typedText    = document.getElementById('typed-text');
+  const dotContainer = document.getElementById('dot-container');
+  const heroTagline  = document.getElementById('hero-tagline');
+  const heroBadge    = document.getElementById('hero-badge');
+
+  const WORD = 'spoke';
+  const INITIAL_PAUSE = 1500;
+  const TYPE_SPEED    = 170;
+  const END_PAUSE     = 80;
+  const POP_DURATION  = 170;
+  let idx = 0;
+
+  function type() {
+    if (idx < WORD.length) {
+      typedText.textContent += WORD[idx++];
+      setTimeout(type, TYPE_SPEED);
+    } else {
+      setTimeout(() => {
+        dotContainer.classList.add('pop-in');
+        setTimeout(() => {
+          dotContainer.classList.add('pulsing');
+          // Tagline fades in ~1s after mic pops
+          setTimeout(() => {
+            heroTagline.classList.add('visible');
+            heroBadge.classList.add('visible');   // badge follows via CSS transition-delay
+          }, 1000);
+        }, POP_DURATION);
+      }, END_PAUSE);
+    }
+  }
+  setTimeout(type, INITIAL_PAUSE);
+
+  // ── Scroll-triggered fade-up ──
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.fade-up').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

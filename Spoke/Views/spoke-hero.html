@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spoke</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    /* ── Layout ──
+       Plain block container — children flow inline so vertical-align works.
+       flex on .hero caused siblings to re-baseline when the dot appeared. */
+    .hero {
+      user-select: none;
+      font-size: clamp(5rem, 17vw, 15rem);
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    /* ── Typed text ── */
+    #typed-text {
+      display: inline;
+      font-weight: 500;
+      color: #0d0d0d;
+      letter-spacing: -0.03em;
+    }
+
+    /* ── Cursor ── */
+    #cursor {
+      display: inline-block;
+      width: clamp(2px, 0.28vw, 5px);
+      height: 1em;
+      background: #0d0d0d;
+      border-radius: 2px;
+      margin-left: 0.06em;
+      vertical-align: baseline;
+      animation: blink 0.72s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    /* ── Record indicator container ── */
+    #dot-container {
+      display: inline-block;
+      position: relative;
+      width: 0;
+      height: 0.2em;
+      margin-left: 0;
+      vertical-align: 2px;
+      opacity: 0;
+    }
+
+    #dot-container.pop-in {
+      animation: springIn 0s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes springIn {
+      0%   { opacity: 0; transform: scale(0); width: 0;     margin-left: 0; }
+      100% { opacity: 1; transform: scale(1); width: 0.2em; margin-left: calc(0.12em - 4px); }
+    }
+
+    /* ── Core dot with mic icon ──
+       Coral circle + white mic, matching VoiceButton in the app.
+       position:absolute/inset:0 is more reliable than width/height:100%
+       on inline-block parents. */
+    .dot {
+      position: absolute;
+      inset: 0;
+      background: #FF6147;
+      border-radius: 50%;
+      z-index: 2;
+      box-shadow: 0 4px 12px rgba(255, 97, 71, 0.4);
+    }
+
+    .dot svg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 55%;
+      height: 55%;
+    }
+
+    /* Subtle scale beat matching .scaleEffect(recording ? 1.08 : 1.0) */
+    .pulsing .dot {
+      animation: dotBeat 1.4s ease-in-out infinite;
+    }
+
+    @keyframes dotBeat {
+      0%, 100% { transform: scale(1);    }
+      50%       { transform: scale(1.08); }
+    }
+
+    /* ── Pulse rings ──
+       Stroke outline circles matching PulseRing in Swift:
+       scale 1→1.6, opacity 0.5→0, easeOut 1.4s, no autoreverse */
+    .ripple {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: transparent;
+      border: 2px solid #FF6147;
+      opacity: 0;
+      z-index: 1;
+    }
+
+    .pulsing .ripple-1 {
+      animation: rippleOut 1.4s ease-out 0s infinite;
+    }
+
+    /* Second ring offset by half a cycle for continuous coverage */
+    .pulsing .ripple-2 {
+      animation: rippleOut 1.4s ease-out 0.7s infinite;
+    }
+
+    @keyframes rippleOut {
+      0%   { transform: scale(1);   opacity: 0.5; }
+      100% { transform: scale(1.6); opacity: 0;   }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero"><!--
+    No whitespace between spans — at large font sizes, line breaks between
+    inline elements render as ~60px gaps each. Everything runs together here.
+  --><span id="typed-text"></span><span id="dot-container"><span class="ripple ripple-1"></span><span class="ripple ripple-2"></span><span class="dot"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none"><rect x="9" y="2" width="6" height="13" rx="3" fill="white"/><path d="M5 11c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="white" stroke-width="1.8" stroke-linecap="round" fill="none"/><line x1="12" y1="18" x2="12" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8.5" y1="21.5" x2="15.5" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></span></span><span id="cursor"></span>
+  </div>
+
+  <script>
+    const typedText    = document.getElementById('typed-text');
+    const dotContainer = document.getElementById('dot-container');
+
+    const WORD          = 'spoke';
+    const INITIAL_PAUSE = 1500;   // ms before first keystroke
+    const TYPE_SPEED    = 170;   // ms between letters
+    const END_PAUSE     = 80;   // ms after last letter before swap
+    const POP_DURATION  = 170;   // matches springIn duration
+
+    let idx = 0;
+
+    function type() {
+      if (idx < WORD.length) {
+        typedText.textContent += WORD[idx++];
+        setTimeout(type, TYPE_SPEED);
+      } else {
+        // Pause → pop in dot → start pulsing; cursor keeps blinking throughout
+        setTimeout(() => {
+          dotContainer.classList.add('pop-in');
+          setTimeout(() => {
+            dotContainer.classList.add('pulsing');
+          }, POP_DURATION);
+        }, END_PAUSE);
+      }
+    }
+
+    setTimeout(type, INITIAL_PAUSE);
+  </script>
+</body>
+</html>
