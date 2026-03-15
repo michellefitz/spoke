@@ -100,12 +100,20 @@ struct ContentView: View {
                 .padding(.vertical, 14)
             }
             .safeAreaInset(edge: .bottom) {
-                VoiceButton(
-                    state: voiceButtonState,
-                    onStart: handleStart,
-                    onRelease: handleRelease
-                )
-                .frame(maxWidth: .infinity)
+                VStack(spacing: 8) {
+                    VoiceButton(
+                        state: voiceButtonState,
+                        onStart: handleStart,
+                        onRelease: handleRelease
+                    )
+                    .frame(maxWidth: .infinity)
+
+                    if recorder.recordingState == .idle {
+                        Text("Speak to add new tasks")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 .padding(.bottom, 24)
                 .background(.clear)
             }
