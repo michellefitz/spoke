@@ -76,20 +76,27 @@ struct TaskDetailView: View {
                 .padding(.top, 20)
                 .padding(.horizontal, 24)
                 .transition(.opacity)
+            } else {
+                Text("No description. Tap the microphone to add more details or subtasks.")
+                    .font(.subheadline)
+                    .italic()
+                    .foregroundStyle(Color(.systemGray3))
+                    .padding(.top, 20)
+                    .padding(.horizontal, 24)
             }
 
             Spacer()
 
-            VStack(spacing: 6) {
+            Group {
                 if task.isCompleted, let completedAt = task.completedAt {
-                    Text("Completed \(relativeFormatter.localizedString(for: completedAt, relativeTo: .now))")
+                    Text("Added \(task.createdAt.formatted(.dateTime.month(.abbreviated).day())) · Completed \(relativeFormatter.localizedString(for: completedAt, relativeTo: .now))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Added \(task.createdAt.formatted(.dateTime.month(.abbreviated).day()))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-
-                Text("Added \(task.createdAt.formatted(.dateTime.month(.abbreviated).day()))")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity)
             .padding(.bottom, 20)
