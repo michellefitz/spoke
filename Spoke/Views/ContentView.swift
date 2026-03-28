@@ -36,17 +36,29 @@ struct ContentView: View {
     )
     private var completedTasks: [SpokeTask]
 
+    @AppStorage("hasUsedVoice") private var hasUsedVoice = false
+
     @State private var recorder = VoiceRecorder()
     @State private var selectedTask: SpokeTask?
     @State private var showPermissionAlert = false
     @State private var tapModeActive = false
+    @State private var selectedTag: String? = nil
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
+
+    private var availableTags: [String] {
+        Array(Set(activeTasks.compactMap { $0.tag })).sorted()
+    }
+
+    private var filteredActiveTasks: [SpokeTask] {
+        guard let tag = selectedTag else { return activeTasks }
+        return activeTasks.filter { $0.tag == tag }
+    }
 
     // Group active tasks by time bucket, dropping empty buckets
     private var groupedActiveTasks: [(TaskBucket, [SpokeTask])] {
         TaskBucket.allCases.compactMap { b in
-            let tasks = activeTasks.filter { bucket(for: $0) == b }
+            let tasks = filteredActiveTasks.filter { bucket(for: $0) == b }
             return tasks.isEmpty ? nil : (b, tasks)
         }
     }
@@ -86,33 +98,50 @@ struct ContentView: View {
             }
             .listStyle(.plain)
             .safeAreaInset(edge: .top) {
-                // Wordmark
-                HStack(spacing: 4) {
-                    Text("spoke")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-                    Circle()
-                        .fill(coral)
-                        .frame(width: 5, height: 5)
+                VStack(spacing: 0) {
+                    // Wordmark
+                    HStack(spacing: 4) {
+                        Text("spoke")
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                        Circle()
+                            .fill(coral)
+                            .frame(width: 5, height: 5)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
+                    .padding(.bottom, availableTags.isEmpty ? 10 : 8)
+
+                    if !availableTags.isEmpty {
+                        filterPillsView
+                            .padding(.bottom, 10)
+                    }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .background(.background)
             }
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 8) {
                     VoiceButton(
                         state: voiceButtonState,
+                        audioLevel: recorder.audioLevel,
                         onStart: handleStart,
                         onRelease: handleRelease
                     )
                     .frame(maxWidth: .infinity)
 
-                    if recorder.recordingState == .idle {
-                        Text("Speak to add new tasks")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    Group {
+                        if recorder.recordingState == .recording {
+                            Text("Listening...")
+                                .font(.caption)
+                                .foregroundStyle(coral)
+                        } else if recorder.recordingState == .idle && !hasUsedVoice {
+                            Text("Tap or hold to speak")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    .animation(.easeInOut(duration: 0.2), value: recorder.recordingState)
                 }
                 .padding(.bottom, 24)
                 .background(.clear)
@@ -133,9 +162,47 @@ struct ContentView: View {
             Text("Spoke needs microphone and speech recognition access to create voice tasks. Please enable them in Settings.")
         }
         .task { pruneCompletedTasks() }
+        .onChange(of: availableTags) { _, tags in
+            if let selected = selectedTag, !tags.contains(selected) {
+                selectedTag = nil
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { pruneCompletedTasks() }
         }
+    }
+
+    // MARK: - Filter pills
+
+    private var filterPillsView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                filterPill(label: "All", tag: nil)
+                ForEach(availableTags, id: \.self) { tag in
+                    filterPill(label: tag.capitalized, tag: tag)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private func filterPill(label: String, tag: String?) -> some View {
+        let isActive = selectedTag == tag
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                selectedTag = isActive ? nil : tag
+            }
+        } label: {
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(isActive ? .white : Color(.secondaryLabel))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule().fill(isActive ? coral : Color(.tertiarySystemFill))
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Section header
@@ -207,10 +274,11 @@ struct ContentView: View {
         }
         Task {
             let parsed = await TaskParser.parse(transcript: transcript)
-            let task = SpokeTask(title: parsed.title, taskDescription: parsed.description)
+            let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag)
             modelContext.insert(task)
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+            hasUsedVoice = true
         }
     }
 
