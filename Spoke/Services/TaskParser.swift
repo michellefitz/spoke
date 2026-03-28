@@ -3,37 +3,44 @@ import Foundation
 struct ParsedTask {
     let title: String
     let description: String?
+    let deadline: Date?
+    let tag: String?
 }
 
 enum TaskParser {
     static func parse(transcript: String) async -> ParsedTask {
         let wordCount = transcript.split(separator: " ").count
         if wordCount <= 5 {
-            return ParsedTask(title: sentenceCase(transcript), description: nil)
+            return ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)
         }
+        let today = isoToday()
         return await callClaude(
             system: """
-            You are a task parser. Given a voice transcript, extract a concise task title and an optional description. \
+            Today's date is \(today). You are a task parser. Given a voice transcript, extract a concise task title, an optional description, an optional deadline date, and an optional category tag. \
             Rules: \
             - Title must be short and action-oriented, max 6 words. \
             - Description captures supporting detail, context, or sub-tasks. \
             - When the description contains multiple items or sub-tasks, format each as a bullet using "• item" on its own line (e.g. "• Call venue\n• Confirm date\n• Send invites"). \
             - Use plain prose (no bullets) for a single sentence of context. \
             - Omit description entirely if there is nothing meaningful beyond the title. \
-            Return ONLY valid JSON, no markdown, no code fences, no commentary: \
-            {"title": "…"} or {"title": "…", "description": "…"}
+            - If the user mentions a date or deadline (e.g. "by next Wednesday", "on Tuesday", "before April 20", "this Friday"), resolve it relative to today and include it as "deadline" in YYYY-MM-DD format. Omit "deadline" if no date is mentioned. \
+            - If the task clearly belongs to one of these categories, include it as "tag": work, personal, health, finance, errands. Omit "tag" if unsure. \
+            Return ONLY valid JSON, no markdown, no code fences, no commentary. \
+            Examples: {"title": "…"} or {"title": "…", "description": "…", "deadline": "YYYY-MM-DD", "tag": "work"}
             """,
             user: "Transcript: \"\(transcript)\""
         ) ?? fallback(transcript)
     }
 
-    static func parseEdit(transcript: String, currentTitle: String, currentDescription: String?) async -> ParsedTask {
+    static func parseEdit(transcript: String, currentTitle: String, currentDescription: String?, currentDeadline: Date? = nil, currentTag: String? = nil) async -> ParsedTask {
         let desc = currentDescription ?? "none"
+        let today = isoToday()
+        let deadlineStr = currentDeadline.map { isoFormatter.string(from: $0) } ?? "none"
+        let tagStr = currentTag ?? "none"
         return await callClaude(
             system: """
-            You are a task assistant that refines tasks from voice input. \
+            Today's date is \(today). You are a task assistant that refines tasks from voice input. \
             You are given an existing task and new voice input spoken by the user. \
-            The voice input may be additional context, new sub-tasks, a correction to something captured wrong, or a mix of all three. \
             Synthesize the existing task and the new voice into the best, most complete version of the task. \
             Rules: \
             - Preserve existing information that is still accurate; add new points; correct anything the voice contradicts. \
@@ -41,13 +48,17 @@ enum TaskParser {
             - When description has multiple items or sub-tasks, format each as "• item" on its own line. \
             - Use plain prose (no bullets) for a single sentence of context. \
             - Omit description if nothing meaningful exists beyond the title. \
-            Return ONLY valid JSON, no markdown, no code fences, no commentary: \
-            {"title": "…"} or {"title": "…", "description": "…"}
+            - If the voice mentions a date or deadline, resolve it relative to today and include as "deadline" in YYYY-MM-DD format. Preserve the existing deadline if no new date is mentioned and existing deadline is not "none". Omit "deadline" if there is none. \
+            - Preserve the existing tag if it still fits. Update it only if the voice clearly implies a different category (work, personal, health, finance, errands). Omit "tag" if none applies. \
+            Return ONLY valid JSON, no markdown, no code fences, no commentary. \
+            Example: {"title": "…", "description": "…", "deadline": "YYYY-MM-DD", "tag": "work"}
             """,
             user: """
             Existing task:
             Title: "\(currentTitle)"
             Description: "\(desc)"
+            Deadline: "\(deadlineStr)"
+            Tag: "\(tagStr)"
 
             New voice input: "\(transcript)"
             """
@@ -126,11 +137,46 @@ enum TaskParser {
         }
 
         let description = json["description"] as? String
-        return ParsedTask(title: title, description: description?.isEmpty == true ? nil : description)
+        let deadline: Date?
+        if let ds = json["deadline"] as? String, !ds.isEmpty {
+            deadline = isoFormatter.date(from: ds)
+        } else {
+            deadline = nil
+        }
+        let tag: String?
+        if let t = json["tag"] as? String, !t.isEmpty {
+            let allowed = ["work", "personal", "health", "finance", "errands"]
+            tag = allowed.contains(t) ? t : nil
+        } else {
+            tag = nil
+        }
+        return ParsedTask(title: title, description: description?.isEmpty == true ? nil : description, deadline: deadline, tag: tag)
+    }
+
+    private static let isoFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
+    private static func isoToday() -> String {
+        isoFormatter.string(from: Date())
     }
 
     private static func fallback(_ transcript: String) -> ParsedTask {
-        ParsedTask(title: sentenceCase(transcript), description: nil)
+        let words = transcript.split(separator: " ")
+        if words.count <= 6 {
+            return ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)
+        }
+        let title = words.prefix(6).joined(separator: " ")
+        let description = words.dropFirst(6).joined(separator: " ")
+        return ParsedTask(
+            title: sentenceCase(title),
+            description: description.isEmpty ? nil : sentenceCase(description),
+            deadline: nil,
+            tag: nil
+        )
     }
 
     private static func sentenceCase(_ text: String) -> String {
