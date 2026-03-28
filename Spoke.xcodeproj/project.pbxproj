@@ -11,6 +11,7 @@
 		1A4CB5968BBCB0DBB8A87C28 /* VoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F45466236E0D0B9CC126A7D /* VoiceRecorder.swift */; };
 		32DE61591E9C74C53CC9E426 /* TaskRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E6DB242EB2EEC112530FBF /* TaskRowView.swift */; };
 		9D391789B1CDC9BB717A1FF3 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = A08F2B6B5A0014D582AAA8EA /* Config.swift */; };
+		A7B2C3D4E5F60718293A4B5C /* AudioWaveformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8E9D0A1B2C3D4E5F6071829 /* AudioWaveformView.swift */; };
 		AA3A56371496FE23703B619F /* VoiceButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = D153848E9BD8A0115C656634 /* VoiceButton.swift */; };
 		B202B0AAB1B65EE9011576B0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF04D4396113B1353FED13C /* ContentView.swift */; };
 		C1777BE632FCEE5796F0D217 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B14AEDED788DDEE5A8A5056 /* Task.swift */; };
@@ -29,6 +30,7 @@
 		CBF04D4396113B1353FED13C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D153848E9BD8A0115C656634 /* VoiceButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceButton.swift; sourceTree = "<group>"; };
 		DC4CAC813C3E973A8D4E2DF3 /* TaskDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailView.swift; sourceTree = "<group>"; };
+		F8E9D0A1B2C3D4E5F6071829 /* AudioWaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioWaveformView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -60,6 +62,7 @@
 		756A939EF1BFB3DD087537DF /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				F8E9D0A1B2C3D4E5F6071829 /* AudioWaveformView.swift */,
 				CBF04D4396113B1353FED13C /* ContentView.swift */,
 				DC4CAC813C3E973A8D4E2DF3 /* TaskDetailView.swift */,
 				B2E6DB242EB2EEC112530FBF /* TaskRowView.swift */,
@@ -115,7 +118,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2630;
 			};
 			buildConfigurationList = 07EC8E9CAF638ACDB9670871 /* Build configuration list for PBXProject "Spoke" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -140,6 +143,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A7B2C3D4E5F60718293A4B5C /* AudioWaveformView.swift in Sources */,
 				9D391789B1CDC9BB717A1FF3 /* Config.swift in Sources */,
 				B202B0AAB1B65EE9011576B0 /* ContentView.swift in Sources */,
 				F293693B0CF0C2F0D1882F5D /* SpokeApp.swift in Sources */,
@@ -191,8 +195,10 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = TD9H5RA3U9;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -215,6 +221,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.michellefitzpatrick.Spoke;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = targeted;
@@ -228,7 +235,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = TD9H5RA3U9;
 				INFOPLIST_FILE = Spoke/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -247,7 +253,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = TD9H5RA3U9;
 				INFOPLIST_FILE = Spoke/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -297,8 +302,10 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = TD9H5RA3U9;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -314,6 +321,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.michellefitzpatrick.Spoke;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = targeted;

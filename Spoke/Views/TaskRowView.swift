@@ -11,6 +11,13 @@ struct TaskRowView: View {
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
 
+    private static let deadlineFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
     var body: some View {
         HStack(spacing: 10) {
             Button(action: handleCompleteToggle) {
@@ -35,17 +42,49 @@ struct TaskRowView: View {
 
             Spacer()
 
+            if let deadline = task.deadline {
+                Text(Self.deadlineFormatter.string(from: deadline).uppercased())
+                    .font(.system(size: 10, weight: .semibold, design: .default))
+                    .foregroundStyle(task.isCompleted ? coral.opacity(0.4) : coral)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(coral.opacity(task.isCompleted ? 0.06 : 0.12))
+                    )
+            }
+
+            if let tag = task.tag, !task.isCompleted {
+                Text(tag.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color(.secondaryLabel))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(.tertiarySystemFill))
+                    )
+            }
+
             if !task.isCompleted,
                let desc = task.taskDescription, !desc.isEmpty {
-                Circle()
-                    .fill(coral)
-                    .frame(width: 6, height: 6)
+                Image(systemName: "note.text")
+                    .font(.system(size: 11))
+                    .foregroundStyle(coral.opacity(0.7))
             }
         }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
-        // Swipe right → complete / uncomplete (immediate, no pre-animation)
+        // Swipe right → delete
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            if !task.isCompleted {
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+        }
+        // Swipe left → complete / uncomplete
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(action: onToggleComplete) {
                 if task.isCompleted {
                     Label("Undo", systemImage: "arrow.uturn.backward")
@@ -54,14 +93,6 @@ struct TaskRowView: View {
                 }
             }
             .tint(task.isCompleted ? .orange : .green)
-        }
-        // Swipe left → delete
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            if !task.isCompleted {
-                Button(role: .destructive, action: onDelete) {
-                    Label("Delete", systemImage: "trash")
-                }
-            }
         }
     }
 

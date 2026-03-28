@@ -8,6 +8,7 @@ enum VoiceButtonState {
 
 struct VoiceButton: View {
     let state: VoiceButtonState
+    let audioLevel: Float
     let onStart: () -> Void
     /// Called when the gesture ends. `elapsed` is how long the button was held.
     /// < 0.3 s = tap gesture; ≥ 0.3 s = hold gesture.
@@ -17,28 +18,53 @@ struct VoiceButton: View {
     @State private var pressStart: Date?
 
     var body: some View {
-        ZStack {
-            if state == .recording {
-                PulseRing(color: coral)
+        HStack(spacing: 8) {
+            // Left waveform (mirrored so bars flow toward center)
+            AudioWaveformView(audioLevel: audioLevel, isActive: state == .recording)
+                .scaleEffect(x: -1, y: 1)
+                .opacity(state == .recording ? 1 : 0)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: state)
+
+            // Center button
+            ZStack {
+                if state == .recording {
+                    Circle()
+                        .fill(coral.opacity(0.15))
+                        .frame(width: 96, height: 96)
+                }
+
+                Circle()
+                    .fill(coral)
+                    .frame(width: 72, height: 72)
+                    .overlay {
+                        Group {
+                            if state == .processing {
+                                SpinnerArc()
+                                    .frame(width: 24, height: 24)
+                            } else if state == .recording {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(.white)
+                                    .frame(width: 18, height: 18)
+                            } else {
+                                Image(systemName: "mic.fill")
+                                    .font(.system(size: 22, weight: .medium))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .contentTransition(.opacity)
+                        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: state)
+                    }
+                    .scaleEffect(state == .recording ? 1.08 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state)
             }
 
-            Circle()
-                .fill(coral)
-                .frame(width: 72, height: 72)
-                .overlay {
-                    if state == .processing {
-                        SpinnerArc()
-                            .frame(width: 24, height: 24)
-                    } else {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundStyle(.white)
-                    }
-                }
-                .scaleEffect(state == .recording ? 1.08 : 1.0)
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state)
+            // Right waveform
+            AudioWaveformView(audioLevel: audioLevel, isActive: state == .recording)
+                .opacity(state == .recording ? 1 : 0)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: state)
         }
-        .shadow(color: coral.opacity(0.4), radius: 12, x: 0, y: 4)
+        .shadow(color: coral.opacity(state == .recording ? 0.5 : 0.4),
+                radius: state == .recording ? 16 : 12, x: 0, y: 4)
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
@@ -53,26 +79,6 @@ struct VoiceButton: View {
                 }
         )
         .disabled(state == .processing)
-    }
-}
-
-private struct PulseRing: View {
-    let color: Color
-    @State private var scale: CGFloat = 1.0
-    @State private var opacity: Double = 0.5
-
-    var body: some View {
-        Circle()
-            .stroke(color, lineWidth: 2)
-            .frame(width: 80, height: 80)
-            .scaleEffect(scale)
-            .opacity(opacity)
-            .onAppear {
-                withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
-                    scale = 1.6
-                    opacity = 0
-                }
-            }
     }
 }
 
