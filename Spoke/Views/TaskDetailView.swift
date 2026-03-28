@@ -16,6 +16,14 @@ struct TaskDetailView: View {
         f.unitsStyle = .full
         return f
     }()
+    @AppStorage("hasEditedTask") private var hasEditedTask = false
+
+    private static let deadlineFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -26,6 +34,21 @@ struct TaskDetailView: View {
                 .padding(.horizontal, 24)
                 .animation(.easeInOut(duration: 0.3), value: task.title)
 
+            if let deadline = task.deadline {
+                Text(Self.deadlineFormatter.string(from: deadline).uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(coral)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(coral.opacity(0.12))
+                    )
+                    .padding(.top, 10)
+                    .padding(.horizontal, 24)
+                    .animation(.easeInOut(duration: 0.2), value: deadline)
+            }
+
             if let desc = task.taskDescription, !desc.isEmpty {
                 DescriptionItemsView(description: desc) { updated in
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -33,7 +56,7 @@ struct TaskDetailView: View {
                     }
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
-                .padding(.top, 12)
+                .padding(.top, 20)
                 .padding(.horizontal, 24)
                 .transition(.opacity)
             }
@@ -48,8 +71,8 @@ struct TaskDetailView: View {
                 }
 
                 Text("Added \(task.createdAt.formatted(.dateTime.month(.abbreviated).day()))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity)
             .padding(.bottom, 20)
@@ -57,16 +80,24 @@ struct TaskDetailView: View {
             VStack(spacing: 8) {
                 VoiceButton(
                     state: voiceButtonState,
+                    audioLevel: recorder.audioLevel,
                     onStart: handleStart,
                     onRelease: handleRelease
                 )
                 .frame(maxWidth: .infinity)
 
-                if recorder.recordingState == .idle {
-                    Text("Speak to edit this task")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                Group {
+                    if recorder.recordingState == .recording {
+                        Text("Listening...")
+                            .font(.caption)
+                            .foregroundStyle(coral)
+                    } else if recorder.recordingState == .idle && !hasEditedTask {
+                        Text("Tap or hold to edit task")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                .animation(.easeInOut(duration: 0.2), value: recorder.recordingState)
             }
             .padding(.bottom, 24)
         }
@@ -138,14 +169,19 @@ struct TaskDetailView: View {
             let parsed = await TaskParser.parseEdit(
                 transcript: transcript,
                 currentTitle: task.title,
-                currentDescription: task.taskDescription
+                currentDescription: task.taskDescription,
+                currentDeadline: task.deadline,
+                currentTag: task.tag
             )
             withAnimation(.easeInOut(duration: 0.3)) {
                 task.title = parsed.title
                 task.taskDescription = parsed.description
+                task.deadline = parsed.deadline
+                task.tag = parsed.tag
             }
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+            hasEditedTask = true
         }
     }
 }
@@ -200,9 +236,9 @@ private struct DescriptionItemsView: View {
 
                             Text(item.text)
                                 .font(.body)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.primary.opacity(0.75))
                                 .strikethrough(item.checked, color: .secondary)
-                                .opacity(item.checked ? 0.5 : 1.0)
+                                .opacity(item.checked ? 0.4 : 1.0)
                                 .animation(.easeInOut(duration: 0.2), value: item.checked)
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -212,7 +248,7 @@ private struct DescriptionItemsView: View {
                 } else {
                     Text(item.text)
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.primary.opacity(0.75))
                 }
             }
         }
