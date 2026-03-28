@@ -33,11 +33,17 @@ struct TaskRowView: View {
                 .strikethrough(task.isCompleted)
                 .opacity(task.isCompleted ? 0.45 : 1.0)
                 .overlay {
-                    // Animated line that draws left → right before the row moves
-                    Rectangle()
-                        .fill(Color.primary.opacity(0.45))
-                        .frame(height: 1.5)
-                        .scaleEffect(x: strikeProgress, anchor: .leading)
+                    // Animated strikethrough that draws left → right, following text lines
+                    Text(task.title)
+                        .font(.body)
+                        .foregroundStyle(.clear)
+                        .strikethrough(true, color: Color.primary.opacity(0.45))
+                        .mask(
+                            GeometryReader { geo in
+                                Rectangle()
+                                    .frame(width: geo.size.width * strikeProgress)
+                            }
+                        )
                 }
 
             Spacer()
@@ -54,15 +60,15 @@ struct TaskRowView: View {
                     )
             }
 
-            if let tag = task.tag, !task.isCompleted {
+            if let tag = task.tag {
                 Text(tag.uppercased())
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color(.secondaryLabel))
+                    .foregroundStyle(task.isCompleted ? Color(.secondaryLabel).opacity(0.4) : Color(.secondaryLabel))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color(.tertiarySystemFill))
+                            .fill(Color(.tertiarySystemFill).opacity(task.isCompleted ? 0.5 : 1.0))
                     )
             }
 

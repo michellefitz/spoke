@@ -101,9 +101,9 @@ struct TaskDetailView: View {
                     onStart: handleStart,
                     onRelease: handleRelease
                 )
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 96)
 
-                Group {
+                ZStack {
                     if recorder.recordingState == .recording {
                         Text("Listening...")
                             .font(.caption)
@@ -114,9 +114,10 @@ struct TaskDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .frame(height: 16)
                 .animation(.easeInOut(duration: 0.2), value: recorder.recordingState)
             }
-            .padding(.bottom, 24)
+            .padding(.bottom, 12)
         }
         .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
             Button("Open Settings") {
