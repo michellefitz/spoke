@@ -29,13 +29,13 @@ struct TaskRowView: View {
             .buttonStyle(.plain)
 
             Text(task.title)
-                .font(.body)
+                .font(.system(size: 16))
                 .strikethrough(task.isCompleted)
                 .opacity(task.isCompleted ? 0.45 : 1.0)
                 .overlay {
                     // Animated strikethrough that draws left → right, following text lines
                     Text(task.title)
-                        .font(.body)
+                        .font(.system(size: 16))
                         .foregroundStyle(.clear)
                         .strikethrough(true, color: Color.primary.opacity(0.45))
                         .mask(
@@ -49,18 +49,6 @@ struct TaskRowView: View {
             Spacer()
 
             HStack(spacing: 4) {
-                if let deadline = task.deadline {
-                    Text(Self.deadlineFormatter.string(from: deadline).uppercased())
-                        .font(.system(size: 10, weight: .semibold, design: .default))
-                        .foregroundStyle(task.isCompleted ? coral.opacity(0.4) : coral)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(coral.opacity(task.isCompleted ? 0.06 : 0.12))
-                        )
-                }
-
                 if let tag = task.tag {
                     Text(tag.uppercased())
                         .font(.system(size: 10, weight: .semibold))
@@ -70,6 +58,18 @@ struct TaskRowView: View {
                         .background(
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color(.tertiarySystemFill).opacity(task.isCompleted ? 0.5 : 1.0))
+                        )
+                }
+
+                if let deadline = task.deadline {
+                    Text(Self.deadlineFormatter.string(from: deadline).uppercased())
+                        .font(.system(size: 10, weight: .semibold, design: .default))
+                        .foregroundStyle(task.isCompleted ? coral.opacity(0.4) : coral)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(coral.opacity(task.isCompleted ? 0.06 : 0.12))
                         )
                 }
             }
