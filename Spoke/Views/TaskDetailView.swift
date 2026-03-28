@@ -34,34 +34,36 @@ struct TaskDetailView: View {
                 .padding(.horizontal, 24)
                 .animation(.easeInOut(duration: 0.3), value: task.title)
 
-            if let deadline = task.deadline {
-                Text(Self.deadlineFormatter.string(from: deadline).uppercased())
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(coral)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(coral.opacity(0.12))
-                    )
-                    .padding(.top, 10)
-                    .padding(.horizontal, 24)
-                    .animation(.easeInOut(duration: 0.2), value: deadline)
-            }
+            if task.deadline != nil || (task.tag != nil && !task.tag!.isEmpty) {
+                HStack(spacing: 6) {
+                    if let deadline = task.deadline {
+                        Text(Self.deadlineFormatter.string(from: deadline).uppercased())
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(coral)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(coral.opacity(0.12))
+                            )
+                            .animation(.easeInOut(duration: 0.2), value: deadline)
+                    }
 
-            if let tag = task.tag, !tag.isEmpty {
-                Text(tag.uppercased())
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color(.secondaryLabel))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color(.tertiarySystemFill))
-                    )
-                    .padding(.top, 10)
-                    .padding(.horizontal, 24)
-                    .animation(.easeInOut(duration: 0.2), value: tag)
+                    if let tag = task.tag, !tag.isEmpty {
+                        Text(tag.uppercased())
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(.secondaryLabel))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color(.tertiarySystemFill))
+                            )
+                            .animation(.easeInOut(duration: 0.2), value: tag)
+                    }
+                }
+                .padding(.top, 10)
+                .padding(.horizontal, 24)
             }
 
             if let desc = task.taskDescription, !desc.isEmpty {
