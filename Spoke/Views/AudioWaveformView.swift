@@ -26,7 +26,28 @@ struct AudioWaveformView: View {
                     )
             }
         }
-        .frame(height: maxHeight)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background {
+            if isActive {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.92))
+                    .mask(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0.0),
+                                .init(color: .black, location: 0.26),
+                                .init(color: .black, location: 0.74),
+                                .init(color: .clear, location: 1.0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .transition(.opacity)
+            }
+        }
+        .frame(height: maxHeight + 16)
         .onAppear {
             levels = Array(repeating: 0, count: barCount)
         }

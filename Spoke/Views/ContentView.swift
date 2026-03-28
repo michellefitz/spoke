@@ -47,6 +47,7 @@ struct ContentView: View {
     private let tagStore = TagStore.shared
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
+    private let bottomBarHeight: CGFloat = 132
 
     private var availableTags: [String] {
         let allowed = Set(tagStore.tags)
@@ -73,41 +74,9 @@ struct ContentView: View {
     }
 
     var body: some View {
-        ZStack {
-            List {
-                ForEach(groupedActiveTasks, id: \.0.rawValue) { (b, tasks) in
-                    Section {
-                        ForEach(tasks) { task in
-                            TaskRowView(
-                                task: task,
-                                onToggleComplete: { toggleComplete(task) },
-                                onDelete: { deleteTask(task) },
-                                onTap: { selectedTask = task }
-                            )
-                        }
-                    } header: {
-                        sectionHeader(b.rawValue)
-                    }
-                }
-
-                if !filteredCompletedTasks.isEmpty {
-                    Section {
-                        ForEach(filteredCompletedTasks) { task in
-                            TaskRowView(
-                                task: task,
-                                onToggleComplete: { toggleComplete(task) },
-                                onDelete: {},
-                                onTap: { selectedTask = task }
-                            )
-                        }
-                    } header: {
-                        sectionHeader("Completed")
-                    }
-                }
-            }
-            .listStyle(.plain)
-            .listSectionSpacing(0)
-            .safeAreaInset(edge: .top) {
+        ZStack(alignment: .bottom) {
+            taskListView
+                .safeAreaInset(edge: .top) {
                 VStack(spacing: 0) {
                     // Wordmark + settings
                     HStack {
@@ -143,41 +112,14 @@ struct ContentView: View {
                 }
                 .background(.background)
             }
-            .safeAreaInset(edge: .bottom) {
-                VStack(spacing: 4) {
-                    VoiceButton(
-                        state: voiceButtonState,
-                        audioLevel: recorder.audioLevel,
-                        onStart: handleStart,
-                        onRelease: handleRelease
-                    )
-                    .frame(maxWidth: .infinity, minHeight: 96)
+                .safeAreaPadding(.bottom, bottomBarHeight)
 
-                    if recorder.recordingState == .idle && !hasUsedVoice {
-                        Text("Tap or hold to speak")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.top, 16)
-                .padding(.bottom, -4)
-                .background(
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color(.systemBackground).opacity(0), location: 0),
-                            .init(color: Color(.systemBackground), location: 0.35),
-                            .init(color: Color(.systemBackground), location: 1.0)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .ignoresSafeArea(edges: .bottom)
-                )
-            }
+            bottomVoiceBar
         }
         .sheet(item: $selectedTask) { task in
             TaskDetailView(task: task)
                 .presentationDetents([.medium, .large])
+                .presentationBackground(Color(.systemBackground))
         }
         .sheet(isPresented: $showSettings) {
             SettingsView(tagStore: tagStore)
@@ -214,6 +156,67 @@ struct ContentView: View {
     }
 
     // MARK: - Filter pills
+
+    private var taskListView: some View {
+        List {
+            ForEach(groupedActiveTasks, id: \.0.rawValue) { (b, tasks) in
+                Section {
+                    ForEach(tasks) { task in
+                        TaskRowView(
+                            task: task,
+                            onToggleComplete: { toggleComplete(task) },
+                            onDelete: { deleteTask(task) },
+                            onTap: { selectedTask = task }
+                        )
+                    }
+                } header: {
+                    sectionHeader(b.rawValue)
+                }
+            }
+
+            if !filteredCompletedTasks.isEmpty {
+                Section {
+                    ForEach(filteredCompletedTasks) { task in
+                        TaskRowView(
+                            task: task,
+                            onToggleComplete: { toggleComplete(task) },
+                            onDelete: {},
+                            onTap: { selectedTask = task }
+                        )
+                    }
+                } header: {
+                    sectionHeader("Completed")
+                }
+            }
+        }
+        .listStyle(.plain)
+        .listSectionSpacing(0)
+    }
+
+    private var bottomVoiceBar: some View {
+        VStack(spacing: 4) {
+            VoiceButton(
+                state: voiceButtonState,
+                audioLevel: recorder.audioLevel,
+                onStart: handleStart,
+                onRelease: handleRelease
+            )
+            .frame(maxWidth: .infinity, minHeight: 96)
+
+            if recorder.recordingState == .idle && !hasUsedVoice {
+                Text("Tap or hold to speak")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+        .background {
+            BottomVoiceFade()
+                .ignoresSafeArea(edges: .bottom)
+        }
+    }
 
     private var filterPillsView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -357,8 +360,20 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Gradient blur
+// MARK: - Bottom bar background
 
-
-
-
+private struct BottomVoiceFade: View {
+    var body: some View {
+        LinearGradient(
+            stops: [
+                .init(color: Color(.systemBackground).opacity(0), location: 0.0),
+                .init(color: Color(.systemBackground).opacity(0.45), location: 0.34),
+                .init(color: Color(.systemBackground).opacity(0.82), location: 0.7),
+                .init(color: Color(.systemBackground), location: 1.0)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .allowsHitTesting(false)
+    }
+}
