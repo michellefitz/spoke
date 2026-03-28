@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import Accelerate
 
 enum RecordingState: Equatable {
     case idle
@@ -12,6 +13,7 @@ enum RecordingState: Equatable {
 final class VoiceRecorder {
     var recordingState: RecordingState = .idle
     var liveTranscript: String = ""
+    var audioLevel: Float = 0.0
 
     private var audioEngine = AVAudioEngine()
     private var webSocketTask: URLSessionWebSocketTask?
@@ -55,6 +57,7 @@ final class VoiceRecorder {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
 
         recordingState = .processing
+        audioLevel = 0.0
 
         // Return accumulated finals + any trailing interim
         var parts = finalSegments
@@ -65,6 +68,7 @@ final class VoiceRecorder {
     func finishProcessing() {
         recordingState = .idle
         liveTranscript = ""
+        audioLevel = 0.0
         finalSegments = []
         currentInterim = ""
     }
@@ -103,7 +107,16 @@ final class VoiceRecorder {
             let byteCount = Int(outBuffer.frameLength) * 2
             let audioData = Data(bytes: pcm[0], count: byteCount)
 
+            // Calculate RMS audio level from the original float buffer
+            var rms: Float = 0.0
+            if let channelData = buffer.floatChannelData?[0], buffer.frameLength > 0 {
+                vDSP_measqv(channelData, 1, &rms, vDSP_Length(buffer.frameLength))
+                rms = sqrtf(rms)
+            }
+            let normalizedLevel = min(rms * 3.0, 1.0)
+
             Task { @MainActor [weak self] in
+                self?.audioLevel = normalizedLevel
                 self?.webSocketTask?.send(.data(audioData)) { _ in }
             }
         }
