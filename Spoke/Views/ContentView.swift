@@ -49,8 +49,9 @@ struct ContentView: View {
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
 
     private var availableTags: [String] {
+        let allowed = Set(tagStore.tags)
         let allTasks = activeTasks + completedTasks
-        return Array(Set(allTasks.compactMap { $0.tag })).sorted()
+        return Array(Set(allTasks.compactMap { $0.tag }).intersection(allowed)).sorted()
     }
 
     private var filteredActiveTasks: [SpokeTask] {
@@ -133,17 +134,17 @@ struct ContentView: View {
                     }
                     .padding(.horizontal, 8)
                     .padding(.top, 14)
-                    .padding(.bottom, availableTags.isEmpty ? 4 : 14)
+                    .padding(.bottom, availableTags.isEmpty ? 4 : 8)
 
                     if !availableTags.isEmpty {
                         filterPillsView
-                            .padding(.bottom, -12)
+                            .padding(.bottom, 6)
                     }
                 }
                 .background(.background)
             }
             .safeAreaInset(edge: .bottom) {
-                VStack(spacing: 8) {
+                VStack(spacing: 4) {
                     VoiceButton(
                         state: voiceButtonState,
                         audioLevel: recorder.audioLevel,
@@ -152,32 +153,25 @@ struct ContentView: View {
                     )
                     .frame(maxWidth: .infinity, minHeight: 96)
 
-                    ZStack {
-                        if recorder.recordingState == .recording {
-                            Text("Listening...")
-                                .font(.caption)
-                                .foregroundStyle(coral)
-                        } else if recorder.recordingState == .idle && !hasUsedVoice {
-                            Text("Tap or hold to speak")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                    if recorder.recordingState == .idle && !hasUsedVoice {
+                        Text("Tap or hold to speak")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .frame(height: 16)
-                    .animation(.easeInOut(duration: 0.2), value: recorder.recordingState)
                 }
-                .padding(.top, 12)
-                .padding(.bottom, 4)
+                .padding(.top, 16)
+                .padding(.bottom, -4)
                 .background(
                     LinearGradient(
                         stops: [
                             .init(color: Color(.systemBackground).opacity(0), location: 0),
-                            .init(color: Color(.systemBackground).opacity(0.75), location: 0.4),
-                            .init(color: Color(.systemBackground).opacity(0.75), location: 1.0)
+                            .init(color: Color(.systemBackground), location: 0.35),
+                            .init(color: Color(.systemBackground), location: 1.0)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
+                    .ignoresSafeArea(edges: .bottom)
                 )
             }
         }
@@ -187,7 +181,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showSettings) {
             SettingsView(tagStore: tagStore)
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])
                 .presentationBackground(.background.opacity(0.92))
         }
         .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
@@ -204,6 +198,14 @@ struct ContentView: View {
         .onChange(of: availableTags) { _, tags in
             if let selected = selectedTag, !tags.contains(selected) {
                 selectedTag = nil
+            }
+        }
+        .onChange(of: tagStore.tags) { _, allowed in
+            let allowedSet = Set(allowed)
+            for task in activeTasks + completedTasks {
+                if let tag = task.tag, !allowedSet.contains(tag) {
+                    task.tag = nil
+                }
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -354,3 +356,9 @@ struct ContentView: View {
         try? modelContext.delete(model: SpokeTask.self, where: predicate)
     }
 }
+
+// MARK: - Gradient blur
+
+
+
+
