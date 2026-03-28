@@ -48,35 +48,37 @@ struct TaskRowView: View {
 
             Spacer()
 
-            if let deadline = task.deadline {
-                Text(Self.deadlineFormatter.string(from: deadline).uppercased())
-                    .font(.system(size: 10, weight: .semibold, design: .default))
-                    .foregroundStyle(task.isCompleted ? coral.opacity(0.4) : coral)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(coral.opacity(task.isCompleted ? 0.06 : 0.12))
-                    )
-            }
+            HStack(spacing: 4) {
+                if let deadline = task.deadline {
+                    Text(Self.deadlineFormatter.string(from: deadline).uppercased())
+                        .font(.system(size: 10, weight: .semibold, design: .default))
+                        .foregroundStyle(task.isCompleted ? coral.opacity(0.4) : coral)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(coral.opacity(task.isCompleted ? 0.06 : 0.12))
+                        )
+                }
 
-            if let tag = task.tag {
-                Text(tag.uppercased())
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(task.isCompleted ? Color(.secondaryLabel).opacity(0.4) : Color(.secondaryLabel))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color(.tertiarySystemFill).opacity(task.isCompleted ? 0.5 : 1.0))
-                    )
+                if let tag = task.tag {
+                    Text(tag.uppercased())
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(task.isCompleted ? Color(.secondaryLabel).opacity(0.4) : Color(.secondaryLabel))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color(.tertiarySystemFill).opacity(task.isCompleted ? 0.5 : 1.0))
+                        )
+                }
             }
 
             if !task.isCompleted,
                let desc = task.taskDescription, !desc.isEmpty {
-                Image(systemName: "note.text")
-                    .font(.system(size: 11))
-                    .foregroundStyle(coral.opacity(0.7))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color(.tertiaryLabel))
             }
         }
         .contentShape(Rectangle())

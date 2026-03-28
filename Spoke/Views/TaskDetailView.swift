@@ -94,7 +94,7 @@ struct TaskDetailView: View {
             .frame(maxWidth: .infinity)
             .padding(.bottom, 20)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 4) {
                 VoiceButton(
                     state: voiceButtonState,
                     audioLevel: recorder.audioLevel,
@@ -103,21 +103,13 @@ struct TaskDetailView: View {
                 )
                 .frame(maxWidth: .infinity, minHeight: 96)
 
-                ZStack {
-                    if recorder.recordingState == .recording {
-                        Text("Listening...")
-                            .font(.caption)
-                            .foregroundStyle(coral)
-                    } else if recorder.recordingState == .idle && !hasEditedTask {
-                        Text("Tap or hold to edit task")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                if recorder.recordingState == .idle && !hasEditedTask {
+                    Text("Tap or hold to edit task")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .frame(height: 16)
-                .animation(.easeInOut(duration: 0.2), value: recorder.recordingState)
             }
-            .padding(.bottom, 12)
+            .padding(.bottom, -4)
         }
         .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
             Button("Open Settings") {
