@@ -14,6 +14,7 @@ enum TaskParser {
             return ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)
         }
         let today = isoToday()
+        let tagInstruction = tagPromptInstruction()
         return await callClaude(
             system: """
             Today's date is \(today). You are a task parser. Given a voice transcript, extract a concise task title, an optional description, an optional deadline date, and an optional category tag. \
@@ -24,7 +25,7 @@ enum TaskParser {
             - Use plain prose (no bullets) for a single sentence of context. \
             - Omit description entirely if there is nothing meaningful beyond the title. \
             - If the user mentions a date or deadline (e.g. "by next Wednesday", "on Tuesday", "before April 20", "this Friday"), resolve it relative to today and include it as "deadline" in YYYY-MM-DD format. Omit "deadline" if no date is mentioned. \
-            - If the task clearly belongs to one of these categories, include it as "tag": work, personal, health, finance, errands. Omit "tag" if unsure. \
+            - \(tagInstruction) \
             Return ONLY valid JSON, no markdown, no code fences, no commentary. \
             Examples: {"title": "…"} or {"title": "…", "description": "…", "deadline": "YYYY-MM-DD", "tag": "work"}
             """,
@@ -35,6 +36,7 @@ enum TaskParser {
     static func parseEdit(transcript: String, currentTitle: String, currentDescription: String?, currentDeadline: Date? = nil, currentTag: String? = nil) async -> ParsedTask {
         let desc = currentDescription ?? "none"
         let today = isoToday()
+        let tagInstruction = tagPromptInstruction()
         let deadlineStr = currentDeadline.map { isoFormatter.string(from: $0) } ?? "none"
         let tagStr = currentTag ?? "none"
         return await callClaude(
@@ -49,7 +51,7 @@ enum TaskParser {
             - Use plain prose (no bullets) for a single sentence of context. \
             - Omit description if nothing meaningful exists beyond the title. \
             - If the voice mentions a date or deadline, resolve it relative to today and include as "deadline" in YYYY-MM-DD format. Preserve the existing deadline if no new date is mentioned and existing deadline is not "none". Omit "deadline" if there is none. \
-            - Preserve the existing tag if it still fits. Update it only if the voice clearly implies a different category (work, personal, health, finance, errands). Omit "tag" if none applies. \
+            - Preserve the existing tag if it still fits. \(tagInstruction) \
             Return ONLY valid JSON, no markdown, no code fences, no commentary. \
             Example: {"title": "…", "description": "…", "deadline": "YYYY-MM-DD", "tag": "work"}
             """,
@@ -145,12 +147,20 @@ enum TaskParser {
         }
         let tag: String?
         if let t = json["tag"] as? String, !t.isEmpty {
-            let allowed = ["work", "personal", "health", "finance", "errands"]
-            tag = allowed.contains(t) ? t : nil
+            let allowed = TagStore.shared.tags
+            tag = allowed.contains(t.lowercased()) ? t.lowercased() : nil
         } else {
             tag = nil
         }
         return ParsedTask(title: title, description: description?.isEmpty == true ? nil : description, deadline: deadline, tag: tag)
+    }
+
+    private static func tagPromptInstruction() -> String {
+        let tags = TagStore.shared.tags
+        if tags.isEmpty {
+            return "Do not include a \"tag\" field."
+        }
+        return "If the task clearly belongs to one of these categories, include it as \"tag\": \(tags.joined(separator: ", ")). Omit \"tag\" if unsure."
     }
 
     private static let isoFormatter: DateFormatter = {

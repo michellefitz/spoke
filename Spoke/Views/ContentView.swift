@@ -32,7 +32,7 @@ struct ContentView: View {
 
     @Query(
         filter: #Predicate<SpokeTask> { $0.isCompleted == true },
-        sort: [SortDescriptor(\SpokeTask.createdAt, order: .reverse)]
+        sort: [SortDescriptor(\SpokeTask.completedAt, order: .reverse)]
     )
     private var completedTasks: [SpokeTask]
 
@@ -43,6 +43,8 @@ struct ContentView: View {
     @State private var showPermissionAlert = false
     @State private var tapModeActive = false
     @State private var selectedTag: String? = nil
+    @State private var showSettings = false
+    private let tagStore = TagStore.shared
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
 
@@ -103,25 +105,39 @@ struct ContentView: View {
                 }
             }
             .listStyle(.plain)
+            .listSectionSpacing(0)
             .safeAreaInset(edge: .top) {
                 VStack(spacing: 0) {
-                    // Wordmark
-                    HStack(spacing: 4) {
-                        Text("spoke")
-                            .font(.callout)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.primary)
-                        Circle()
-                            .fill(coral)
-                            .frame(width: 5, height: 5)
+                    // Wordmark + settings
+                    HStack {
+                        Spacer()
+                            .frame(width: 44)
+
+                        HStack(spacing: 4) {
+                            Text("spoke")
+                                .font(.callout)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                            Circle()
+                                .fill(coral)
+                                .frame(width: 5, height: 5)
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        Button { showSettings = true } label: {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(coral)
+                        }
+                        .frame(width: 44)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 8)
-                    .padding(.bottom, availableTags.isEmpty ? 10 : 8)
+                    .padding(.horizontal, 8)
+                    .padding(.top, 14)
+                    .padding(.bottom, availableTags.isEmpty ? 4 : 14)
 
                     if !availableTags.isEmpty {
                         filterPillsView
-                            .padding(.bottom, 10)
+                            .padding(.bottom, -12)
                     }
                 }
                 .background(.background)
@@ -134,9 +150,9 @@ struct ContentView: View {
                         onStart: handleStart,
                         onRelease: handleRelease
                     )
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 96)
 
-                    Group {
+                    ZStack {
                         if recorder.recordingState == .recording {
                             Text("Listening...")
                                 .font(.caption)
@@ -147,15 +163,32 @@ struct ContentView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    .frame(height: 16)
                     .animation(.easeInOut(duration: 0.2), value: recorder.recordingState)
                 }
-                .padding(.bottom, 24)
-                .background(.clear)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+                .background(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(.systemBackground).opacity(0), location: 0),
+                            .init(color: Color(.systemBackground).opacity(0.75), location: 0.4),
+                            .init(color: Color(.systemBackground).opacity(0.75), location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
             }
         }
         .sheet(item: $selectedTask) { task in
             TaskDetailView(task: task)
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView(tagStore: tagStore)
+                .presentationDetents([.medium, .large])
+                .presentationBackground(.background.opacity(0.92))
         }
         .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
             Button("Open Settings") {
