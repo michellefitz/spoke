@@ -132,3 +132,32 @@ struct TaskRowView: View {
         }
     }
 }
+
+#Preview {
+    List {
+        TaskRowView(
+            task: SpokeTask(title: "Book karate class for Alex", taskDescription: "• Find local dojos", deadline: Calendar.current.date(byAdding: .day, value: 7, to: .now), tag: "personal"),
+            onToggleComplete: {},
+            onDelete: {},
+            onTap: {}
+        )
+        TaskRowView(
+            task: SpokeTask(title: "Pick up groceries", tag: "errands"),
+            onToggleComplete: {},
+            onDelete: {},
+            onTap: {}
+        )
+        TaskRowView(
+            task: {
+                let t = SpokeTask(title: "File taxes", tag: "finance")
+                t.isCompleted = true
+                t.completedAt = Date.now.addingTimeInterval(-3600)
+                return t
+            }(),
+            onToggleComplete: {},
+            onDelete: {},
+            onTap: {}
+        )
+    }
+    .modelContainer(for: SpokeTask.self, inMemory: true)
+}
