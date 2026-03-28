@@ -47,12 +47,18 @@ struct ContentView: View {
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
 
     private var availableTags: [String] {
-        Array(Set(activeTasks.compactMap { $0.tag })).sorted()
+        let allTasks = activeTasks + completedTasks
+        return Array(Set(allTasks.compactMap { $0.tag })).sorted()
     }
 
     private var filteredActiveTasks: [SpokeTask] {
         guard let tag = selectedTag else { return activeTasks }
         return activeTasks.filter { $0.tag == tag }
+    }
+
+    private var filteredCompletedTasks: [SpokeTask] {
+        guard let tag = selectedTag else { return completedTasks }
+        return completedTasks.filter { $0.tag == tag }
     }
 
     // Group active tasks by time bucket, dropping empty buckets
@@ -81,9 +87,9 @@ struct ContentView: View {
                     }
                 }
 
-                if !completedTasks.isEmpty {
+                if !filteredCompletedTasks.isEmpty {
                     Section {
-                        ForEach(completedTasks) { task in
+                        ForEach(filteredCompletedTasks) { task in
                             TaskRowView(
                                 task: task,
                                 onToggleComplete: { toggleComplete(task) },
