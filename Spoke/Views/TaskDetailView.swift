@@ -49,6 +49,21 @@ struct TaskDetailView: View {
                     .animation(.easeInOut(duration: 0.2), value: deadline)
             }
 
+            if let tag = task.tag, !tag.isEmpty {
+                Text(tag.uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color(.secondaryLabel))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color(.tertiarySystemFill))
+                    )
+                    .padding(.top, 10)
+                    .padding(.horizontal, 24)
+                    .animation(.easeInOut(duration: 0.2), value: tag)
+            }
+
             if let desc = task.taskDescription, !desc.isEmpty {
                 DescriptionItemsView(description: desc) { updated in
                     withAnimation(.easeInOut(duration: 0.2)) {
