@@ -18,6 +18,35 @@ private func bucket(for task: SpokeTask) -> TaskBucket {
     return .earlier
 }
 
+// MARK: - Sort mode
+
+private enum SortMode: String {
+    case dateAdded = "dateAdded"
+    case dueDate   = "dueDate"
+}
+
+private enum DeadlineBucket: String, CaseIterable {
+    case today      = "Today"
+    case tomorrow   = "Tomorrow"
+    case thisWeek   = "This Week"
+    case nextWeek   = "Next Week"
+    case later      = "Later"
+    case noDueDate  = "No Due Date"
+}
+
+private func deadlineBucket(for task: SpokeTask) -> DeadlineBucket {
+    guard let deadline = task.deadline else { return .noDueDate }
+    let cal = Calendar.current
+    if cal.isDateInToday(deadline)    { return .today }
+    if cal.isDateInTomorrow(deadline) { return .tomorrow }
+    if cal.isDate(deadline, equalTo: .now, toGranularity: .weekOfYear) { return .thisWeek }
+    if let nextWeek = cal.date(byAdding: .weekOfYear, value: 1, to: .now),
+       cal.isDate(deadline, equalTo: nextWeek, toGranularity: .weekOfYear) {
+        return .nextWeek
+    }
+    return .later
+}
+
 // MARK: - ContentView
 
 struct ContentView: View {
@@ -36,7 +65,7 @@ struct ContentView: View {
     )
     private var completedTasks: [SpokeTask]
 
-    @AppStorage("hasUsedVoice") private var hasUsedVoice = false
+    @AppStorage("sortMode") private var sortMode: SortMode = .dateAdded
 
     @State private var recorder = VoiceRecorder()
     @State private var selectedTask: SpokeTask?
@@ -46,6 +75,7 @@ struct ContentView: View {
     @State private var showSettings = false
     private let tagStore = TagStore.shared
 
+    private var hasTasks: Bool { !activeTasks.isEmpty || !completedTasks.isEmpty }
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let bottomBarHeight: CGFloat = 132
 
@@ -73,6 +103,16 @@ struct ContentView: View {
         }
     }
 
+    // Group active tasks by deadline bucket, sorted by deadline within each bucket
+    private var deadlineGroupedActiveTasks: [(DeadlineBucket, [SpokeTask])] {
+        DeadlineBucket.allCases.compactMap { b in
+            let tasks = filteredActiveTasks
+                .filter { deadlineBucket(for: $0) == b }
+                .sorted { ($0.deadline ?? .distantFuture) < ($1.deadline ?? .distantFuture) }
+            return tasks.isEmpty ? nil : (b, tasks)
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             taskListView
@@ -85,8 +125,7 @@ struct ContentView: View {
 
                         HStack(spacing: 4) {
                             Text("spoke")
-                                .font(.callout)
-                                .fontWeight(.semibold)
+                                .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(.primary)
                             Circle()
                                 .fill(coral)
@@ -94,20 +133,24 @@ struct ContentView: View {
                         }
                         .frame(maxWidth: .infinity)
 
-                        Button { showSettings = true } label: {
-                            Image(systemName: "gearshape")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundStyle(coral)
+                        if !hasTasks {
+                            Spacer().frame(width: 44)
+                        } else {
+                            Button { showSettings = true } label: {
+                                Image(systemName: "ellipsis")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundStyle(coral)
+                            }
+                            .frame(width: 44)
                         }
-                        .frame(width: 44)
                     }
                     .padding(.horizontal, 8)
                     .padding(.top, 14)
-                    .padding(.bottom, availableTags.isEmpty ? 4 : 8)
+                    .padding(.bottom, hasTasks ? 10 : 6)
 
-                    if !availableTags.isEmpty {
+                    if hasTasks {
                         filterPillsView
-                            .padding(.bottom, 6)
+                            .padding(.bottom, 0)
                     }
                 }
                 .background(.background)
@@ -158,39 +201,146 @@ struct ContentView: View {
     // MARK: - Filter pills
 
     private var taskListView: some View {
-        List {
-            ForEach(groupedActiveTasks, id: \.0.rawValue) { (b, tasks) in
-                Section {
-                    ForEach(tasks) { task in
-                        TaskRowView(
-                            task: task,
-                            onToggleComplete: { toggleComplete(task) },
-                            onDelete: { deleteTask(task) },
-                            onTap: { selectedTask = task }
-                        )
+        Group {
+            if activeTasks.isEmpty && completedTasks.isEmpty {
+                emptyStateView
+            } else {
+                List {
+                    if sortMode == .dateAdded {
+                        ForEach(groupedActiveTasks, id: \.0.rawValue) { (b, tasks) in
+                            Section {
+                                ForEach(tasks) { task in
+                                    TaskRowView(
+                                        task: task,
+                                        onToggleComplete: { toggleComplete(task) },
+                                        onDelete: { deleteTask(task) },
+                                        onTap: { selectedTask = task }
+                                    )
+                                }
+                            } header: {
+                                sectionHeader(b.rawValue)
+                            }
+                        }
+                    } else {
+                        ForEach(deadlineGroupedActiveTasks, id: \.0.rawValue) { (b, tasks) in
+                            Section {
+                                ForEach(Array(tasks.enumerated()), id: \.element.id) { _, task in
+                                    TaskRowView(
+                                        task: task,
+                                        onToggleComplete: { toggleComplete(task) },
+                                        onDelete: { deleteTask(task) },
+                                        onTap: { selectedTask = task }
+                                    )
+                                }
+                            } header: {
+                                sectionHeader(b.rawValue)
+                            }
+                        }
                     }
-                } header: {
-                    sectionHeader(b.rawValue)
-                }
-            }
 
-            if !filteredCompletedTasks.isEmpty {
-                Section {
-                    ForEach(filteredCompletedTasks) { task in
-                        TaskRowView(
-                            task: task,
-                            onToggleComplete: { toggleComplete(task) },
-                            onDelete: {},
-                            onTap: { selectedTask = task }
-                        )
+                    if !filteredCompletedTasks.isEmpty {
+                        Section {
+                            ForEach(filteredCompletedTasks) { task in
+                                TaskRowView(
+                                    task: task,
+                                    onToggleComplete: { toggleComplete(task) },
+                                    onDelete: {},
+                                    onTap: { selectedTask = task }
+                                )
+                            }
+                        } header: {
+                            sectionHeader("Completed")
+                        }
                     }
-                } header: {
-                    sectionHeader("Completed")
                 }
+                .listStyle(.plain)
+                .listSectionSpacing(0)
             }
         }
-        .listStyle(.plain)
-        .listSectionSpacing(0)
+    }
+
+    private var emptyStateView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            // Task list illustration
+            VStack(alignment: .leading, spacing: 10) {
+                // Checked task row
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(coral.opacity(0.2))
+                        .frame(width: 18, height: 18)
+                        .overlay(
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(coral.opacity(0.5))
+                        )
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray4).opacity(0.5))
+                        .frame(width: 110, height: 8)
+                }
+
+                // Unchecked task row
+                HStack(spacing: 10) {
+                    Circle()
+                        .strokeBorder(Color(.systemGray4), lineWidth: 1.5)
+                        .frame(width: 18, height: 18)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray4).opacity(0.5))
+                        .frame(width: 140, height: 8)
+                }
+
+                // Checked task row
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(coral.opacity(0.2))
+                        .frame(width: 18, height: 18)
+                        .overlay(
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(coral.opacity(0.5))
+                        )
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray4).opacity(0.5))
+                        .frame(width: 90, height: 8)
+                }
+
+                // Unchecked task row
+                HStack(spacing: 10) {
+                    Circle()
+                        .strokeBorder(Color(.systemGray4), lineWidth: 1.5)
+                        .frame(width: 18, height: 18)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray4).opacity(0.5))
+                        .frame(width: 120, height: 8)
+                }
+
+                // Unchecked task row
+                HStack(spacing: 10) {
+                    Circle()
+                        .strokeBorder(Color(.systemGray4), lineWidth: 1.5)
+                        .frame(width: 18, height: 18)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray4).opacity(0.5))
+                        .frame(width: 100, height: 8)
+                }
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(Color(.systemGray4).opacity(0.4), lineWidth: 1)
+            )
+
+            Text("Tap or hold the mic to add your first task.")
+                .font(.subheadline)
+                .foregroundStyle(Color(.systemGray2))
+                .multilineTextAlignment(.center)
+
+            Spacer()
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 40)
     }
 
     private var bottomVoiceBar: some View {
@@ -202,12 +352,6 @@ struct ContentView: View {
                 onRelease: handleRelease
             )
             .frame(maxWidth: .infinity, minHeight: 96)
-
-            if recorder.recordingState == .idle && !hasUsedVoice {
-                Text("Tap or hold to speak")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
@@ -219,14 +363,58 @@ struct ContentView: View {
     }
 
     private var filterPillsView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                filterPill(label: "All", tag: nil)
-                ForEach(availableTags, id: \.self) { tag in
-                    filterPill(label: tag.capitalized, tag: tag)
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    if !availableTags.isEmpty {
+                        filterPill(label: "All", tag: nil)
+                        ForEach(availableTags, id: \.self) { tag in
+                            filterPill(label: tag.capitalized, tag: tag)
+                        }
+                    }
                 }
+                .padding(.leading, 16)
+                .padding(.trailing, 8)
             }
-            .padding(.horizontal, 16)
+            .mask(
+                HStack(spacing: 0) {
+                    Color.black
+                    LinearGradient(
+                        colors: [.black, .clear],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: 24)
+                }
+            )
+
+            sortToggleButton
+                .padding(.trailing, 16)
+        }
+    }
+
+    private var sortToggleButton: some View {
+        Menu {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    sortMode = .dateAdded
+                }
+            } label: {
+                Label("Sort by date added", systemImage: sortMode == .dateAdded ? "checkmark" : "")
+            }
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    sortMode = .dueDate
+                }
+            } label: {
+                Label("Sort by due date", systemImage: sortMode == .dueDate ? "checkmark" : "")
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(sortMode == .dueDate ? coral : Color(.secondaryLabel))
+                .frame(width: 32, height: 32)
         }
     }
 
@@ -322,7 +510,6 @@ struct ContentView: View {
             modelContext.insert(task)
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            hasUsedVoice = true
         }
     }
 
@@ -377,3 +564,8 @@ private struct BottomVoiceFade: View {
         .allowsHitTesting(false)
     }
 }
+#Preview {
+    ContentView()
+        .modelContainer(for: SpokeTask.self, inMemory: true)
+}
+

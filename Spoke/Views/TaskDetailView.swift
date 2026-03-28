@@ -16,7 +16,6 @@ struct TaskDetailView: View {
         f.unitsStyle = .full
         return f
     }()
-    @AppStorage("hasEditedTask") private var hasEditedTask = false
 
     private static let deadlineFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -109,12 +108,6 @@ struct TaskDetailView: View {
                     onRelease: handleRelease
                 )
                 .frame(maxWidth: .infinity, minHeight: 96)
-
-                if recorder.recordingState == .idle && !hasEditedTask {
-                    Text("Tap or hold to edit task")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
             .padding(.bottom, -4)
         }
@@ -198,7 +191,6 @@ struct TaskDetailView: View {
             }
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            hasEditedTask = true
         }
     }
 }
@@ -283,4 +275,16 @@ private struct DescriptionItemsView: View {
         }
         return lines.joined(separator: "\n")
     }
+}
+
+#Preview("With description") {
+    let task = SpokeTask(title: "Book karate class for Alex", taskDescription: "• Find local dojos\n• Compare prices\n• Book trial class", deadline: Calendar.current.date(byAdding: .day, value: 7, to: .now), tag: "personal")
+    TaskDetailView(task: task)
+        .modelContainer(for: SpokeTask.self, inMemory: true)
+}
+
+#Preview("No description") {
+    let task = SpokeTask(title: "Pick up groceries", tag: "errands")
+    TaskDetailView(task: task)
+        .modelContainer(for: SpokeTask.self, inMemory: true)
 }
