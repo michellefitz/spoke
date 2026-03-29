@@ -16,12 +16,13 @@ struct VoiceButton: View {
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     @State private var pressStart: Date?
+    @State private var pulseScale: CGFloat = 1.0
+    @State private var pulseOpacity: Double = 0.15
 
     var body: some View {
         HStack(spacing: 8) {
-            // Left waveform (mirrored so bars flow toward center)
+            // Left waveform (newest bars near center, flows outward)
             AudioWaveformView(audioLevel: audioLevel, isActive: state == .recording)
-                .scaleEffect(x: -1, y: 1)
                 .opacity(state == .recording ? 1 : 0)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: state)
 
@@ -29,8 +30,22 @@ struct VoiceButton: View {
             ZStack {
                 if state == .recording {
                     Circle()
-                        .fill(coral.opacity(0.15))
+                        .fill(coral.opacity(pulseOpacity))
                         .frame(width: 96, height: 96)
+                        .scaleEffect(pulseScale)
+                        .onAppear {
+                            withAnimation(
+                                .easeInOut(duration: 1.1)
+                                .repeatForever(autoreverses: true)
+                            ) {
+                                pulseScale = 1.17
+                                pulseOpacity = 0.07
+                            }
+                        }
+                        .onDisappear {
+                            pulseScale = 1.0
+                            pulseOpacity = 0.15
+                        }
                 }
 
                 Circle()
@@ -58,8 +73,9 @@ struct VoiceButton: View {
                     .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state)
             }
 
-            // Right waveform
+            // Right waveform (mirrored so newest bars are near center, flows outward)
             AudioWaveformView(audioLevel: audioLevel, isActive: state == .recording)
+                .scaleEffect(x: -1, y: 1)
                 .opacity(state == .recording ? 1 : 0)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: state)
         }

@@ -12,7 +12,6 @@ struct AudioWaveformView: View {
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
 
     @State private var levels: [Float] = []
-    @State private var timer: Timer?
 
     var body: some View {
         HStack(spacing: barSpacing) {
@@ -21,7 +20,7 @@ struct AudioWaveformView: View {
                     .fill(coral.opacity(0.7))
                     .frame(width: barWidth, height: barHeight(for: i))
                     .animation(
-                        .spring(response: 0.15, dampingFraction: 0.7),
+                        .spring(response: 0.12, dampingFraction: 0.65),
                         value: levels
                     )
             }
@@ -52,38 +51,22 @@ struct AudioWaveformView: View {
             levels = Array(repeating: 0, count: barCount)
         }
         .onChange(of: isActive) { _, active in
-            if active {
-                startPolling()
-            } else {
-                stopPolling()
+            if !active {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                     levels = Array(repeating: 0, count: barCount)
                 }
             }
         }
-    }
-
-    private func startPolling() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.07, repeats: true) { _ in
-            Task { @MainActor in
-                guard isActive else { return }
-                // Add slight variation so bars feel organic
-                let jitter = Float.random(in: -0.08...0.08)
-                let level = max(0, min(1, audioLevel + jitter))
-                var updated = levels
-                if updated.count >= barCount {
-                    updated.removeFirst()
-                }
-                updated.append(level)
-                levels = updated
-            }
+        .onChange(of: audioLevel) { _, newLevel in
+            guard isActive else { return }
+            // Multiplicative jitter: silence stays silent, loud speech has natural variation
+            let jitter = Float.random(in: 0.82...1.18)
+            let level = min(newLevel * jitter, 1.0)
+            var updated = levels.isEmpty ? Array(repeating: Float(0), count: barCount) : levels
+            if updated.count >= barCount { updated.removeFirst() }
+            updated.append(level)
+            levels = updated
         }
-    }
-
-    private func stopPolling() {
-        timer?.invalidate()
-        timer = nil
     }
 
     private func barHeight(for index: Int) -> CGFloat {

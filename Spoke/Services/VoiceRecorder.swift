@@ -113,7 +113,8 @@ final class VoiceRecorder {
                 vDSP_measqv(channelData, 1, &rms, vDSP_Length(buffer.frameLength))
                 rms = sqrtf(rms)
             }
-            let normalizedLevel = min(rms * 3.0, 1.0)
+            // Power curve: sensitive at low levels, soft ceiling at loud levels
+            let normalizedLevel = min(1.0 - exp(-rms * 20.0), 1.0)
 
             Task { @MainActor [weak self] in
                 self?.audioLevel = normalizedLevel
