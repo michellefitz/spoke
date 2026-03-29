@@ -24,6 +24,22 @@ struct TaskDetailView: View {
         return f
     }()
 
+    private static let ordinalFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .ordinal
+        return f
+    }()
+
+    private var metadataDateString: String {
+        if task.isCompleted, let completedAt = task.completedAt {
+            return "Completed \(relativeFormatter.localizedString(for: completedAt, relativeTo: .now))"
+        }
+        let day = Calendar.current.component(.day, from: task.createdAt)
+        let ordinal = Self.ordinalFormatter.string(from: NSNumber(value: day)) ?? "\(day)"
+        let month = task.createdAt.formatted(.dateTime.month(.abbreviated))
+        return "Added \(ordinal) \(month)"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(task.title)
@@ -33,37 +49,42 @@ struct TaskDetailView: View {
                 .padding(.horizontal, 24)
                 .animation(.easeInOut(duration: 0.3), value: task.title)
 
-            if task.deadline != nil || (task.tag != nil && !task.tag!.isEmpty) {
-                HStack(spacing: 6) {
-                    if let deadline = task.deadline {
-                        Text(Self.deadlineFormatter.string(from: deadline).uppercased())
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(coral)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(coral.opacity(0.12))
-                            )
-                            .animation(.easeInOut(duration: 0.2), value: deadline)
-                    }
-
-                    if let tag = task.tag, !tag.isEmpty {
-                        Text(tag.uppercased())
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(.secondaryLabel))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color(.tertiarySystemFill))
-                            )
-                            .animation(.easeInOut(duration: 0.2), value: tag)
-                    }
+            HStack(spacing: 6) {
+                if let deadline = task.deadline {
+                    Text(Self.deadlineFormatter.string(from: deadline).uppercased())
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(coral)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(coral.opacity(0.12))
+                        )
+                        .animation(.easeInOut(duration: 0.2), value: deadline)
                 }
-                .padding(.top, 10)
-                .padding(.horizontal, 24)
+
+                if let tag = task.tag, !tag.isEmpty {
+                    Text(tag.uppercased())
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color(.secondaryLabel))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color(.tertiarySystemFill))
+                        )
+                        .animation(.easeInOut(duration: 0.2), value: tag)
+                }
+
+                Spacer()
+
+                Text(metadataDateString)
+                    .font(.caption)
+                    .italic()
+                    .foregroundStyle(Color(.secondaryLabel))
             }
+            .padding(.top, 10)
+            .padding(.horizontal, 24)
 
             if let desc = task.taskDescription, !desc.isEmpty {
                 DescriptionItemsView(description: desc) { updated in
@@ -85,20 +106,6 @@ struct TaskDetailView: View {
             }
 
             Spacer()
-
-            Group {
-                if task.isCompleted, let completedAt = task.completedAt {
-                    Text("Added \(task.createdAt.formatted(.dateTime.month(.abbreviated).day())) · Completed \(relativeFormatter.localizedString(for: completedAt, relativeTo: .now))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Added \(task.createdAt.formatted(.dateTime.month(.abbreviated).day()))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.bottom, 20)
 
             VStack(spacing: 4) {
                 VoiceButton(

@@ -11,6 +11,15 @@ struct TaskRowView: View {
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
 
+    private var subtaskCounts: (done: Int, total: Int)? {
+        guard let desc = task.taskDescription else { return nil }
+        let lines = desc.components(separatedBy: "\n")
+        let total = lines.filter { $0.hasPrefix("• ") || $0.hasPrefix("✓ ") }.count
+        guard total > 0 else { return nil }
+        let done = lines.filter { $0.hasPrefix("✓ ") }.count
+        return (done, total)
+    }
+
     private static let deadlineFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "MMM d"
@@ -74,12 +83,11 @@ struct TaskRowView: View {
                 }
             }
 
-            if !task.isCompleted,
-               let desc = task.taskDescription, !desc.isEmpty {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color(.tertiaryLabel))
-            }
+            let showChevron = !task.isCompleted && !(task.taskDescription ?? "").isEmpty
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Color(.tertiaryLabel))
+                .opacity(showChevron ? 1 : 0)
         }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }

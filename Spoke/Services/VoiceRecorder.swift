@@ -95,7 +95,7 @@ final class VoiceRecorder {
             let outFrames = AVAudioFrameCount(max(1, Double(buffer.frameLength) * ratio))
             guard let outBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: outFrames) else { return }
 
-            var provided = false
+            nonisolated(unsafe) var provided = false
             converter.convert(to: outBuffer, error: nil) { _, status in
                 if provided { status.pointee = .noDataNow; return nil }
                 status.pointee = .haveData
