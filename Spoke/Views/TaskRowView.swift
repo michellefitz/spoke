@@ -11,6 +11,7 @@ struct TaskRowView: View {
     @State private var pendingComplete = false
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
+    private let settings = AppSettings.shared
 
     private var subtaskCounts: (done: Int, total: Int)? {
         guard let desc = task.taskDescription else { return nil }
@@ -77,9 +78,11 @@ struct TaskRowView: View {
                         .padding(.leading, 4)
                 }
 
-                if task.tag != nil || task.deadline != nil {
+                let showDeadline = task.deadline != nil && settings.appMode == .organized && settings.showDueDates
+                let showTag = task.tag != nil && settings.appMode == .organized && settings.showTags
+                if showDeadline || showTag {
                     HStack(spacing: 4) {
-                        if let deadline = task.deadline {
+                        if showDeadline, let deadline = task.deadline {
                             Text(deadlineLabel(for: deadline))
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(task.isCompleted ? coral.opacity(0.4) : coral)
@@ -91,7 +94,7 @@ struct TaskRowView: View {
                                 )
                         }
 
-                        if let tag = task.tag {
+                        if showTag, let tag = task.tag {
                             Text(tag.uppercased())
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(task.isCompleted ? Color(.secondaryLabel).opacity(0.4) : Color(.secondaryLabel))
@@ -103,6 +106,10 @@ struct TaskRowView: View {
                                 )
                         }
                     }
+                }
+
+                if settings.appMode == .organized && settings.expandSubtasks && !task.isCompleted {
+                    InlineChecklistView(task: task, coral: coral)
                 }
             }
         }
@@ -156,6 +163,53 @@ struct TaskRowView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - InlineChecklistView
+
+private struct InlineChecklistView: View {
+    @Bindable var task: SpokeTask
+    let coral: Color
+
+    var body: some View {
+        let lines = (task.taskDescription ?? "").components(separatedBy: "\n")
+        let bullets = lines.filter { $0.hasPrefix("• ") || $0.hasPrefix("✓ ") }
+        if !bullets.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(Array(bullets.enumerated()), id: \.offset) { _, line in
+                    let isDone = line.hasPrefix("✓ ")
+                    let text = String(line.dropFirst(2))
+                    Button {
+                        toggleBullet(line)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 13))
+                                .foregroundStyle(isDone ? coral : Color(.tertiaryLabel))
+                            Text(text)
+                                .font(.system(size: 13))
+                                .foregroundStyle(isDone ? Color(.tertiaryLabel) : Color(.secondaryLabel))
+                                .strikethrough(isDone)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    private func toggleBullet(_ line: String) {
+        guard var desc = task.taskDescription else { return }
+        if line.hasPrefix("• ") {
+            let toggled = "✓ " + line.dropFirst(2)
+            desc = desc.replacingOccurrences(of: line, with: toggled)
+        } else if line.hasPrefix("✓ ") {
+            let toggled = "• " + line.dropFirst(2)
+            desc = desc.replacingOccurrences(of: line, with: toggled)
+        }
+        task.taskDescription = desc
     }
 }
 
