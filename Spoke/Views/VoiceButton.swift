@@ -9,13 +9,9 @@ enum VoiceButtonState {
 struct VoiceButton: View {
     let state: VoiceButtonState
     let audioLevel: Float
-    let onStart: () -> Void
-    /// Called when the gesture ends. `elapsed` is how long the button was held.
-    /// < 0.3 s = tap gesture; ≥ 0.3 s = hold gesture.
-    let onRelease: (_ elapsed: TimeInterval) -> Void
+    let onTap: () -> Void
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
-    @State private var pressStart: Date?
     @State private var pulseScale: CGFloat = 1.0
     @State private var pulseOpacity: Double = 0.15
 
@@ -81,19 +77,7 @@ struct VoiceButton: View {
         }
         .shadow(color: coral.opacity(state == .recording ? 0.5 : 0.4),
                 radius: state == .recording ? 16 : 12, x: 0, y: 4)
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    guard pressStart == nil else { return }
-                    pressStart = .now
-                    onStart()
-                }
-                .onEnded { _ in
-                    let elapsed = pressStart.map { Date.now.timeIntervalSince($0) } ?? 0
-                    pressStart = nil
-                    onRelease(elapsed)
-                }
-        )
+        .onTapGesture { onTap() }
         .disabled(state == .processing)
     }
 }

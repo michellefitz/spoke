@@ -73,7 +73,6 @@ struct ContentView: View {
     @State private var recorder = VoiceRecorder()
     @State private var selectedTask: SpokeTask?
     @State private var showPermissionAlert = false
-    @State private var tapModeActive = false
     @State private var selectedTag: String? = nil
     @State private var showSettings = false
     private let tagStore = TagStore.shared
@@ -353,8 +352,7 @@ struct ContentView: View {
             VoiceButton(
                 state: voiceButtonState,
                 audioLevel: recorder.audioLevel,
-                onStart: handleStart,
-                onRelease: handleRelease
+                onTap: handleTap
             )
             .frame(maxWidth: .infinity, minHeight: 96)
         }
@@ -479,46 +477,29 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Voice gesture handlers
+    // MARK: - Voice tap handler
 
-    /// Called on every press-down. Starts recording only if currently idle.
-    private func handleStart() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        guard recorder.recordingState == .idle else { return }
-        Task {
-            let granted = await recorder.requestPermissionsIfNeeded()
-            guard granted else {
-                showPermissionAlert = true
-                return
-            }
-            do {
-                try recorder.startRecording()
-            } catch {
-                recorder.finishProcessing()
-            }
-        }
-    }
-
-    /// Called on every release. Elapsed < 0.3 s = tap; ≥ 0.3 s = hold release.
-    private func handleRelease(elapsed: TimeInterval) {
+    private func handleTap() {
         switch recorder.recordingState {
-        case .recording:
-            if tapModeActive {
-                // Second tap → stop
-                tapModeActive = false
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                stopAndProcess()
-            } else if elapsed < 0.3 {
-                // Quick tap started recording → stay recording, wait for second tap
-                tapModeActive = true
-            } else {
-                // Hold release → stop immediately
-                tapModeActive = false
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                stopAndProcess()
+        case .idle:
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Task {
+                let granted = await recorder.requestPermissionsIfNeeded()
+                guard granted else {
+                    showPermissionAlert = true
+                    return
+                }
+                do {
+                    try recorder.startRecording()
+                } catch {
+                    recorder.finishProcessing()
+                }
             }
-        default:
-            tapModeActive = false
+        case .recording:
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            stopAndProcess()
+        case .processing:
+            break
         }
     }
 
