@@ -185,11 +185,13 @@ struct TaskDetailView: View {
                                 .buttonStyle(.plain)
                                 .padding(.top, 2)
 
-                                TextField("Item", text: $bullet.text, axis: .vertical)
+                                TextField("Item", text: $bullet.text)
                                     .font(.body)
                                     .foregroundStyle(.primary.opacity(bullet.checked ? 0.35 : 0.75))
                                     .focused($focusedField, equals: .bullet(bullet.id))
                                     .disabled(task.isCompleted)
+                                    .submitLabel(.next)
+                                    .onSubmit { addBulletAfter(bullet.id) }
                                     .onChange(of: bullet.text) { _, _ in syncToModel() }
                                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -306,7 +308,20 @@ struct TaskDetailView: View {
     private func addBullet() {
         let newBullet = BulletDraft(text: "", checked: false)
         editingBullets.append(newBullet)
-        let id = newBullet.id
+        focusBullet(newBullet.id)
+    }
+
+    private func addBulletAfter(_ id: UUID) {
+        let newBullet = BulletDraft(text: "", checked: false)
+        if let index = editingBullets.firstIndex(where: { $0.id == id }) {
+            editingBullets.insert(newBullet, at: index + 1)
+        } else {
+            editingBullets.append(newBullet)
+        }
+        focusBullet(newBullet.id)
+    }
+
+    private func focusBullet(_ id: UUID) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             focusedField = .bullet(id)
         }
