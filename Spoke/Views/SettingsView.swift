@@ -35,6 +35,7 @@ struct SettingsView: View {
                             .buttonStyle(.plain)
                         }
                     }
+                    .onMove { tagStore.moveTag(from: $0, to: $1) }
 
                     if isAddingTag {
                         HStack {
@@ -81,6 +82,7 @@ struct SettingsView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .environment(\.editMode, .constant(.active))
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
