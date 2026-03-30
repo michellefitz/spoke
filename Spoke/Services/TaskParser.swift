@@ -10,7 +10,7 @@ struct ParsedTask {
 enum TaskParser {
     static func parse(transcript: String) async -> ParsedTask {
         let wordCount = transcript.split(separator: " ").count
-        if wordCount <= 5 {
+        if wordCount <= 3 {
             return ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)
         }
         let today = isoToday()
@@ -19,11 +19,12 @@ enum TaskParser {
             system: """
             Today's date is \(today). You are a task parser. Given a voice transcript, extract a concise task title, an optional description, an optional deadline date, and an optional category tag. \
             Rules: \
-            - Title must be short and action-oriented, max 6 words. \
-            - Description captures supporting detail, context, or sub-tasks. \
+            - Title must be action-oriented and at most 50 characters. Keep specific details — times, names, locations — in the title when they fit. "Pick up Alex at 3 PM" is a better title than "Pick up Alex" with "3 PM" in the description. \
+            - Description is for sub-tasks, multi-step context, or detail that genuinely would not fit a 50-character title. Do NOT move times or locations to the description just to shorten the title — only do so if the title truly exceeds 50 characters with them included. \
+            - NEVER silently drop information. If a detail cannot fit the title, it must appear in the description. \
             - When the description contains multiple items or sub-tasks, format each as a bullet using "• item" on its own line (e.g. "• Call venue\n• Confirm date\n• Send invites"). \
-            - Use plain prose (no bullets) for a single sentence of context. \
-            - Omit description entirely if there is nothing meaningful beyond the title. \
+            - Use plain prose (no bullets) for a single sentence of overflow detail. \
+            - Omit description entirely when the title captures everything. \
             - If the user mentions a date or deadline (e.g. "by next Wednesday", "on Tuesday", "before April 20", "this Friday"), resolve it relative to today and include it as "deadline" in YYYY-MM-DD format. Omit "deadline" if no date is mentioned. \
             - \(tagInstruction) \
             Return ONLY valid JSON, no markdown, no code fences, no commentary. \
@@ -46,10 +47,11 @@ enum TaskParser {
             Synthesize the existing task and the new voice into the best, most complete version of the task. \
             Rules: \
             - Preserve existing information that is still accurate; add new points; correct anything the voice contradicts. \
-            - Title max 6 words, action-oriented. Update it only if the voice changes the core task. \
+            - Title at most 50 characters, action-oriented. Keep times, names, and locations in the title when they fit — do not move them to the description just to shorten it. \
+            - NEVER drop information — if a detail doesn't fit the title, it must appear in the description. \
             - When description has multiple items or sub-tasks, format each as "• item" on its own line. \
-            - Use plain prose (no bullets) for a single sentence of context. \
-            - Omit description if nothing meaningful exists beyond the title. \
+            - Use plain prose (no bullets) for a single sentence of overflow detail. \
+            - Omit description only when the title captures everything. \
             - If the voice mentions a date or deadline, resolve it relative to today and include as "deadline" in YYYY-MM-DD format. Preserve the existing deadline if no new date is mentioned and existing deadline is not "none". Omit "deadline" if there is none. \
             - Preserve the existing tag if it still fits. \(tagInstruction) \
             Return ONLY valid JSON, no markdown, no code fences, no commentary. \
