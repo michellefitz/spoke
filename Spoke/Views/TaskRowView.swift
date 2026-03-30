@@ -21,6 +21,13 @@ struct TaskRowView: View {
         return (done, total)
     }
 
+    private func deadlineLabel(for date: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDateInToday(date)    { return "TODAY" }
+        if cal.isDateInTomorrow(date) { return "TOMORROW" }
+        return Self.deadlineFormatter.string(from: date).uppercased()
+    }
+
     private static let deadlineFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "MMM d"
@@ -73,7 +80,7 @@ struct TaskRowView: View {
                 if task.tag != nil || task.deadline != nil {
                     HStack(spacing: 4) {
                         if let deadline = task.deadline {
-                            Text(Self.deadlineFormatter.string(from: deadline).uppercased())
+                            Text(deadlineLabel(for: deadline))
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(task.isCompleted ? coral.opacity(0.4) : coral)
                                 .padding(.horizontal, 6)
