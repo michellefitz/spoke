@@ -14,24 +14,9 @@ enum TaskParser {
             return ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)
         }
         let today = isoToday()
-        let isSimple = AppSettings.shared.appMode == .simple
-        let systemPrompt: String
-        if isSimple {
-            systemPrompt = """
-            You are a task parser. Given a voice transcript, extract a concise task title and an optional description. \
-            Rules: \
-            - Title must be action-oriented and at most 50 characters. Keep specific details — times, names, locations — in the title when they fit. \
-            - Description is for sub-tasks, multi-step context, or detail that genuinely would not fit a 50-character title. \
-            - NEVER silently drop information. If a detail cannot fit the title, it must appear in the description. \
-            - If the description contains 2 or more distinct actions, topics, or steps, you MUST use bullet format — never write multiple ideas as prose sentences. \
-            - When using bullets, always write a short intro sentence first (e.g. "Things to cover:"), then each bullet on its OWN LINE using \\n as the separator. Each bullet MUST start at the beginning of its line as "• item" — never inline. JSON example: "description": "Things to cover:\\n• Strategy doc\\n• New targets" \
-            - Use plain prose only (no bullets) when there is a single sentence of overflow detail. \
-            - Omit description entirely when the title captures everything. \
-            Return ONLY valid JSON with "title" and optional "description". No deadline, no tag.
-            """
-        } else {
-            let tagInstruction = tagPromptInstruction()
-            systemPrompt = """
+        let tagInstruction = tagPromptInstruction()
+        return await callClaude(
+            system: """
             Today's date is \(today). You are a task parser. Given a voice transcript, extract a concise task title, an optional description, an optional deadline date, and an optional category tag. \
             Rules: \
             - Title must be action-oriented and at most 50 characters. Keep specific details — times, names, locations — in the title when they fit. "Pick up Alex at 3 PM" is a better title than "Pick up Alex" with "3 PM" in the description. \
@@ -45,10 +30,7 @@ enum TaskParser {
             - \(tagInstruction) \
             Return ONLY valid JSON, no markdown, no code fences, no commentary. \
             Examples: {"title": "…"} or {"title": "…", "description": "…", "deadline": "YYYY-MM-DD", "tag": "work"}
-            """
-        }
-        return await callClaude(
-            system: systemPrompt,
+            """,
             user: "Transcript: \"\(transcript)\""
         ) ?? fallback(transcript)
     }
@@ -56,38 +38,11 @@ enum TaskParser {
     static func parseEdit(transcript: String, currentTitle: String, currentDescription: String?, currentDeadline: Date? = nil, currentTag: String? = nil) async -> ParsedTask {
         let desc = currentDescription ?? "none"
         let today = isoToday()
-        let isSimple = AppSettings.shared.appMode == .simple
-        let systemPrompt: String
-        let userPrompt: String
-        if isSimple {
-            systemPrompt = """
-            You are a task assistant that refines tasks from voice input. \
-            You are given an existing task and new voice input spoken by the user. \
-            Synthesize the existing task and the new voice into the best, most complete version of the task. \
-            Rules: \
-            - CRITICAL: The voice input is a natural-language COMMAND to update the task — interpret the user's intent, do NOT copy their words verbatim into content. \
-              Examples: "add a subtask for the venue" → add "• Venue" as a bullet. "create subtask items for X, Y, and Z" → add "• X\\n• Y\\n• Z" as bullets. \
-            - Preserve existing information that is still accurate; add new points; correct anything the voice contradicts. \
-            - Title at most 50 characters, action-oriented. \
-            - NEVER drop information — if a detail doesn't fit the title, it must appear in the description. \
-            - If the description contains 2 or more distinct actions, topics, or steps, you MUST use bullet format — never write multiple ideas as prose sentences. \
-            - When using bullets, always write a short intro sentence first (e.g. "Things to cover:"), then each bullet on its OWN LINE using \\n as the separator. Each bullet MUST start at the beginning of its line as "• item" — never inline. JSON example: "description": "Things to cover:\\n• Strategy doc\\n• New targets". If the existing description already has a prose intro, preserve or refine it. \
-            - Use plain prose only (no bullets) when there is a single sentence of overflow detail. \
-            - Omit description only when the title captures everything. \
-            Return ONLY valid JSON with "title" and optional "description". No deadline, no tag.
-            """
-            userPrompt = """
-            Existing task:
-            Title: "\(currentTitle)"
-            Description: "\(desc)"
-
-            New voice input: "\(transcript)"
-            """
-        } else {
-            let tagInstruction = tagPromptInstruction()
-            let deadlineStr = currentDeadline.map { isoFormatter.string(from: $0) } ?? "none"
-            let tagStr = currentTag ?? "none"
-            systemPrompt = """
+        let tagInstruction = tagPromptInstruction()
+        let deadlineStr = currentDeadline.map { isoFormatter.string(from: $0) } ?? "none"
+        let tagStr = currentTag ?? "none"
+        return await callClaude(
+            system: """
             Today's date is \(today). You are a task assistant that refines tasks from voice input. \
             You are given an existing task and new voice input spoken by the user. \
             Synthesize the existing task and the new voice into the best, most complete version of the task. \
@@ -105,8 +60,8 @@ enum TaskParser {
             - Preserve the existing tag if it still fits. \(tagInstruction) \
             Return ONLY valid JSON, no markdown, no code fences, no commentary. \
             Example: {"title": "…", "description": "…", "deadline": "YYYY-MM-DD", "tag": "work"}
-            """
-            userPrompt = """
+            """,
+            user: """
             Existing task:
             Title: "\(currentTitle)"
             Description: "\(desc)"
@@ -115,13 +70,7 @@ enum TaskParser {
 
             New voice input: "\(transcript)"
             """
-        }
-        let result = await callClaude(system: systemPrompt, user: userPrompt) ?? fallback(transcript)
-        // In simple mode, preserve existing deadline and tag (not extracted from voice)
-        if isSimple {
-            return ParsedTask(title: result.title, description: result.description, deadline: currentDeadline, tag: currentTag)
-        }
-        return result
+        ) ?? fallback(transcript)
     }
 
     // MARK: - Private
