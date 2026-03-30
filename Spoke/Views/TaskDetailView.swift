@@ -98,25 +98,34 @@ struct TaskDetailView: View {
             HStack(spacing: 6) {
                 if settings.appMode == .organized {
                     if let deadline = task.deadline {
-                        Menu {
-                            Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
-                            Button("Tomorrow")     { task.deadline = quickDate(daysAhead: 1) }
-                            Button("This weekend") { task.deadline = thisWeekend }
-                            Button("Next week")    { task.deadline = nextMonday }
-                            Button("Custom…")      { pickerDate = deadline; showDatePicker = true }
-                            Divider()
-                            Button("Remove date", role: .destructive) {
-                                withAnimation(.easeInOut(duration: 0.2)) { task.deadline = nil }
-                            }
-                        } label: {
+                        if task.isCompleted {
                             Text(deadlineLabel(for: deadline))
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(coral)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 4)
                                 .background(RoundedRectangle(cornerRadius: 6).fill(coral.opacity(0.12)))
+                        } else {
+                            Menu {
+                                Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
+                                Button("Tomorrow")     { task.deadline = quickDate(daysAhead: 1) }
+                                Button("This weekend") { task.deadline = thisWeekend }
+                                Button("Next week")    { task.deadline = nextMonday }
+                                Button("Custom…")      { pickerDate = deadline; showDatePicker = true }
+                                Divider()
+                                Button("Remove date", role: .destructive) {
+                                    withAnimation(.easeInOut(duration: 0.2)) { task.deadline = nil }
+                                }
+                            } label: {
+                                Text(deadlineLabel(for: deadline))
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(coral)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 4)
+                                    .background(RoundedRectangle(cornerRadius: 6).fill(coral.opacity(0.12)))
+                            }
+                            .animation(.easeInOut(duration: 0.2), value: deadline)
                         }
-                        .animation(.easeInOut(duration: 0.2), value: deadline)
                     } else if !task.isCompleted {
                         Menu {
                             Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
@@ -139,25 +148,34 @@ struct TaskDetailView: View {
                     }
 
                     if let tag = task.tag, !tag.isEmpty {
-                        Menu {
-                            ForEach(TagStore.shared.tags, id: \.self) { option in
-                                Button(option.capitalized) {
-                                    withAnimation(.easeInOut(duration: 0.2)) { task.tag = option }
-                                }
-                            }
-                            Divider()
-                            Button("Remove tag", role: .destructive) {
-                                withAnimation(.easeInOut(duration: 0.2)) { task.tag = nil }
-                            }
-                        } label: {
+                        if task.isCompleted {
                             Text(tag.uppercased())
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(Color(.secondaryLabel))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(RoundedRectangle(cornerRadius: 6).fill(Color(.tertiarySystemFill)))
+                        } else {
+                            Menu {
+                                ForEach(TagStore.shared.tags, id: \.self) { option in
+                                    Button(option.capitalized) {
+                                        withAnimation(.easeInOut(duration: 0.2)) { task.tag = option }
+                                    }
+                                }
+                                Divider()
+                                Button("Remove tag", role: .destructive) {
+                                    withAnimation(.easeInOut(duration: 0.2)) { task.tag = nil }
+                                }
+                            } label: {
+                                Text(tag.uppercased())
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Color(.secondaryLabel))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(RoundedRectangle(cornerRadius: 6).fill(Color(.tertiarySystemFill)))
+                            }
+                            .animation(.easeInOut(duration: 0.2), value: tag)
                         }
-                        .animation(.easeInOut(duration: 0.2), value: tag)
                     } else if !task.isCompleted {
                         Menu {
                             ForEach(TagStore.shared.tags, id: \.self) { tag in
@@ -196,15 +214,17 @@ struct TaskDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
 
-                    // Notes field — grows with content, placeholder when empty
-                    TextField("Add a description…", text: $editingNotes, axis: .vertical)
-                        .font(.body)
-                        .foregroundStyle(.primary.opacity(0.75))
-                        .focused($focusedField, equals: .notes)
-                        .disabled(task.isCompleted)
-                        .onChange(of: editingNotes) { _, _ in syncToModel() }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 10)
+                    // Notes field — hidden for completed tasks with no description
+                    if !task.isCompleted || !editingNotes.isEmpty {
+                        TextField("Add a description…", text: $editingNotes, axis: .vertical)
+                            .font(.body)
+                            .foregroundStyle(.primary.opacity(0.75))
+                            .focused($focusedField, equals: .notes)
+                            .disabled(task.isCompleted)
+                            .onChange(of: editingNotes) { _, _ in syncToModel() }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 10)
+                    }
 
                     // Subtask items
                     VStack(alignment: .leading, spacing: 10) {
@@ -223,7 +243,7 @@ struct TaskDetailView: View {
                                 .buttonStyle(.plain)
                                 .padding(.top, 2)
 
-                                TextField("Item", text: $bullet.text)
+                                TextField("Item", text: $bullet.text, axis: .vertical)
                                     .font(.body)
                                     .strikethrough(bullet.checked)
                                     .foregroundStyle(.primary.opacity(bullet.checked ? 0.35 : 0.75))
