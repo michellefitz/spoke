@@ -3,6 +3,7 @@ import SwiftData
 
 struct TaskDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @Bindable var task: SpokeTask
 
     @State private var recorder = VoiceRecorder()
@@ -15,6 +16,12 @@ struct TaskDetailView: View {
     @State private var editingNotes = ""
     @State private var editingBullets: [BulletDraft] = []
     @FocusState private var focusedField: FocusField?
+
+    // Snapshot captured on appear — restored if the user taps X
+    @State private var snapshotTitle = ""
+    @State private var snapshotDescription: String? = nil
+    @State private var snapshotDeadline: Date? = nil
+    @State private var snapshotTag: String? = nil
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let relativeFormatter: RelativeDateTimeFormatter = {
@@ -49,6 +56,33 @@ struct TaskDetailView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
+            // MARK: Header buttons
+            HStack {
+                Button {
+                    task.title = snapshotTitle
+                    task.taskDescription = snapshotDescription
+                    task.deadline = snapshotDeadline
+                    task.tag = snapshotTag
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Color(.secondaryLabel))
+                        .frame(width: 28, height: 28)
+                        .background(Color(.tertiarySystemFill), in: Circle())
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Button("Done") { dismiss() }
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(coral)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
+
             // MARK: Title
             TextField("Task title", text: $task.title, axis: .vertical)
                 .font(.title2)
@@ -57,7 +91,7 @@ struct TaskDetailView: View {
                 .submitLabel(.next)
                 .onSubmit { focusedField = .notes }
                 .disabled(task.isCompleted)
-                .padding(.top, 28)
+                .padding(.top, 10)
                 .padding(.horizontal, 24)
 
             // MARK: Pills row
@@ -269,6 +303,11 @@ struct TaskDetailView: View {
         let (prose, bullets) = Self.decompose(task.taskDescription)
         editingNotes = prose
         editingBullets = bullets
+        // Snapshot for discard
+        snapshotTitle = task.title
+        snapshotDescription = task.taskDescription
+        snapshotDeadline = task.deadline
+        snapshotTag = task.tag
     }
 
     /// Split a taskDescription string into prose notes and bullet items.
