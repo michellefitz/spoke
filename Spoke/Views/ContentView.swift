@@ -177,6 +177,12 @@ struct ContentView: View {
             Text("Spoke needs microphone and speech recognition access to create voice tasks. Please enable them in Settings.")
         }
         .task { pruneCompletedTasks() }
+        .onChange(of: settings.appMode) { _, mode in
+            if mode == .simple { sortMode = .dateAdded }
+        }
+        .onChange(of: settings.showDueDates) { _, show in
+            if !show { sortMode = .dateAdded }
+        }
         .onChange(of: availableTags) { _, tags in
             if let selected = selectedTag, !tags.contains(selected) {
                 selectedTag = nil
@@ -410,12 +416,6 @@ struct ContentView: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(sortMode == .dueDate ? coral : Color(.secondaryLabel))
                 .frame(width: 32, height: 32)
-        }
-        .onChange(of: settings.appMode) { _, mode in
-            if mode == .simple { sortMode = .dateAdded }
-        }
-        .onChange(of: settings.showDueDates) { _, show in
-            if !show { sortMode = .dateAdded }
         }
     }
 
