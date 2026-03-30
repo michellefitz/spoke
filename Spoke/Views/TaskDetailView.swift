@@ -197,7 +197,7 @@ struct TaskDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
 
                     // Notes field — grows with content, placeholder when empty
-                    TextField("Add notes…", text: $editingNotes, axis: .vertical)
+                    TextField("Add a description…", text: $editingNotes, axis: .vertical)
                         .font(.body)
                         .foregroundStyle(.primary.opacity(0.75))
                         .focused($focusedField, equals: .notes)
@@ -247,17 +247,16 @@ struct TaskDetailView: View {
 
                         if !task.isCompleted {
                             Button { addBullet() } label: {
-                                HStack(spacing: 10) {
-                                    Image(systemName: "circle")
-                                        .font(.system(size: 16))
-                                        .foregroundStyle(Color(.tertiaryLabel))
+                                HStack(spacing: 5) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 11, weight: .semibold))
                                     Text("Add item")
-                                        .font(.body)
-                                        .foregroundStyle(Color(.tertiaryLabel))
+                                        .font(.system(size: 14))
                                 }
+                                .foregroundStyle(coral.opacity(0.75))
                             }
                             .buttonStyle(.plain)
-                            .padding(.top, editingBullets.isEmpty ? 4 : 8)
+                            .padding(.top, editingBullets.isEmpty ? 0 : 4)
                         }
                     }
                     .padding(.horizontal, 24)
