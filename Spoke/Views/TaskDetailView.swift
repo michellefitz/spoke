@@ -182,10 +182,12 @@ struct TaskDetailView: View {
 
                 Spacer()
 
-                Text(metadataDateString)
-                    .font(.caption)
-                    .italic()
-                    .foregroundStyle(Color(.secondaryLabel))
+                if settings.appMode == .organized {
+                    Text(metadataDateString)
+                        .font(.caption)
+                        .italic()
+                        .foregroundStyle(Color(.secondaryLabel))
+                }
             }
             .padding(.top, 10)
             .padding(.horizontal, 24)
