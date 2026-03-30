@@ -97,16 +97,28 @@ struct TaskDetailView: View {
                 }
 
                 if let tag = task.tag, !tag.isEmpty {
-                    Text(tag.uppercased())
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color(.secondaryLabel))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(Color(.tertiarySystemFill))
-                        )
-                        .animation(.easeInOut(duration: 0.2), value: tag)
+                    Menu {
+                        ForEach(TagStore.shared.tags, id: \.self) { option in
+                            Button(option.capitalized) {
+                                withAnimation(.easeInOut(duration: 0.2)) { task.tag = option }
+                            }
+                        }
+                        Divider()
+                        Button("Remove tag", role: .destructive) {
+                            withAnimation(.easeInOut(duration: 0.2)) { task.tag = nil }
+                        }
+                    } label: {
+                        Text(tag.uppercased())
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(.secondaryLabel))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color(.tertiarySystemFill))
+                            )
+                    }
+                    .animation(.easeInOut(duration: 0.2), value: tag)
                 } else if !task.isCompleted {
                     Menu {
                         ForEach(TagStore.shared.tags, id: \.self) { tag in
