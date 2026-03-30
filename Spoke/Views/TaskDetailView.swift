@@ -86,13 +86,10 @@ struct TaskDetailView: View {
                     task.tag = snapshotTag
                     dismiss()
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
+                    Text("Cancel")
+                        .font(.system(size: 15))
                         .foregroundStyle(Color(.secondaryLabel))
-                        .frame(width: 28, height: 28)
-                        .background(Color(.tertiarySystemFill), in: Circle())
                 }
-                .buttonStyle(.plain)
 
                 Spacer()
 

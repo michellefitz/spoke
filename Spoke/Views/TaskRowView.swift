@@ -118,12 +118,10 @@ struct TaskRowView: View {
         .onTapGesture { onTap() }
         // Swipe right → delete (requires tap, no accidental full-swipe)
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            if !task.isCompleted {
-                Button(role: .destructive) {
-                    showDeleteConfirmation = true
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
+            Button(role: .destructive) {
+                showDeleteConfirmation = true
+            } label: {
+                Label("Delete", systemImage: "trash")
             }
         }
         .confirmationDialog("Delete this task?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
