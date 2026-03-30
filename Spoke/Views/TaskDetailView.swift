@@ -3,14 +3,18 @@ import SwiftData
 
 struct TaskDetailView: View {
     @Environment(\.modelContext) private var modelContext
-
-    let task: SpokeTask
+    @Bindable var task: SpokeTask
 
     @State private var recorder = VoiceRecorder()
     @State private var showPermissionAlert = false
     @State private var tapModeActive = false
     @State private var showDatePicker = false
     @State private var pickerDate: Date = .now
+
+    // Local editing state — source of truth for the UI, synced to task.taskDescription
+    @State private var editingNotes = ""
+    @State private var editingBullets: [BulletDraft] = []
+    @FocusState private var focusedField: FocusField?
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let relativeFormatter: RelativeDateTimeFormatter = {
@@ -44,13 +48,19 @@ struct TaskDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(task.title)
+
+            // MARK: Title
+            TextField("Task title", text: $task.title, axis: .vertical)
                 .font(.title2)
                 .fontWeight(.semibold)
+                .focused($focusedField, equals: .title)
+                .submitLabel(.next)
+                .onSubmit { focusedField = .notes }
+                .disabled(task.isCompleted)
                 .padding(.top, 28)
                 .padding(.horizontal, 24)
-                .animation(.easeInOut(duration: 0.3), value: task.title)
 
+            // MARK: Pills row
             HStack(spacing: 6) {
                 if let deadline = task.deadline {
                     Menu {
@@ -69,10 +79,7 @@ struct TaskDetailView: View {
                             .foregroundStyle(coral)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(coral.opacity(0.12))
-                            )
+                            .background(RoundedRectangle(cornerRadius: 6).fill(coral.opacity(0.12)))
                     }
                     .animation(.easeInOut(duration: 0.2), value: deadline)
                 } else if !task.isCompleted {
@@ -113,19 +120,14 @@ struct TaskDetailView: View {
                             .foregroundStyle(Color(.secondaryLabel))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color(.tertiarySystemFill))
-                            )
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color(.tertiarySystemFill)))
                     }
                     .animation(.easeInOut(duration: 0.2), value: tag)
                 } else if !task.isCompleted {
                     Menu {
                         ForEach(TagStore.shared.tags, id: \.self) { tag in
                             Button(tag.capitalized) {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    task.tag = tag
-                                }
+                                withAnimation(.easeInOut(duration: 0.2)) { task.tag = tag }
                             }
                         }
                     } label: {
@@ -152,27 +154,82 @@ struct TaskDetailView: View {
             .padding(.top, 10)
             .padding(.horizontal, 24)
 
-            if let desc = task.taskDescription, !desc.isEmpty {
-                DescriptionItemsView(description: desc) { updated in
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        task.taskDescription = updated
+            // MARK: Scrollable description area
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+
+                    // Notes field — grows with content, placeholder when empty
+                    TextField("Add notes…", text: $editingNotes, axis: .vertical)
+                        .font(.body)
+                        .foregroundStyle(.primary.opacity(0.75))
+                        .focused($focusedField, equals: .notes)
+                        .disabled(task.isCompleted)
+                        .onChange(of: editingNotes) { _, _ in syncToModel() }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 20)
+
+                    // Subtask items
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach($editingBullets) { $bullet in
+                            HStack(alignment: .top, spacing: 10) {
+                                Button {
+                                    bullet.checked.toggle()
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    syncToModel()
+                                } label: {
+                                    Image(systemName: bullet.checked ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(bullet.checked ? coral : Color(.tertiaryLabel))
+                                        .animation(.easeInOut(duration: 0.2), value: bullet.checked)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, 2)
+
+                                TextField("Item", text: $bullet.text)
+                                    .font(.body)
+                                    .foregroundStyle(.primary.opacity(bullet.checked ? 0.35 : 0.75))
+                                    .focused($focusedField, equals: .bullet(bullet.id))
+                                    .disabled(task.isCompleted)
+                                    .submitLabel(.next)
+                                    .onSubmit { addBulletAfter(bullet.id) }
+                                    .onChange(of: bullet.text) { _, _ in syncToModel() }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                if focusedField == .bullet(bullet.id) {
+                                    Button { deleteBullet(bullet.id) } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(Color(.quaternaryLabel))
+                                            .font(.system(size: 16))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .transition(.opacity.combined(with: .scale))
+                                }
+                            }
+                        }
+
+                        if !task.isCompleted {
+                            Button { addBullet() } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 11, weight: .semibold))
+                                    Text("Add item")
+                                        .font(.system(size: 14))
+                                }
+                                .foregroundStyle(coral.opacity(0.75))
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.top, editingBullets.isEmpty ? 0 : 4)
+                        }
                     }
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                }
-                .padding(.top, 20)
-                .padding(.horizontal, 24)
-                .transition(.opacity)
-            } else {
-                Text("No description. Tap the microphone to add more details or subtasks.")
-                    .font(.subheadline)
-                    .italic()
-                    .foregroundStyle(Color(.systemGray3))
-                    .padding(.top, 20)
                     .padding(.horizontal, 24)
+                    .padding(.top, editingNotes.isEmpty && editingBullets.isEmpty ? 4 : 16)
+
+                    Spacer(minLength: 24)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Spacer()
-
+            // MARK: Voice button
             VStack(spacing: 4) {
                 VoiceButton(
                     state: voiceButtonState,
@@ -184,15 +241,12 @@ struct TaskDetailView: View {
             }
             .padding(.bottom, -4)
         }
+        .onAppear { initEditingState() }
         .sheet(isPresented: $showDatePicker) {
             DatePickerSheet(selection: $pickerDate) { date in
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    task.deadline = date
-                }
+                withAnimation(.easeInOut(duration: 0.2)) { task.deadline = date }
             } onClear: {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    task.deadline = nil
-                }
+                withAnimation(.easeInOut(duration: 0.2)) { task.deadline = nil }
             }
             .presentationDetents([.height(420)])
             .presentationDragIndicator(.visible)
@@ -209,6 +263,75 @@ struct TaskDetailView: View {
         }
     }
 
+    // MARK: - Editing state
+
+    private func initEditingState() {
+        let (prose, bullets) = Self.decompose(task.taskDescription)
+        editingNotes = prose
+        editingBullets = bullets
+    }
+
+    /// Split a taskDescription string into prose notes and bullet items.
+    private static func decompose(_ description: String?) -> (prose: String, bullets: [BulletDraft]) {
+        guard let description, !description.isEmpty else { return ("", []) }
+        var proseLines: [String] = []
+        var bullets: [BulletDraft] = []
+        for line in description.components(separatedBy: "\n") {
+            if line.hasPrefix("✓ ") {
+                bullets.append(BulletDraft(text: String(line.dropFirst(2)), checked: true))
+            } else if line.hasPrefix("• ") {
+                bullets.append(BulletDraft(text: String(line.dropFirst(2)), checked: false))
+            } else if !line.trimmingCharacters(in: .whitespaces).isEmpty {
+                proseLines.append(line)
+            }
+        }
+        return (proseLines.joined(separator: "\n"), bullets)
+    }
+
+    /// Reconstruct taskDescription from local editing state.
+    private func compose() -> String? {
+        var parts: [String] = []
+        let prose = editingNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !prose.isEmpty { parts.append(prose) }
+        for b in editingBullets {
+            let text = b.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { continue }
+            parts.append((b.checked ? "✓ " : "• ") + text)
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: "\n")
+    }
+
+    private func syncToModel() {
+        task.taskDescription = compose()
+    }
+
+    private func addBullet() {
+        let newBullet = BulletDraft(text: "", checked: false)
+        editingBullets.append(newBullet)
+        focusBullet(newBullet.id)
+    }
+
+    private func addBulletAfter(_ id: UUID) {
+        let newBullet = BulletDraft(text: "", checked: false)
+        if let index = editingBullets.firstIndex(where: { $0.id == id }) {
+            editingBullets.insert(newBullet, at: index + 1)
+        } else {
+            editingBullets.append(newBullet)
+        }
+        focusBullet(newBullet.id)
+    }
+
+    private func focusBullet(_ id: UUID) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            focusedField = .bullet(id)
+        }
+    }
+
+    private func deleteBullet(_ id: UUID) {
+        editingBullets.removeAll { $0.id == id }
+        syncToModel()
+    }
+
     // MARK: - Quick dates
 
     private func quickDate(daysAhead: Int) -> Date {
@@ -219,7 +342,7 @@ struct TaskDetailView: View {
     private var thisWeekend: Date {
         let cal = Calendar.current
         let today = cal.startOfDay(for: .now)
-        let weekday = cal.component(.weekday, from: today) // 1=Sun, 7=Sat
+        let weekday = cal.component(.weekday, from: today)
         let daysUntilSat = (7 - weekday + 7) % 7
         return cal.date(byAdding: .day, value: daysUntilSat == 0 ? 7 : daysUntilSat, to: today) ?? today
     }
@@ -227,7 +350,7 @@ struct TaskDetailView: View {
     private var nextMonday: Date {
         let cal = Calendar.current
         let today = cal.startOfDay(for: .now)
-        let weekday = cal.component(.weekday, from: today) // 1=Sun, 2=Mon
+        let weekday = cal.component(.weekday, from: today)
         let daysUntilMon = (2 - weekday + 7) % 7
         return cal.date(byAdding: .day, value: daysUntilMon == 0 ? 7 : daysUntilMon, to: today) ?? today
     }
@@ -298,94 +421,29 @@ struct TaskDetailView: View {
                 task.deadline = parsed.deadline
                 task.tag = parsed.tag
             }
+            // Re-sync local editing state after voice update
+            let (prose, bullets) = Self.decompose(parsed.description)
+            editingNotes = prose
+            editingBullets = bullets
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
     }
 }
 
-// MARK: - Description items
+// MARK: - Supporting types
 
-/// Renders a description string as interactive checkmark rows.
-/// Bullet lines start with "• " (unchecked) or "✓ " (checked).
-/// Plain-prose lines are shown as non-interactive text.
-private struct DescriptionItemsView: View {
-    let description: String
-    let onToggle: (String) -> Void
-
-    private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
-
-    private struct Item {
-        let lineIndex: Int   // index in original \n-split array
-        let text: String
-        let checked: Bool
-        let isBullet: Bool
-    }
-
-    private var items: [Item] {
-        description
-            .components(separatedBy: "\n")
-            .enumerated()
-            .compactMap { i, line in
-                let t = line.trimmingCharacters(in: .whitespaces)
-                guard !t.isEmpty else { return nil }
-                if line.hasPrefix("✓ ") {
-                    return Item(lineIndex: i, text: String(line.dropFirst(2)), checked: true,  isBullet: true)
-                } else if line.hasPrefix("• ") {
-                    return Item(lineIndex: i, text: String(line.dropFirst(2)), checked: false, isBullet: true)
-                } else {
-                    return Item(lineIndex: i, text: line, checked: false, isBullet: false)
-                }
-            }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(items, id: \.lineIndex) { item in
-                if item.isBullet {
-                    Button {
-                        onToggle(toggled(at: item.lineIndex))
-                    } label: {
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: item.checked ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 16))
-                                .foregroundStyle(item.checked ? coral : Color(.tertiaryLabel))
-                                .animation(.easeInOut(duration: 0.2), value: item.checked)
-
-                            Text(item.text)
-                                .font(.body)
-                                .foregroundStyle(.primary.opacity(0.75))
-                                .strikethrough(item.checked, color: .secondary)
-                                .opacity(item.checked ? 0.4 : 1.0)
-                                .animation(.easeInOut(duration: 0.2), value: item.checked)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Text(item.text)
-                        .font(.body)
-                        .foregroundStyle(.primary.opacity(0.75))
-                }
-            }
-        }
-    }
-
-    /// Returns a new description string with the item at `lineIndex` toggled.
-    private func toggled(at lineIndex: Int) -> String {
-        var lines = description.components(separatedBy: "\n")
-        guard lineIndex < lines.count else { return description }
-        let line = lines[lineIndex]
-        if line.hasPrefix("✓ ") {
-            lines[lineIndex] = "• " + line.dropFirst(2)
-        } else if line.hasPrefix("• ") {
-            lines[lineIndex] = "✓ " + line.dropFirst(2)
-        }
-        return lines.joined(separator: "\n")
-    }
+private struct BulletDraft: Identifiable, Equatable {
+    var id = UUID()
+    var text: String
+    var checked: Bool
 }
 
+private enum FocusField: Hashable {
+    case title
+    case notes
+    case bullet(UUID)
+}
 
 // MARK: - Date picker sheet
 
@@ -428,7 +486,7 @@ private struct DatePickerSheet: View {
 }
 
 #Preview("With description") {
-    let task = SpokeTask(title: "Book karate class for Alex", taskDescription: "• Find local dojos\n• Compare prices\n• Book trial class", deadline: Calendar.current.date(byAdding: .day, value: 7, to: .now), tag: "personal")
+    let task = SpokeTask(title: "Book karate class for Alex", taskDescription: "Find a studio nearby.\n• Call local dojos\n• Compare prices\n• Book trial class", deadline: Calendar.current.date(byAdding: .day, value: 7, to: .now), tag: "personal")
     TaskDetailView(task: task)
         .modelContainer(for: SpokeTask.self, inMemory: true)
 }
