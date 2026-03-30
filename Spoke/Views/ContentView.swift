@@ -244,7 +244,7 @@ struct ContentView: View {
                                 TaskRowView(
                                     task: task,
                                     onToggleComplete: { toggleComplete(task) },
-                                    onDelete: {},
+                                    onDelete: { deleteTask(task) },
                                     onTap: { selectedTask = task }
                                 )
                             }
@@ -507,7 +507,9 @@ struct ContentView: View {
         Task {
             let parsed = await TaskParser.parse(transcript: transcript)
             let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag)
-            modelContext.insert(task)
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                modelContext.insert(task)
+            }
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
@@ -537,7 +539,7 @@ struct ContentView: View {
     // MARK: - Prune
 
     private func pruneCompletedTasks() {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: .now)!
+        let cutoff = Calendar.current.date(byAdding: .day, value: -14, to: .now)!
         let predicate = #Predicate<SpokeTask> {
             $0.isCompleted == true
             && $0.completedAt != nil
