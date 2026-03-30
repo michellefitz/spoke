@@ -8,7 +8,6 @@ struct TaskDetailView: View {
 
     @State private var recorder = VoiceRecorder()
     @State private var showPermissionAlert = false
-    @State private var tapModeActive = false
     @State private var showDatePicker = false
     @State private var pickerDate: Date = .now
 
@@ -271,8 +270,7 @@ struct TaskDetailView: View {
                 VoiceButton(
                     state: voiceButtonState,
                     audioLevel: recorder.audioLevel,
-                    onStart: handleStart,
-                    onRelease: handleRelease
+                    onTap: handleTap
                 )
                 .frame(maxWidth: .infinity, minHeight: 96)
             }
@@ -416,39 +414,27 @@ struct TaskDetailView: View {
         }
     }
 
-    private func handleStart() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        guard recorder.recordingState == .idle else { return }
-        Task {
-            let granted = await recorder.requestPermissionsIfNeeded()
-            guard granted else {
-                showPermissionAlert = true
-                return
-            }
-            do {
-                try recorder.startRecording()
-            } catch {
-                recorder.finishProcessing()
-            }
-        }
-    }
-
-    private func handleRelease(elapsed: TimeInterval) {
+    private func handleTap() {
         switch recorder.recordingState {
-        case .recording:
-            if tapModeActive {
-                tapModeActive = false
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                stopAndProcess()
-            } else if elapsed < 0.3 {
-                tapModeActive = true
-            } else {
-                tapModeActive = false
-                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                stopAndProcess()
+        case .idle:
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Task {
+                let granted = await recorder.requestPermissionsIfNeeded()
+                guard granted else {
+                    showPermissionAlert = true
+                    return
+                }
+                do {
+                    try recorder.startRecording()
+                } catch {
+                    recorder.finishProcessing()
+                }
             }
-        default:
-            tapModeActive = false
+        case .recording:
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            stopAndProcess()
+        case .processing:
+            break
         }
     }
 
