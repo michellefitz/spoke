@@ -9,6 +9,8 @@ struct TaskDetailView: View {
     @State private var recorder = VoiceRecorder()
     @State private var showPermissionAlert = false
     @State private var tapModeActive = false
+    @State private var showDatePicker = false
+    @State private var pickerDate: Date = .now
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let relativeFormatter: RelativeDateTimeFormatter = {
@@ -51,16 +53,39 @@ struct TaskDetailView: View {
 
             HStack(spacing: 6) {
                 if let deadline = task.deadline {
-                    Text(Self.deadlineFormatter.string(from: deadline).uppercased())
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(coral)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(coral.opacity(0.12))
-                        )
-                        .animation(.easeInOut(duration: 0.2), value: deadline)
+                    Button {
+                        pickerDate = deadline
+                        showDatePicker = true
+                    } label: {
+                        Text(Self.deadlineFormatter.string(from: deadline).uppercased())
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(coral)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(coral.opacity(0.12))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .animation(.easeInOut(duration: 0.2), value: deadline)
+                } else if !task.isCompleted {
+                    Button {
+                        pickerDate = .now
+                        showDatePicker = true
+                    } label: {
+                        Text("Add date")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(.tertiaryLabel))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .strokeBorder(Color(.tertiaryLabel).opacity(0.5),
+                                                  style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 if let tag = task.tag, !tag.isEmpty {
@@ -138,6 +163,19 @@ struct TaskDetailView: View {
                 .frame(maxWidth: .infinity, minHeight: 96)
             }
             .padding(.bottom, -4)
+        }
+        .sheet(isPresented: $showDatePicker) {
+            DatePickerSheet(selection: $pickerDate) { date in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    task.deadline = date
+                }
+            } onClear: {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    task.deadline = nil
+                }
+            }
+            .presentationDetents([.height(420)])
+            .presentationDragIndicator(.visible)
         }
         .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
             Button("Open Settings") {
@@ -305,6 +343,46 @@ private struct DescriptionItemsView: View {
     }
 }
 
+
+// MARK: - Date picker sheet
+
+private struct DatePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var selection: Date
+    let onConfirm: (Date) -> Void
+    let onClear: () -> Void
+
+    private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Clear") {
+                    onClear()
+                    dismiss()
+                }
+                .foregroundStyle(Color(.secondaryLabel))
+
+                Spacer()
+
+                Button("Done") {
+                    onConfirm(selection)
+                    dismiss()
+                }
+                .fontWeight(.semibold)
+                .foregroundStyle(coral)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 8)
+
+            DatePicker("", selection: $selection, displayedComponents: .date)
+                .datePickerStyle(.graphical)
+                .tint(coral)
+                .padding(.horizontal, 12)
+        }
+    }
+}
 
 #Preview("With description") {
     let task = SpokeTask(title: "Book karate class for Alex", taskDescription: "• Find local dojos\n• Compare prices\n• Book trial class", deadline: Calendar.current.date(byAdding: .day, value: 7, to: .now), tag: "personal")
