@@ -9,6 +9,7 @@ struct TaskRowView: View {
     @State private var strikeProgress: CGFloat = 0
     @State private var isAnimating = false
     @State private var pendingComplete = false
+    @State private var showDeleteConfirmation = false
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let settings = AppSettings.shared
@@ -115,13 +116,21 @@ struct TaskRowView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
-        // Swipe right → delete
-        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+        // Swipe right → delete (requires tap, no accidental full-swipe)
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
             if !task.isCompleted {
-                Button(role: .destructive, action: onDelete) {
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
                     Label("Delete", systemImage: "trash")
                 }
             }
+        }
+        .confirmationDialog("Delete this task?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) { onDelete() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This can't be undone.")
         }
         // Swipe left → complete / uncomplete
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {

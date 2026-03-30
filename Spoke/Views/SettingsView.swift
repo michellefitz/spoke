@@ -126,6 +126,23 @@ struct SettingsView: View {
                         sectionHeader("Tags")
                     }
                 }
+
+                // MARK: Data
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { settings.autoDeleteCompleted },
+                        set: { settings.autoDeleteCompleted = $0 }
+                    )) {
+                        Text("Auto-delete completed tasks")
+                    }
+                    .tint(coral)
+                } header: {
+                    sectionHeader("Data")
+                } footer: {
+                    Text("Completed tasks older than 14 days are removed automatically.")
+                        .font(.footnote)
+                        .foregroundStyle(Color(.secondaryLabel))
+                }
             }
             .listStyle(.insetGrouped)
             .environment(\.editMode, .constant(.active))
