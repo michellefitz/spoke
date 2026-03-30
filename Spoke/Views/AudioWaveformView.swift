@@ -30,7 +30,7 @@ struct AudioWaveformView: View {
         .background {
             if isActive {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white.opacity(0.92))
+                    .fill(Color(.systemBackground).opacity(0.92))
                     .mask(
                         LinearGradient(
                             stops: [
