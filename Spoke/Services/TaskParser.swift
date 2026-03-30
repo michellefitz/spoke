@@ -22,8 +22,9 @@ enum TaskParser {
             - Title must be action-oriented and at most 50 characters. Keep specific details — times, names, locations — in the title when they fit. "Pick up Alex at 3 PM" is a better title than "Pick up Alex" with "3 PM" in the description. \
             - Description is for sub-tasks, multi-step context, or detail that genuinely would not fit a 50-character title. Do NOT move times or locations to the description just to shorten the title — only do so if the title truly exceeds 50 characters with them included. \
             - NEVER silently drop information. If a detail cannot fit the title, it must appear in the description. \
-            - When the description contains multiple items or sub-tasks, format each as a bullet using "• item" on its own line (e.g. "• Call venue\n• Confirm date\n• Send invites"). \
-            - Use plain prose (no bullets) for a single sentence of overflow detail. \
+            - If the description contains 2 or more distinct actions, topics, or steps, you MUST use bullet format — never write multiple ideas as prose sentences. \
+            - When using bullets, always write a short intro sentence first (e.g. "Things to cover:"), then each bullet on its OWN LINE using \\n as the separator. Each bullet MUST start at the beginning of its line as "• item" — never inline. JSON example: "description": "Things to cover:\\n• Strategy doc\\n• New targets\\n• Leadership update" \
+            - Use plain prose only (no bullets) when there is a single sentence of overflow detail. \
             - Omit description entirely when the title captures everything. \
             - If the user mentions a date or deadline (e.g. "by next Wednesday", "on Tuesday", "before April 20", "this Friday"), resolve it relative to today and include it as "deadline" in YYYY-MM-DD format. Omit "deadline" if no date is mentioned. \
             - \(tagInstruction) \
@@ -46,11 +47,14 @@ enum TaskParser {
             You are given an existing task and new voice input spoken by the user. \
             Synthesize the existing task and the new voice into the best, most complete version of the task. \
             Rules: \
+            - CRITICAL: The voice input is a natural-language COMMAND to update the task — interpret the user's intent, do NOT copy their words verbatim into content. \
+              Examples: "add a subtask for the venue" → add "• Venue" as a bullet. "create subtask items for X, Y, and Z" → add "• X\\n• Y\\n• Z" as bullets. "set the deadline to Friday" → update the deadline field. \
             - Preserve existing information that is still accurate; add new points; correct anything the voice contradicts. \
             - Title at most 50 characters, action-oriented. Keep times, names, and locations in the title when they fit — do not move them to the description just to shorten it. \
             - NEVER drop information — if a detail doesn't fit the title, it must appear in the description. \
-            - When description has multiple items or sub-tasks, format each as "• item" on its own line. \
-            - Use plain prose (no bullets) for a single sentence of overflow detail. \
+            - If the description contains 2 or more distinct actions, topics, or steps, you MUST use bullet format — never write multiple ideas as prose sentences. \
+            - When using bullets, always write a short intro sentence first (e.g. "Things to cover:"), then each bullet on its OWN LINE using \\n as the separator. Each bullet MUST start at the beginning of its line as "• item" — never inline. JSON example: "description": "Things to cover:\\n• Strategy doc\\n• New targets". If the existing description already has a prose intro, preserve or refine it. \
+            - Use plain prose only (no bullets) when there is a single sentence of overflow detail. \
             - Omit description only when the title captures everything. \
             - If the voice mentions a date or deadline, resolve it relative to today and include as "deadline" in YYYY-MM-DD format. Preserve the existing deadline if no new date is mentioned and existing deadline is not "none". Omit "deadline" if there is none. \
             - Preserve the existing tag if it still fits. \(tagInstruction) \
