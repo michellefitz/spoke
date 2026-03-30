@@ -139,8 +139,10 @@ struct ContentView: View {
                             Image(systemName: "ellipsis")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundStyle(coral)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
                         }
-                        .frame(width: 44)
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 8)
                     .padding(.top, 14)
