@@ -39,4 +39,8 @@ final class TagStore {
     func removeTag(_ name: String) {
         tags.removeAll { $0 == name }
     }
+
+    func moveTag(from source: IndexSet, to destination: Int) {
+        tags.move(fromOffsets: source, toOffset: destination)
+    }
 }

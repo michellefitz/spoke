@@ -218,7 +218,7 @@ struct ContentView: View {
                                     )
                                 }
                             } header: {
-                                sectionHeader(b.rawValue)
+                                sectionHeader(sectionLabel(b))
                             }
                         }
                     } else {
@@ -233,7 +233,7 @@ struct ContentView: View {
                                     )
                                 }
                             } header: {
-                                sectionHeader(b.rawValue)
+                                sectionHeader(sectionLabel(b))
                             }
                         }
                     }
@@ -442,7 +442,27 @@ struct ContentView: View {
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color(.label).opacity(0.6))
+    }
+
+    private func sectionLabel(_ bucket: TaskBucket) -> String {
+        switch bucket {
+        case .today:     return "Added today"
+        case .yesterday: return "Added yesterday"
+        case .thisWeek:  return "This week"
+        case .earlier:   return "Earlier"
+        }
+    }
+
+    private func sectionLabel(_ bucket: DeadlineBucket) -> String {
+        switch bucket {
+        case .today:     return "Due today"
+        case .tomorrow:  return "Due tomorrow"
+        case .thisWeek:  return "Due this week"
+        case .nextWeek:  return "Due next week"
+        case .later:     return "Later"
+        case .noDueDate: return "No due date"
+        }
     }
 
     // MARK: - Voice button state

@@ -8,6 +8,7 @@ struct TaskRowView: View {
 
     @State private var strikeProgress: CGFloat = 0
     @State private var isAnimating = false
+    @State private var pendingComplete = false
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
 
@@ -30,10 +31,11 @@ struct TaskRowView: View {
     var body: some View {
         HStack(spacing: 10) {
             Button(action: handleCompleteToggle) {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                let filled = task.isCompleted || pendingComplete
+                Image(systemName: filled ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 16))
-                    .foregroundStyle(task.isCompleted ? coral : Color(.tertiaryLabel))
-                    .animation(.easeInOut(duration: 0.15), value: task.isCompleted)
+                    .foregroundStyle(filled ? coral : Color(.tertiaryLabel))
+                    .animation(.easeInOut(duration: 0.15), value: filled)
             }
             .buttonStyle(.plain)
 
@@ -119,17 +121,18 @@ struct TaskRowView: View {
             // Uncomplete → immediate, no animation needed
             onToggleComplete()
         } else {
-            // Complete → draw line first, then move row to completed section
+            // Complete → show checkmark + draw strikethrough simultaneously,
+            // then move the row to the completed section.
             guard !isAnimating else { return }
             isAnimating = true
 
-            // 1. Draw the strikethrough line left → right
-            withAnimation(.linear(duration: 0.38)) {
-                strikeProgress = 1.0
-            }
+            // 1. Checkmark fills in immediately; strikethrough draws left → right
+            withAnimation(.easeInOut(duration: 0.15)) { pendingComplete = true }
+            withAnimation(.linear(duration: 0.38)) { strikeProgress = 1.0 }
 
             // 2. After the line lands, trigger the section move
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                pendingComplete = false  // task.isCompleted takes over from here
                 onToggleComplete()
                 // Reset in case the row isn't destroyed (e.g. uncomplete mid-flight)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
