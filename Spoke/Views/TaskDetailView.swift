@@ -24,6 +24,7 @@ struct TaskDetailView: View {
     @State private var snapshotTag: String? = nil
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
+    private let settings = AppSettings.shared
     private let relativeFormatter: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .full
@@ -76,7 +77,7 @@ struct TaskDetailView: View {
                 Spacer()
 
                 Button("Done") { dismiss() }
-                    .font(.system(size: 15, weight: .semibold))
+                    .fontWeight(.semibold)
                     .foregroundStyle(coral)
             }
             .padding(.horizontal, 20)
@@ -96,85 +97,87 @@ struct TaskDetailView: View {
 
             // MARK: Pills row
             HStack(spacing: 6) {
-                if let deadline = task.deadline {
-                    Menu {
-                        Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
-                        Button("Tomorrow")     { task.deadline = quickDate(daysAhead: 1) }
-                        Button("This weekend") { task.deadline = thisWeekend }
-                        Button("Next week")    { task.deadline = nextMonday }
-                        Button("Custom…")      { pickerDate = deadline; showDatePicker = true }
-                        Divider()
-                        Button("Remove date", role: .destructive) {
-                            withAnimation(.easeInOut(duration: 0.2)) { task.deadline = nil }
+                if settings.appMode == .organized {
+                    if let deadline = task.deadline {
+                        Menu {
+                            Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
+                            Button("Tomorrow")     { task.deadline = quickDate(daysAhead: 1) }
+                            Button("This weekend") { task.deadline = thisWeekend }
+                            Button("Next week")    { task.deadline = nextMonday }
+                            Button("Custom…")      { pickerDate = deadline; showDatePicker = true }
+                            Divider()
+                            Button("Remove date", role: .destructive) {
+                                withAnimation(.easeInOut(duration: 0.2)) { task.deadline = nil }
+                            }
+                        } label: {
+                            Text(deadlineLabel(for: deadline))
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(coral)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(RoundedRectangle(cornerRadius: 6).fill(coral.opacity(0.12)))
                         }
-                    } label: {
-                        Text(deadlineLabel(for: deadline))
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(coral)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 4)
-                            .background(RoundedRectangle(cornerRadius: 6).fill(coral.opacity(0.12)))
+                        .animation(.easeInOut(duration: 0.2), value: deadline)
+                    } else if !task.isCompleted {
+                        Menu {
+                            Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
+                            Button("Tomorrow")     { task.deadline = quickDate(daysAhead: 1) }
+                            Button("This weekend") { task.deadline = thisWeekend }
+                            Button("Next week")    { task.deadline = nextMonday }
+                            Button("Custom…")      { pickerDate = .now; showDatePicker = true }
+                        } label: {
+                            Text("Add date")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(Color(.tertiaryLabel))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .strokeBorder(Color(.tertiaryLabel).opacity(0.5),
+                                                      style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                                )
+                        }
                     }
-                    .animation(.easeInOut(duration: 0.2), value: deadline)
-                } else if !task.isCompleted {
-                    Menu {
-                        Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
-                        Button("Tomorrow")     { task.deadline = quickDate(daysAhead: 1) }
-                        Button("This weekend") { task.deadline = thisWeekend }
-                        Button("Next week")    { task.deadline = nextMonday }
-                        Button("Custom…")      { pickerDate = .now; showDatePicker = true }
-                    } label: {
-                        Text("Add date")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(.tertiaryLabel))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .strokeBorder(Color(.tertiaryLabel).opacity(0.5),
-                                                  style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
-                            )
-                    }
-                }
 
-                if let tag = task.tag, !tag.isEmpty {
-                    Menu {
-                        ForEach(TagStore.shared.tags, id: \.self) { option in
-                            Button(option.capitalized) {
-                                withAnimation(.easeInOut(duration: 0.2)) { task.tag = option }
+                    if let tag = task.tag, !tag.isEmpty {
+                        Menu {
+                            ForEach(TagStore.shared.tags, id: \.self) { option in
+                                Button(option.capitalized) {
+                                    withAnimation(.easeInOut(duration: 0.2)) { task.tag = option }
+                                }
                             }
-                        }
-                        Divider()
-                        Button("Remove tag", role: .destructive) {
-                            withAnimation(.easeInOut(duration: 0.2)) { task.tag = nil }
-                        }
-                    } label: {
-                        Text(tag.uppercased())
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(.secondaryLabel))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(RoundedRectangle(cornerRadius: 6).fill(Color(.tertiarySystemFill)))
-                    }
-                    .animation(.easeInOut(duration: 0.2), value: tag)
-                } else if !task.isCompleted {
-                    Menu {
-                        ForEach(TagStore.shared.tags, id: \.self) { tag in
-                            Button(tag.capitalized) {
-                                withAnimation(.easeInOut(duration: 0.2)) { task.tag = tag }
+                            Divider()
+                            Button("Remove tag", role: .destructive) {
+                                withAnimation(.easeInOut(duration: 0.2)) { task.tag = nil }
                             }
+                        } label: {
+                            Text(tag.uppercased())
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(Color(.secondaryLabel))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(RoundedRectangle(cornerRadius: 6).fill(Color(.tertiarySystemFill)))
                         }
-                    } label: {
-                        Text("Add tag")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(.tertiaryLabel))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .strokeBorder(Color(.tertiaryLabel).opacity(0.5),
-                                                  style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
-                            )
+                        .animation(.easeInOut(duration: 0.2), value: tag)
+                    } else if !task.isCompleted {
+                        Menu {
+                            ForEach(TagStore.shared.tags, id: \.self) { tag in
+                                Button(tag.capitalized) {
+                                    withAnimation(.easeInOut(duration: 0.2)) { task.tag = tag }
+                                }
+                            }
+                        } label: {
+                            Text("Add tag")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(Color(.tertiaryLabel))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .strokeBorder(Color(.tertiaryLabel).opacity(0.5),
+                                                      style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                                )
+                        }
                     }
                 }
 

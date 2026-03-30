@@ -66,6 +66,7 @@ struct ContentView: View {
     private var completedTasks: [SpokeTask]
 
     @AppStorage("sortMode") private var sortMode: SortMode = .dateAdded
+    private let settings = AppSettings.shared
 
     @State private var recorder = VoiceRecorder()
     @State private var selectedTask: SpokeTask?
@@ -148,7 +149,7 @@ struct ContentView: View {
                     .padding(.top, 14)
                     .padding(.bottom, hasTasks ? 10 : 6)
 
-                    if hasTasks {
+                    if hasTasks && settings.appMode == .organized && settings.showTags {
                         filterPillsView
                             .padding(.bottom, 0)
                     }
@@ -396,25 +397,29 @@ struct ContentView: View {
     private var sortToggleButton: some View {
         Menu {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    sortMode = .dateAdded
-                }
+                withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dateAdded }
             } label: {
                 Label("Sort by date added", systemImage: sortMode == .dateAdded ? "checkmark" : "")
             }
 
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    sortMode = .dueDate
+            if settings.appMode == .organized && settings.showDueDates {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dueDate }
+                } label: {
+                    Label("Sort by due date", systemImage: sortMode == .dueDate ? "checkmark" : "")
                 }
-            } label: {
-                Label("Sort by due date", systemImage: sortMode == .dueDate ? "checkmark" : "")
             }
         } label: {
             Image(systemName: "arrow.up.arrow.down")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(sortMode == .dueDate ? coral : Color(.secondaryLabel))
                 .frame(width: 32, height: 32)
+        }
+        .onChange(of: settings.appMode) { _, mode in
+            if mode == .simple { sortMode = .dateAdded }
+        }
+        .onChange(of: settings.showDueDates) { _, show in
+            if !show { sortMode = .dateAdded }
         }
     }
 
