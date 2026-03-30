@@ -74,7 +74,7 @@ struct TaskDetailView: View {
                             withAnimation(.easeInOut(duration: 0.2)) { task.deadline = nil }
                         }
                     } label: {
-                        Text(Self.deadlineFormatter.string(from: deadline).uppercased())
+                        Text(deadlineLabel(for: deadline))
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(coral)
                             .padding(.horizontal, 6)
@@ -330,6 +330,15 @@ struct TaskDetailView: View {
     private func deleteBullet(_ id: UUID) {
         editingBullets.removeAll { $0.id == id }
         syncToModel()
+    }
+
+    // MARK: - Date display
+
+    private func deadlineLabel(for date: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDateInToday(date)    { return "TODAY" }
+        if cal.isDateInTomorrow(date) { return "TOMORROW" }
+        return Self.deadlineFormatter.string(from: date).uppercased()
     }
 
     // MARK: - Quick dates
