@@ -125,7 +125,7 @@ struct TaskDetailView: View {
                             Button("Next week")    { task.deadline = nextMonday }
                             Button("Custom…")      { pickerDate = .now; showDatePicker = true }
                         } label: {
-                            Text("Add date")
+                            Text("ADD DATE")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(Color(.tertiaryLabel))
                                 .padding(.horizontal, 6)
@@ -166,7 +166,7 @@ struct TaskDetailView: View {
                                 }
                             }
                         } label: {
-                            Text("Add tag")
+                            Text("ADD TAG")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(Color(.tertiaryLabel))
                                 .padding(.horizontal, 8)
@@ -225,6 +225,7 @@ struct TaskDetailView: View {
 
                                 TextField("Item", text: $bullet.text)
                                     .font(.body)
+                                    .strikethrough(bullet.checked)
                                     .foregroundStyle(.primary.opacity(bullet.checked ? 0.35 : 0.75))
                                     .focused($focusedField, equals: .bullet(bullet.id))
                                     .disabled(task.isCompleted)
