@@ -26,6 +26,7 @@ private enum SortMode: String {
 }
 
 private enum DeadlineBucket: String, CaseIterable {
+    case overdue    = "Overdue"
     case today      = "Today"
     case tomorrow   = "Tomorrow"
     case thisWeek   = "This Week"
@@ -39,6 +40,7 @@ private func deadlineBucket(for task: SpokeTask) -> DeadlineBucket {
     let cal = Calendar.current
     if cal.isDateInToday(deadline)    { return .today }
     if cal.isDateInTomorrow(deadline) { return .tomorrow }
+    if deadline < .now                { return .overdue }
     if cal.isDate(deadline, equalTo: .now, toGranularity: .weekOfYear) { return .thisWeek }
     if let nextWeek = cal.date(byAdding: .weekOfYear, value: 1, to: .now),
        cal.isDate(deadline, equalTo: nextWeek, toGranularity: .weekOfYear) {
@@ -457,6 +459,7 @@ struct ContentView: View {
 
     private func sectionLabel(_ bucket: DeadlineBucket) -> String {
         switch bucket {
+        case .overdue:   return "Overdue"
         case .today:     return "Due today"
         case .tomorrow:  return "Due tomorrow"
         case .thisWeek:  return "Due this week"
