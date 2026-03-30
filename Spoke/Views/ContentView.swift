@@ -75,6 +75,8 @@ struct ContentView: View {
     @State private var showPermissionAlert = false
     @State private var selectedTag: String? = nil
     @State private var showSettings = false
+    @State private var completedExpanded = false
+    @State private var toastMessage: String?
     private let tagStore = TagStore.shared
 
     private var hasTasks: Bool { !activeTasks.isEmpty || !completedTasks.isEmpty }
@@ -137,12 +139,13 @@ struct ContentView: View {
 
                         Button { showSettings = true } label: {
                             Image(systemName: "ellipsis")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(coral)
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
+                                .frame(width: 28, height: 28)
+                                .background(Color(.tertiarySystemFill), in: Circle())
                         }
                         .buttonStyle(.plain)
+                        .frame(width: 44, height: 44)
                     }
                     .padding(.horizontal, 8)
                     .padding(.top, 14)
@@ -158,6 +161,22 @@ struct ContentView: View {
                 .safeAreaPadding(.bottom, bottomBarHeight)
 
             bottomVoiceBar
+
+            // Toast for multi-task creation
+            if let message = toastMessage {
+                VStack {
+                    Spacer()
+                    Text(message)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Capsule().fill(Color(.label).opacity(0.8)))
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, bottomBarHeight + 8)
+                }
+                .allowsHitTesting(false)
+            }
         }
         .sheet(item: $selectedTask) { task in
             TaskDetailView(task: task)
@@ -246,16 +265,36 @@ struct ContentView: View {
 
                     if !filteredCompletedTasks.isEmpty {
                         Section {
-                            ForEach(filteredCompletedTasks) { task in
-                                TaskRowView(
-                                    task: task,
-                                    onToggleComplete: { toggleComplete(task) },
-                                    onDelete: { deleteTask(task) },
-                                    onTap: { selectedTask = task }
-                                )
+                            if completedExpanded {
+                                ForEach(filteredCompletedTasks) { task in
+                                    TaskRowView(
+                                        task: task,
+                                        onToggleComplete: { toggleComplete(task) },
+                                        onDelete: { deleteTask(task) },
+                                        onTap: { selectedTask = task }
+                                    )
+                                }
                             }
                         } header: {
-                            sectionHeader("Completed")
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    completedExpanded.toggle()
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text("Completed")
+                                        .font(.caption)
+                                        .foregroundStyle(Color(.label).opacity(0.6))
+                                    Text("\(filteredCompletedTasks.count)")
+                                        .font(.caption)
+                                        .foregroundStyle(Color(.label).opacity(0.35))
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 9, weight: .semibold))
+                                        .foregroundStyle(Color(.label).opacity(0.35))
+                                        .rotationEffect(.degrees(completedExpanded ? 90 : 0))
+                                }
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -521,6 +560,15 @@ struct ContentView: View {
             }
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+            if parsedTasks.count > 1 {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    toastMessage = "\(parsedTasks.count) tasks added"
+                }
+                try? await Task.sleep(for: .seconds(2))
+                withAnimation(.easeOut(duration: 0.3)) {
+                    toastMessage = nil
+                }
+            }
         }
     }
 
