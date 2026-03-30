@@ -134,20 +134,16 @@ struct ContentView: View {
                         }
                         .frame(maxWidth: .infinity)
 
-                        if !hasTasks {
-                            Spacer().frame(width: 44)
-                        } else {
-                            Button { showSettings = true } label: {
-                                Image(systemName: "ellipsis")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(coral)
-                            }
-                            .frame(width: 44)
+                        Button { showSettings = true } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(coral)
                         }
+                        .frame(width: 44)
                     }
                     .padding(.horizontal, 8)
                     .padding(.top, 14)
-                    .padding(.bottom, hasTasks ? 10 : 6)
+                    .padding(.bottom, 10)
 
                     if hasTasks && settings.appMode == .organized && settings.showTags {
                         filterPillsView
@@ -564,6 +560,7 @@ struct ContentView: View {
     // MARK: - Prune
 
     private func pruneCompletedTasks() {
+        guard settings.autoDeleteCompleted else { return }
         let cutoff = Calendar.current.date(byAdding: .day, value: -14, to: .now)!
         let predicate = #Predicate<SpokeTask> {
             $0.isCompleted == true
