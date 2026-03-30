@@ -53,9 +53,16 @@ struct TaskDetailView: View {
 
             HStack(spacing: 6) {
                 if let deadline = task.deadline {
-                    Button {
-                        pickerDate = deadline
-                        showDatePicker = true
+                    Menu {
+                        Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
+                        Button("Tomorrow")     { task.deadline = quickDate(daysAhead: 1) }
+                        Button("This weekend") { task.deadline = thisWeekend }
+                        Button("Next week")    { task.deadline = nextMonday }
+                        Button("Custom…")      { pickerDate = deadline; showDatePicker = true }
+                        Divider()
+                        Button("Remove date", role: .destructive) {
+                            withAnimation(.easeInOut(duration: 0.2)) { task.deadline = nil }
+                        }
                     } label: {
                         Text(Self.deadlineFormatter.string(from: deadline).uppercased())
                             .font(.system(size: 11, weight: .semibold))
@@ -67,12 +74,14 @@ struct TaskDetailView: View {
                                     .fill(coral.opacity(0.12))
                             )
                     }
-                    .buttonStyle(.plain)
                     .animation(.easeInOut(duration: 0.2), value: deadline)
                 } else if !task.isCompleted {
-                    Button {
-                        pickerDate = .now
-                        showDatePicker = true
+                    Menu {
+                        Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
+                        Button("Tomorrow")     { task.deadline = quickDate(daysAhead: 1) }
+                        Button("This weekend") { task.deadline = thisWeekend }
+                        Button("Next week")    { task.deadline = nextMonday }
+                        Button("Custom…")      { pickerDate = .now; showDatePicker = true }
                     } label: {
                         Text("Add date")
                             .font(.system(size: 11, weight: .semibold))
@@ -85,7 +94,6 @@ struct TaskDetailView: View {
                                                   style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
                             )
                     }
-                    .buttonStyle(.plain)
                 }
 
                 if let tag = task.tag, !tag.isEmpty {
@@ -187,6 +195,29 @@ struct TaskDetailView: View {
         } message: {
             Text("Spoke needs microphone and speech recognition access. Please enable them in Settings.")
         }
+    }
+
+    // MARK: - Quick dates
+
+    private func quickDate(daysAhead: Int) -> Date {
+        let start = Calendar.current.startOfDay(for: .now)
+        return Calendar.current.date(byAdding: .day, value: daysAhead, to: start) ?? start
+    }
+
+    private var thisWeekend: Date {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let weekday = cal.component(.weekday, from: today) // 1=Sun, 7=Sat
+        let daysUntilSat = (7 - weekday + 7) % 7
+        return cal.date(byAdding: .day, value: daysUntilSat == 0 ? 7 : daysUntilSat, to: today) ?? today
+    }
+
+    private var nextMonday: Date {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: .now)
+        let weekday = cal.component(.weekday, from: today) // 1=Sun, 2=Mon
+        let daysUntilMon = (2 - weekday + 7) % 7
+        return cal.date(byAdding: .day, value: daysUntilMon == 0 ? 7 : daysUntilMon, to: today) ?? today
     }
 
     // MARK: - Voice
