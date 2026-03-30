@@ -335,7 +335,7 @@ struct ContentView: View {
                     .strokeBorder(Color(.systemGray4).opacity(0.4), lineWidth: 1)
             )
 
-            Text("Tap or hold the mic to add your first task.")
+            Text("Tap the mic to add your first task.")
                 .font(.subheadline)
                 .foregroundStyle(Color(.systemGray2))
                 .multilineTextAlignment(.center)

@@ -7,11 +7,13 @@ struct SpokeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .modelContainer(for: SpokeTask.self)
-                .fullScreenCover(isPresented: .constant(!settings.hasCompletedOnboarding)) {
-                    OnboardingView()
-                }
+            if settings.hasCompletedOnboarding {
+                ContentView()
+                    .modelContainer(for: SpokeTask.self)
+            } else {
+                OnboardingView()
+                    .modelContainer(for: SpokeTask.self)
+            }
         }
     }
 }
