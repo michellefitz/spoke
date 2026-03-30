@@ -8,31 +8,37 @@ struct ParsedTask {
 }
 
 enum TaskParser {
-    static func parse(transcript: String) async -> ParsedTask {
+    static func parse(transcript: String) async -> [ParsedTask] {
         let wordCount = transcript.split(separator: " ").count
         if wordCount <= 3 {
-            return ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)
+            return [ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)]
         }
         let today = isoToday()
         let tagInstruction = tagPromptInstruction()
-        return await callClaude(
+        return await callClaudeMulti(
             system: """
-            Today's date is \(today). You are a task parser. Given a voice transcript, extract a concise task title, an optional description, an optional deadline date, and an optional category tag. \
+            Today's date is \(today). You are a task parser. Given a voice transcript, extract one or more tasks. \
             Rules: \
+            - If the transcript contains MULTIPLE UNRELATED tasks (e.g. "call the dentist, do grocery shopping, and pick up Alex"), return a JSON ARRAY of task objects. \
+            - If the transcript describes a SINGLE task with details or sub-items (e.g. "do the grocery shopping — milk, eggs, and broccoli"), return a JSON ARRAY with ONE object, using bullets in the description for the sub-items. \
+            - Each task object has: "title" (required), "description" (optional), "deadline" (optional), "tag" (optional). \
             - Title must be action-oriented and at most 50 characters. Keep specific details — times, names, locations — in the title when they fit. "Pick up Alex at 3 PM" is a better title than "Pick up Alex" with "3 PM" in the description. \
             - Description is for sub-tasks, multi-step context, or detail that genuinely would not fit a 50-character title. Do NOT move times or locations to the description just to shorten the title — only do so if the title truly exceeds 50 characters with them included. \
             - NEVER silently drop information. If a detail cannot fit the title, it must appear in the description. \
             - If the description contains 2 or more distinct actions, topics, or steps, you MUST use bullet format — never write multiple ideas as prose sentences. \
-            - When using bullets, always write a short intro sentence first (e.g. "Things to cover:"), then each bullet on its OWN LINE using \\n as the separator. Each bullet MUST start at the beginning of its line as "• item" — never inline. JSON example: "description": "Things to cover:\\n• Strategy doc\\n• New targets\\n• Leadership update" \
+            - When using bullets, always write a short intro sentence first (e.g. "Things to pick up:"), then each bullet on its OWN LINE using \\n as the separator. Each bullet MUST start at the beginning of its line as "• item" — never inline. JSON example: "description": "Things to pick up:\\n• Milk\\n• Eggs\\n• Broccoli" \
             - Use plain prose only (no bullets) when there is a single sentence of overflow detail. \
             - Omit description entirely when the title captures everything. \
-            - If the user mentions a date or deadline (e.g. "by next Wednesday", "on Tuesday", "before April 20", "this Friday"), resolve it relative to today and include it as "deadline" in YYYY-MM-DD format. Omit "deadline" if no date is mentioned. \
+            - If the user mentions a date or deadline (e.g. "by next Wednesday", "on Tuesday", "before April 20", "this Friday"), resolve it relative to today and include it as "deadline" in YYYY-MM-DD format. Omit "deadline" if no date is mentioned. A deadline applies only to the task it was mentioned with — do not copy it to other tasks. \
             - \(tagInstruction) \
-            Return ONLY valid JSON, no markdown, no code fences, no commentary. \
-            Examples: {"title": "…"} or {"title": "…", "description": "…", "deadline": "YYYY-MM-DD", "tag": "work"}
+            Return ONLY a valid JSON ARRAY, no markdown, no code fences, no commentary. \
+            Examples: \
+            Single task: [{"title": "Call the dentist"}] \
+            Single task with details: [{"title": "Do grocery shopping", "description": "Things to pick up:\\n• Milk\\n• Eggs\\n• Broccoli"}] \
+            Multiple tasks: [{"title": "Call the dentist"}, {"title": "Do grocery shopping", "description": "Things to pick up:\\n• Milk\\n• Eggs"}, {"title": "Pick up Alex at 5 PM tomorrow", "deadline": "YYYY-MM-DD"}]
             """,
             user: "Transcript: \"\(transcript)\""
-        ) ?? fallback(transcript)
+        ) ?? [fallback(transcript)]
     }
 
     static func parseEdit(transcript: String, currentTitle: String, currentDescription: String?, currentDeadline: Date? = nil, currentTag: String? = nil) async -> ParsedTask {
@@ -76,6 +82,29 @@ enum TaskParser {
     // MARK: - Private
 
     private static func callClaude(system: String, user: String) async -> ParsedTask? {
+        guard let text = await callClaudeRaw(system: system, user: user) else { return nil }
+        let json = extractJSON(from: text)
+        // Handle both single object and array (take first element)
+        if let tasks = parseJSONArray(json), let first = tasks.first {
+            return first
+        }
+        return parseJSONObject(json)
+    }
+
+    private static func callClaudeMulti(system: String, user: String) async -> [ParsedTask]? {
+        guard let text = await callClaudeRaw(system: system, user: user) else { return nil }
+        let json = extractJSON(from: text)
+        // Handle both array and single object
+        if let tasks = parseJSONArray(json), !tasks.isEmpty {
+            return tasks
+        }
+        if let single = parseJSONObject(json) {
+            return [single]
+        }
+        return nil
+    }
+
+    private static func callClaudeRaw(system: String, user: String) async -> String? {
         guard let url = URL(string: "https://api.anthropic.com/v1/messages") else { return nil }
 
         var request = URLRequest(url: url)
@@ -86,7 +115,7 @@ enum TaskParser {
 
         let body: [String: Any] = [
             "model": "claude-haiku-4-5-20251001",
-            "max_tokens": 400,
+            "max_tokens": 800,
             "system": system,
             "messages": [["role": "user", "content": user]]
         ]
@@ -112,7 +141,7 @@ enum TaskParser {
             }
 
             print("[TaskParser] Raw Claude response: \(text)")
-            return parseJSON(extractJSON(from: text))
+            return text
         } catch {
             print("[TaskParser] Request failed: \(error)")
             return nil
@@ -122,7 +151,6 @@ enum TaskParser {
     /// Strips markdown code fences (```json ... ``` or ``` ... ```) if present.
     private static func extractJSON(from text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Match ```json ... ``` or ``` ... ```
         if trimmed.hasPrefix("```") {
             let lines = trimmed.components(separatedBy: "\n")
             let inner = lines.dropFirst().dropLast()
@@ -133,16 +161,30 @@ enum TaskParser {
         return trimmed
     }
 
-    private static func parseJSON(_ text: String) -> ParsedTask? {
+    private static func parseJSONArray(_ text: String) -> [ParsedTask]? {
         guard
             let data = text.data(using: .utf8),
-            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let title = json["title"] as? String,
-            !title.isEmpty
+            let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else {
+            return nil
+        }
+        let tasks = array.compactMap { parseDictionary($0) }
+        return tasks.isEmpty ? nil : tasks
+    }
+
+    private static func parseJSONObject(_ text: String) -> ParsedTask? {
+        guard
+            let data = text.data(using: .utf8),
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else {
             print("[TaskParser] JSON parse failed for: \(text)")
             return nil
         }
+        return parseDictionary(json)
+    }
+
+    private static func parseDictionary(_ json: [String: Any]) -> ParsedTask? {
+        guard let title = json["title"] as? String, !title.isEmpty else { return nil }
 
         let description = json["description"] as? String
         let deadline: Date?

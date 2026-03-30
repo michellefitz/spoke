@@ -510,10 +510,12 @@ struct ContentView: View {
             return
         }
         Task {
-            let parsed = await TaskParser.parse(transcript: transcript)
-            let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag)
+            let parsedTasks = await TaskParser.parse(transcript: transcript)
             withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                modelContext.insert(task)
+                for parsed in parsedTasks {
+                    let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag)
+                    modelContext.insert(task)
+                }
             }
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
