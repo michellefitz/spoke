@@ -17,22 +17,22 @@ struct SettingsView: View {
                 Section {
                     ForEach(tagStore.tags, id: \.self) { tag in
                         HStack {
-                            Text(tag.uppercased())
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.primary.opacity(0.8))
-
-                            Spacer()
-
                             Button {
                                 withAnimation {
                                     tagStore.removeTag(tag)
                                 }
                             } label: {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(Color(.secondaryLabel))
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(coral)
                             }
                             .buttonStyle(.plain)
+
+                            Text(tag.uppercased())
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.primary.opacity(0.8))
+
+                            Spacer()
                         }
                     }
                     .onMove { tagStore.moveTag(from: $0, to: $1) }

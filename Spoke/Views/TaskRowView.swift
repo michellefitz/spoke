@@ -29,7 +29,7 @@ struct TaskRowView: View {
     }()
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
             Button(action: handleCompleteToggle) {
                 let filled = task.isCompleted || pendingComplete
                 Image(systemName: filled ? "checkmark.circle.fill" : "circle")
@@ -38,58 +38,66 @@ struct TaskRowView: View {
                     .animation(.easeInOut(duration: 0.15), value: filled)
             }
             .buttonStyle(.plain)
+            .padding(.top, 1) // optical alignment with title baseline
 
-            Text(task.title)
-                .font(.system(size: 16))
-                .strikethrough(task.isCompleted)
-                .opacity(task.isCompleted ? 0.45 : 1.0)
-                .overlay {
-                    // Animated strikethrough that draws left → right, following text lines
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 0) {
                     Text(task.title)
                         .font(.system(size: 16))
-                        .foregroundStyle(.clear)
-                        .strikethrough(true, color: Color.primary.opacity(0.45))
-                        .mask(
-                            GeometryReader { geo in
-                                Rectangle()
-                                    .frame(width: geo.size.width * strikeProgress)
-                            }
-                        )
-                }
+                        .strikethrough(task.isCompleted)
+                        .opacity(task.isCompleted ? 0.45 : 1.0)
+                        .overlay {
+                            // Animated strikethrough that draws left → right
+                            Text(task.title)
+                                .font(.system(size: 16))
+                                .foregroundStyle(.clear)
+                                .strikethrough(true, color: Color.primary.opacity(0.45))
+                                .mask(
+                                    GeometryReader { geo in
+                                        Rectangle()
+                                            .frame(width: geo.size.width * strikeProgress)
+                                    }
+                                )
+                        }
 
-            Spacer()
+                    Spacer()
 
-            HStack(spacing: 4) {
-                if let tag = task.tag {
-                    Text(tag.uppercased())
+                    let showChevron = !task.isCompleted && !(task.taskDescription ?? "").isEmpty
+                    Image(systemName: "chevron.right")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(task.isCompleted ? Color(.secondaryLabel).opacity(0.4) : Color(.secondaryLabel))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(.tertiarySystemFill).opacity(task.isCompleted ? 0.5 : 1.0))
-                        )
+                        .foregroundStyle(Color(.tertiaryLabel))
+                        .opacity(showChevron ? 1 : 0)
+                        .padding(.leading, 4)
                 }
 
-                if let deadline = task.deadline {
-                    Text(Self.deadlineFormatter.string(from: deadline).uppercased())
-                        .font(.system(size: 10, weight: .semibold, design: .default))
-                        .foregroundStyle(task.isCompleted ? coral.opacity(0.4) : coral)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(coral.opacity(task.isCompleted ? 0.06 : 0.12))
-                        )
+                if task.tag != nil || task.deadline != nil {
+                    HStack(spacing: 4) {
+                        if let deadline = task.deadline {
+                            Text(Self.deadlineFormatter.string(from: deadline).uppercased())
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(task.isCompleted ? coral.opacity(0.4) : coral)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(coral.opacity(task.isCompleted ? 0.06 : 0.12))
+                                )
+                        }
+
+                        if let tag = task.tag {
+                            Text(tag.uppercased())
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(task.isCompleted ? Color(.secondaryLabel).opacity(0.4) : Color(.secondaryLabel))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color(.tertiarySystemFill).opacity(task.isCompleted ? 0.5 : 1.0))
+                                )
+                        }
+                    }
                 }
             }
-
-            let showChevron = !task.isCompleted && !(task.taskDescription ?? "").isEmpty
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(Color(.tertiaryLabel))
-                .opacity(showChevron ? 1 : 0)
         }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
