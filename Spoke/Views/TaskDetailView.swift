@@ -74,6 +74,27 @@ struct TaskDetailView: View {
                                 .fill(Color(.tertiarySystemFill))
                         )
                         .animation(.easeInOut(duration: 0.2), value: tag)
+                } else if !task.isCompleted {
+                    Menu {
+                        ForEach(TagStore.shared.tags, id: \.self) { tag in
+                            Button(tag.capitalized) {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    task.tag = tag
+                                }
+                            }
+                        }
+                    } label: {
+                        Text("Add tag")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(.tertiaryLabel))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .strokeBorder(Color(.tertiaryLabel).opacity(0.5),
+                                                  style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                            )
+                    }
                 }
 
                 Spacer()
@@ -283,6 +304,7 @@ private struct DescriptionItemsView: View {
         return lines.joined(separator: "\n")
     }
 }
+
 
 #Preview("With description") {
     let task = SpokeTask(title: "Book karate class for Alex", taskDescription: "• Find local dojos\n• Compare prices\n• Book trial class", deadline: Calendar.current.date(byAdding: .day, value: 7, to: .now), tag: "personal")
