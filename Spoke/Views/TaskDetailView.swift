@@ -204,7 +204,7 @@ struct TaskDetailView: View {
                         .disabled(task.isCompleted)
                         .onChange(of: editingNotes) { _, _ in syncToModel() }
                         .padding(.horizontal, 24)
-                        .padding(.top, 20)
+                        .padding(.top, 10)
 
                     // Subtask items
                     VStack(alignment: .leading, spacing: 10) {
@@ -247,16 +247,17 @@ struct TaskDetailView: View {
 
                         if !task.isCompleted {
                             Button { addBullet() } label: {
-                                HStack(spacing: 5) {
-                                    Image(systemName: "plus")
-                                        .font(.system(size: 11, weight: .semibold))
+                                HStack(spacing: 10) {
+                                    Image(systemName: "circle")
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(Color(.tertiaryLabel))
                                     Text("Add item")
-                                        .font(.system(size: 14))
+                                        .font(.body)
+                                        .foregroundStyle(Color(.tertiaryLabel))
                                 }
-                                .foregroundStyle(coral.opacity(0.75))
                             }
                             .buttonStyle(.plain)
-                            .padding(.top, editingBullets.isEmpty ? 0 : 4)
+                            .padding(.top, editingBullets.isEmpty ? 4 : 8)
                         }
                     }
                     .padding(.horizontal, 24)
