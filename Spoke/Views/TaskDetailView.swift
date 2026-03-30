@@ -45,12 +45,33 @@ struct TaskDetailView: View {
 
     private var metadataDateString: String {
         if task.isCompleted, let completedAt = task.completedAt {
-            return "Completed \(relativeFormatter.localizedString(for: completedAt, relativeTo: .now))"
+            return "Completed \(shortRelativeDate(completedAt))"
         }
         let day = Calendar.current.component(.day, from: task.createdAt)
         let ordinal = Self.ordinalFormatter.string(from: NSNumber(value: day)) ?? "\(day)"
         let month = task.createdAt.formatted(.dateTime.month(.abbreviated))
         return "Added \(ordinal) \(month)"
+    }
+
+    private func shortRelativeDate(_ date: Date) -> String {
+        let cal = Calendar.current
+        let elapsed = Date.now.timeIntervalSince(date)
+        let minutes = Int(elapsed / 60)
+        let hours = Int(elapsed / 3600)
+
+        // Under 1 minute
+        if minutes < 1 { return "just now" }
+        // Under 1 hour: "12 min ago"
+        if minutes < 60 { return "\(minutes) min ago" }
+        // Under 6 hours and same day: "2 hr ago"
+        if hours < 6 && cal.isDateInToday(date) {
+            return "\(hours) hr ago"
+        }
+        // Otherwise show date: "30th Mar"
+        let day = cal.component(.day, from: date)
+        let ordinal = Self.ordinalFormatter.string(from: NSNumber(value: day)) ?? "\(day)"
+        let month = date.formatted(.dateTime.month(.abbreviated))
+        return "\(ordinal) \(month)"
     }
 
     var body: some View {
@@ -277,11 +298,11 @@ struct TaskDetailView: View {
                                 .foregroundStyle(coral.opacity(0.75))
                             }
                             .buttonStyle(.plain)
-                            .padding(.top, editingBullets.isEmpty ? 0 : 4)
+                            .padding(.top, editingBullets.isEmpty ? 8 : 4)
                         }
                     }
                     .padding(.horizontal, 24)
-                    .padding(.top, editingNotes.isEmpty && editingBullets.isEmpty ? 4 : 16)
+                    .padding(.top, editingNotes.isEmpty && editingBullets.isEmpty ? 4 : 20)
 
                     Spacer(minLength: 24)
                 }
