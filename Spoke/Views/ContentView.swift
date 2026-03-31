@@ -411,9 +411,9 @@ struct ContentView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     if !availableTags.isEmpty {
-                        filterPill(label: "All", tag: nil)
+                        filterPill(label: "ALL", tag: nil)
                         ForEach(availableTags, id: \.self) { tag in
-                            filterPill(label: tag.capitalized, tag: tag)
+                            filterPill(label: tag.uppercased(), tag: tag)
                         }
                     }
                 }
