@@ -257,6 +257,8 @@ struct ContentView: View {
         Group {
             if activeTasks.isEmpty && completedTasks.isEmpty {
                 emptyStateView
+            } else if selectedTag != nil && filteredActiveTasks.isEmpty && filteredCompletedTasks.isEmpty {
+                filteredEmptyStateView
             } else {
                 List {
                     if sortMode == .dateAdded {
@@ -405,6 +407,54 @@ struct ContentView: View {
             )
 
             Text("Tap the mic to add your first task.")
+                .font(.subheadline)
+                .foregroundStyle(Color(.systemGray2))
+                .multilineTextAlignment(.center)
+
+            Spacer()
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 40)
+    }
+
+    private var filteredEmptyStateView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Circle()
+                        .strokeBorder(Color(.systemGray4), lineWidth: 1.5)
+                        .frame(width: 18, height: 18)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray4).opacity(0.3))
+                        .frame(width: 110, height: 8)
+                }
+                HStack(spacing: 10) {
+                    Circle()
+                        .strokeBorder(Color(.systemGray4), lineWidth: 1.5)
+                        .frame(width: 18, height: 18)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray4).opacity(0.3))
+                        .frame(width: 80, height: 8)
+                }
+                HStack(spacing: 10) {
+                    Circle()
+                        .strokeBorder(Color(.systemGray4), lineWidth: 1.5)
+                        .frame(width: 18, height: 18)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray4).opacity(0.3))
+                        .frame(width: 100, height: 8)
+                }
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(Color(.systemGray4).opacity(0.3), lineWidth: 1)
+            )
+
+            Text("No tasks for \(selectedTag?.capitalized ?? "this tag") yet.")
                 .font(.subheadline)
                 .foregroundStyle(Color(.systemGray2))
                 .multilineTextAlignment(.center)

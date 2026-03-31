@@ -8,7 +8,7 @@ final class TagStore {
     private let key = "spoke_allowed_tags"
     private let defaults = UserDefaults.standard
 
-    private static let defaultTags = ["work", "personal", "health", "finance", "errands"]
+    private static let defaultTags = ["personal", "work", "shopping", "health", "finance"]
 
     var tags: [String] {
         didSet {
