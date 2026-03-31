@@ -603,9 +603,17 @@ private struct FirstTaskRecordingView: View {
                 sampleTaskCreated = true
                 let sampleTask = SpokeTask(
                     title: "Welcome to Spoke",
-                    taskDescription: "Spoke turns your voice into organized tasks. Here's how to get started:\n• Record your first task — tap the mic and speak\n• Edit a task — open it and use the mic to add detail\n• Try a brain dump — say several tasks at once\n• Customize your tags in Settings (top right)\n• Check off a task by tapping the circle"
+                    taskDescription: "Spoke turns your voice into organized tasks. Here's how to get started:\n• Record your first task — tap the mic and speak\n• Edit a task — open it and use the mic to add detail\n• Try a brain dump — say several tasks at once\n• Tasks can be edited with the keyboard as well as voice\n• Tap Settings to switch between Simple and Organized mode\n• Customize your tags in Settings (top right)\n• Check off a task by tapping the circle",
+                    deadline: .now,
+                    tag: "personal"
                 )
+                // Auto-complete after 7 days
+                let sevenDays = Calendar.current.date(byAdding: .day, value: 7, to: .now)!
+                sampleTask.completedAt = nil
+                sampleTask.createdAt = .now
                 modelContext.insert(sampleTask)
+                // Schedule auto-complete by storing the expiry
+                UserDefaults.standard.set(sevenDays.timeIntervalSince1970, forKey: "sampleTaskExpiry")
             }
 
             // Check mic permission status
