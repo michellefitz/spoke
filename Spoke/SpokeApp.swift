@@ -9,11 +9,10 @@ struct SpokeApp: App {
         WindowGroup {
             if settings.hasCompletedOnboarding {
                 ContentView()
-                    .modelContainer(for: SpokeTask.self)
             } else {
                 OnboardingView()
-                    .modelContainer(for: SpokeTask.self)
             }
         }
+        .modelContainer(for: SpokeTask.self)
     }
 }
