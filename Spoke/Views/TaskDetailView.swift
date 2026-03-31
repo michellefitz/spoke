@@ -11,6 +11,8 @@ struct TaskDetailView: View {
     @State private var recorder = VoiceRecorder()
     @State private var showPermissionAlert = false
     @State private var coachingToastVisible = false
+    @State private var recordingTimer: Task<Void, Never>?
+    @State private var errorToast: String?
     @State private var showDatePicker = false
     @State private var pickerDate: Date = .now
 
@@ -310,6 +312,21 @@ struct TaskDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
+            // Error toast
+            if let message = errorToast {
+                Text(message)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(Color(.label).opacity(0.8)))
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
+
             // Coaching toast
             if coachingToastVisible {
                 Text("Tap the mic to add items, a description, or make changes.")
@@ -491,11 +508,13 @@ struct TaskDetailView: View {
                 }
                 do {
                     try recorder.startRecording()
+                    startRecordingTimer()
                 } catch {
                     recorder.finishProcessing()
                 }
             }
         case .recording:
+            recordingTimer?.cancel()
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             stopAndProcess()
         case .processing:
@@ -533,6 +552,29 @@ struct TaskDetailView: View {
             if coachingToastVisible {
                 withAnimation(.easeOut(duration: 0.2)) { coachingToastVisible = false }
                 onCoachingEdit?()
+            }
+        }
+    }
+
+    private func startRecordingTimer() {
+        recordingTimer?.cancel()
+        recordingTimer = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(60))
+            guard recorder.recordingState == .recording else { return }
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            stopAndProcess()
+            showErrorToast("Recording limited to 1 minute")
+        }
+    }
+
+    private func showErrorToast(_ message: String) {
+        Task { @MainActor in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                errorToast = message
+            }
+            try? await Task.sleep(for: .seconds(2.5))
+            withAnimation(.easeOut(duration: 0.3)) {
+                if errorToast == message { errorToast = nil }
             }
         }
     }
