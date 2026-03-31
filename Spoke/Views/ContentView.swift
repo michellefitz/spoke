@@ -319,8 +319,8 @@ struct ContentView: View {
                                         .font(.caption)
                                         .foregroundStyle(Color(.label).opacity(0.35))
                                     Image(systemName: "chevron.right")
-                                        .font(.system(size: 9, weight: .semibold))
-                                        .foregroundStyle(Color(.label).opacity(0.35))
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(Color(.secondaryLabel))
                                         .rotationEffect(.degrees(completedExpanded ? 90 : 0))
                                 }
                             }
