@@ -283,11 +283,9 @@ private struct ModeChoiceView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color(.secondarySystemBackground))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .strokeBorder(
-                                isSelected ? coral : Color(.systemGray4),
-                                lineWidth: isSelected ? 2 : 1
-                            )
+                        isSelected ? RoundedRectangle(cornerRadius: 16)
+                            .strokeBorder(coral, lineWidth: 2)
+                        : nil
                     )
             )
         }
@@ -603,7 +601,7 @@ private struct FirstTaskRecordingView: View {
                 sampleTaskCreated = true
                 let sampleTask = SpokeTask(
                     title: "Welcome to Spoke",
-                    taskDescription: "Spoke turns your voice into organized tasks. Here's how to get started:\n• Record your first task — tap the mic and speak\n• Edit a task — open it and use the mic to add detail\n• Try a brain dump — say several tasks at once\n• Tasks can be edited with the keyboard as well as voice\n• Tap Settings to switch between Simple and Organized mode\n• Customize your tags in Settings (top right)\n• Check off a task by tapping the circle",
+                    taskDescription: "This is a sample task! Spoke turns your voice into organized tasks. Here's how to get started:\n• Record your first task — tap the mic and speak\n• Edit a task — open it and use the mic to add detail\n• Try a brain dump — say several tasks at once\n• Tasks can be edited with the keyboard as well as voice\n• Tap Settings to switch between Simple and Organized mode\n• Customize your tags in Settings (top right)\n• Check off a task by tapping the circle",
                     deadline: .now,
                     tag: "personal"
                 )

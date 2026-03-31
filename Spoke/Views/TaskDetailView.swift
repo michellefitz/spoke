@@ -343,12 +343,27 @@ struct TaskDetailView: View {
             }
 
             // MARK: Voice button
-            VoiceButton(
-                state: voiceButtonState,
-                audioLevel: recorder.audioLevel,
-                onTap: handleTap
-            )
-            .frame(maxWidth: .infinity, minHeight: 96)
+            ZStack(alignment: .bottom) {
+                // Fade gradient to indicate scrollable content above
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(.systemBackground).opacity(0), location: 0.0),
+                        .init(color: Color(.systemBackground).opacity(0.9), location: 0.4),
+                        .init(color: Color(.systemBackground), location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 110)
+                .allowsHitTesting(false)
+
+                VoiceButton(
+                    state: voiceButtonState,
+                    audioLevel: recorder.audioLevel,
+                    onTap: handleTap
+                )
+                .frame(maxWidth: .infinity, minHeight: 96)
+            }
             .padding(.bottom, -4)
         }
         .onAppear { initEditingState() }
