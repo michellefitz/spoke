@@ -207,6 +207,7 @@ private struct InlineChecklistView: View {
                     let isDone = line.hasPrefix("✓ ")
                     let text = String(line.dropFirst(2))
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         toggleBullet(line)
                     } label: {
                         HStack(spacing: 6) {
