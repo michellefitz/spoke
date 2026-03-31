@@ -198,7 +198,7 @@ struct ContentView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(Capsule().fill(Color(.label).opacity(0.8)))
+                    .background(Capsule().fill(Color(white: 0.15).opacity(0.9)))
                     .padding(.bottom, bottomBarHeight + 8)
                 }
                 .allowsHitTesting(false)
@@ -213,7 +213,7 @@ struct ContentView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(Capsule().fill(Color(.label).opacity(0.8)))
+                        .background(Capsule().fill(Color(white: 0.15).opacity(0.9)))
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .padding(.bottom, bottomBarHeight + 8)
                 }
