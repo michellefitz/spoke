@@ -71,12 +71,22 @@ struct TaskRowView: View {
 
                     Spacer()
 
+                    if !task.isCompleted, let counts = subtaskCounts, counts.total > 0 {
+                        let showExpanded = settings.appMode == .organized && settings.expandSubtasks
+                        if !showExpanded {
+                            Text("\(counts.done)/\(counts.total)")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(counts.done == counts.total ? coral : Color(.secondaryLabel))
+                                .padding(.trailing, 2)
+                        }
+                    }
+
                     let showChevron = !task.isCompleted && !(task.taskDescription ?? "").isEmpty
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Color(.tertiaryLabel))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color(.secondaryLabel))
                         .opacity(showChevron ? 1 : 0)
-                        .padding(.leading, 4)
+                        .padding(.leading, 2)
                 }
 
                 let showDeadline = task.deadline != nil && settings.appMode == .organized && settings.showDueDates

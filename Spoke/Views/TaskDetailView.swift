@@ -154,7 +154,7 @@ struct TaskDetailView: View {
                             Button("Next week")    { task.deadline = nextMonday }
                             Button("Custom…")      { pickerDate = .now; showDatePicker = true }
                         } label: {
-                            Text("ADD DATE")
+                            Text("ADD DUE DATE")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(Color(.tertiaryLabel))
                                 .padding(.horizontal, 6)
