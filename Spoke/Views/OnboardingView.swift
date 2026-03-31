@@ -183,6 +183,7 @@ private struct ModeChoiceView: View {
 
     private let settings = AppSettings.shared
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
+    @State private var selectedMode: AppMode?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -196,13 +197,20 @@ private struct ModeChoiceView: View {
                     .fill(coral)
                     .frame(width: 6, height: 6)
             }
-            .padding(.bottom, 24)
+            .padding(.bottom, 16)
 
             Text("How do you want to work?")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
-                .padding(.bottom, 24)
+                .padding(.bottom, 6)
+
+            Text("Don't worry, you can always change this later.")
+                .font(.footnote)
+                .foregroundStyle(Color(.secondaryLabel))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+                .padding(.bottom, 20)
 
             VStack(spacing: 16) {
                 modeCard(
@@ -222,19 +230,33 @@ private struct ModeChoiceView: View {
 
             Spacer()
 
-            Text("Don't worry, you can always change this later.")
-                .font(.footnote)
-                .foregroundStyle(Color(.secondaryLabel))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-                .padding(.bottom, 48)
+            // Next button
+            Button {
+                if let mode = selectedMode {
+                    settings.appMode = mode
+                    onModeSelected()
+                }
+            } label: {
+                Text("Next")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Capsule().fill(selectedMode != nil ? coral : Color(.systemGray4)))
+            }
+            .disabled(selectedMode == nil)
+            .padding(.horizontal, 32)
+            .padding(.bottom, 48)
+            .animation(.easeInOut(duration: 0.2), value: selectedMode)
         }
     }
 
     private func modeCard(mode: AppMode, title: String, description: String, illustration: some View) -> some View {
-        Button {
-            settings.appMode = mode
-            onModeSelected()
+        let isSelected = selectedMode == mode
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedMode = mode
+            }
         } label: {
             VStack(spacing: 14) {
                 VStack(spacing: 0) {
@@ -261,7 +283,10 @@ private struct ModeChoiceView: View {
                     .fill(Color(.secondarySystemBackground))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .strokeBorder(coral.opacity(0.25), lineWidth: 1.5)
+                            .strokeBorder(
+                                isSelected ? coral : Color(.systemGray4),
+                                lineWidth: isSelected ? 2 : 1
+                            )
                     )
             )
         }
