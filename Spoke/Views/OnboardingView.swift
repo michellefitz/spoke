@@ -1,28 +1,41 @@
 import SwiftUI
 
-// MARK: - OnboardingView (manages two-screen intro flow)
+// MARK: - OnboardingView (manages three-screen intro flow)
 
 struct OnboardingView: View {
-    @State private var showModeChoice = false
+    @State private var phase: OnboardingPhase = .splash
+
+    private enum OnboardingPhase: Equatable {
+        case splash
+        case modeChoice
+        case firstTask
+    }
 
     var body: some View {
         ZStack {
-            if showModeChoice {
-                ModeChoiceView()
+            switch phase {
+            case .splash:
+                SplashIntroView {
+                    withAnimation(.easeInOut(duration: 0.45)) { phase = .modeChoice }
+                }
+                .transition(.opacity)
+            case .modeChoice:
+                ModeChoiceView {
+                    withAnimation(.easeInOut(duration: 0.45)) { phase = .firstTask }
+                }
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.98)),
+                    removal: .opacity
+                ))
+            case .firstTask:
+                FirstTaskRecordingView()
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .scale(scale: 0.98)),
                         removal: .opacity
                     ))
-            } else {
-                SplashIntroView {
-                    withAnimation(.easeInOut(duration: 0.45)) {
-                        showModeChoice = true
-                    }
-                }
-                .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.45), value: showModeChoice)
+        .animation(.easeInOut(duration: 0.45), value: phase)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -49,7 +62,6 @@ private struct SplashIntroView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Wordmark row: typed letters + cursor or pulsing mic dot
             HStack(alignment: .bottom, spacing: 0) {
                 Text(typedText)
                     .font(.system(size: 70, weight: .medium))
@@ -60,11 +72,9 @@ private struct SplashIntroView: View {
                 if showDot {
                     PulsingMicDot(size: dotSize, coral: coral)
                         .scaleEffect(dotScale)
-                        // frame provides room for ripple rings without layout jumps
                         .frame(width: dotSize * 2.4, height: dotSize * 2.4)
                         .offset(x: 3, y: -14)
                 } else {
-                    // Blinking cursor
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color.primary)
                         .frame(width: 3, height: 56)
@@ -73,7 +83,6 @@ private struct SplashIntroView: View {
                 }
             }
 
-            // Tagline
             Text("Your day, dictated.")
                 .font(.system(size: 17))
                 .foregroundStyle(Color(.secondaryLabel))
@@ -82,7 +91,6 @@ private struct SplashIntroView: View {
 
             Spacer()
 
-            // Get started
             Button(action: onContinue) {
                 Text("Get started")
                     .font(.system(size: 17, weight: .semibold))
@@ -101,27 +109,18 @@ private struct SplashIntroView: View {
 
     @MainActor
     private func runAnimation() async {
-        // Initial pause before typing starts
         try? await Task.sleep(for: .milliseconds(700))
-
-        // Type each letter
         for _ in 0..<fullWord.count {
             typedCount += 1
             try? await Task.sleep(for: .milliseconds(115))
         }
-
-        // Brief pause then mic dot springs in
         try? await Task.sleep(for: .milliseconds(100))
         showDot = true
         withAnimation(.interpolatingSpring(stiffness: 220, damping: 14)) {
             dotScale = 1.0
         }
-
-        // Tagline fades in ~1s after dot lands
         try? await Task.sleep(for: .milliseconds(1100))
         withAnimation(.easeOut(duration: 0.6)) { taglineOpacity = 1 }
-
-        // Button fades in after tagline
         try? await Task.sleep(for: .milliseconds(700))
         withAnimation(.easeOut(duration: 0.5)) { buttonOpacity = 1 }
     }
@@ -140,37 +139,25 @@ private struct SplashIntroView: View {
     }
 }
 
-// MARK: - Pulsing mic dot (coral circle + mic icon + ripple rings)
+// MARK: - Pulsing mic dot
 
 private struct PulsingMicDot: View {
     let size: CGFloat
     let coral: Color
-
     @State private var pulsing = false
 
     var body: some View {
         ZStack {
-            // Ripple ring 1
             Circle()
                 .strokeBorder(coral, lineWidth: 1.5)
                 .scaleEffect(pulsing ? 2.2 : 1.0)
                 .opacity(pulsing ? 0 : 0.4)
-                .animation(
-                    .easeOut(duration: 1.4).repeatForever(autoreverses: false),
-                    value: pulsing
-                )
-
-            // Ripple ring 2 (staggered by 0.7s)
+                .animation(.easeOut(duration: 1.4).repeatForever(autoreverses: false), value: pulsing)
             Circle()
                 .strokeBorder(coral, lineWidth: 1.5)
                 .scaleEffect(pulsing ? 2.2 : 1.0)
                 .opacity(pulsing ? 0 : 0.4)
-                .animation(
-                    .easeOut(duration: 1.4).repeatForever(autoreverses: false).delay(0.7),
-                    value: pulsing
-                )
-
-            // Main dot with mic icon
+                .animation(.easeOut(duration: 1.4).repeatForever(autoreverses: false).delay(0.7), value: pulsing)
             Circle()
                 .fill(coral)
                 .frame(width: size, height: size)
@@ -181,16 +168,10 @@ private struct PulsingMicDot: View {
                         .foregroundStyle(.white)
                 )
                 .scaleEffect(pulsing ? 1.07 : 1.0)
-                .animation(
-                    .easeInOut(duration: 0.7).repeatForever(autoreverses: true),
-                    value: pulsing
-                )
+                .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulsing)
         }
         .onAppear {
-            // Delay matches the spring settle time so ripples start after dot lands
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                pulsing = true
-            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { pulsing = true }
         }
     }
 }
@@ -198,6 +179,8 @@ private struct PulsingMicDot: View {
 // MARK: - Mode choice screen
 
 private struct ModeChoiceView: View {
+    let onModeSelected: () -> Void
+
     private let settings = AppSettings.shared
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
 
@@ -222,8 +205,18 @@ private struct ModeChoiceView: View {
                 .padding(.bottom, 24)
 
             VStack(spacing: 16) {
-                simpleModeCard
-                organizedModeCard
+                modeCard(
+                    mode: .simple,
+                    title: "Simple",
+                    description: "Just capture your thoughts. No fuss.",
+                    illustration: simpleIllustration
+                )
+                modeCard(
+                    mode: .organized,
+                    title: "Organized",
+                    description: "Auto-tags, deadlines, and org tools.",
+                    illustration: organizedIllustration
+                )
             }
             .padding(.horizontal, 24)
 
@@ -238,49 +231,24 @@ private struct ModeChoiceView: View {
         }
     }
 
-    // MARK: Simple card
-
-    private var simpleModeCard: some View {
+    private func modeCard(mode: AppMode, title: String, description: String, illustration: some View) -> some View {
         Button {
-            settings.appMode = .simple
-            settings.hasCompletedOnboarding = true
+            settings.appMode = mode
+            onModeSelected()
         } label: {
             VStack(spacing: 14) {
-                // Illustration
                 VStack(spacing: 0) {
                     voiceInputRow
                     bubbleDots
-                    // Result: section header + task
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Added today")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(Color(.label).opacity(0.35))
-                        HStack(spacing: 7) {
-                            Circle()
-                                .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
-                                .frame(width: 14, height: 14)
-                            Text("Get milk and eggs")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.primary)
-                        }
-                    }
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
-                    )
-                    .padding(.horizontal, 16)
+                    illustration
                 }
                 .padding(.top, 16)
 
-                // Title + description
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Simple")
+                    Text(title)
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.primary)
-                    Text("Just capture your thoughts. No fuss.")
+                    Text(description)
                         .font(.system(size: 14))
                         .foregroundStyle(Color(.secondaryLabel))
                 }
@@ -300,98 +268,75 @@ private struct ModeChoiceView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: Organized card
-
-    private var organizedModeCard: some View {
-        Button {
-            settings.appMode = .organized
-            settings.hasCompletedOnboarding = true
-        } label: {
-            VStack(spacing: 14) {
-                // Illustration
-                VStack(spacing: 0) {
-                    voiceInputRow
-                    bubbleDots
-                    // Result: filter pills + section header + task + pills + subtasks
-                    VStack(alignment: .leading, spacing: 5) {
-                        // Tag filter pills
-                        HStack(spacing: 4) {
-                            filterChip("All", active: true)
-                            filterChip("Work", active: false)
-                            filterChip("Errands", active: false)
-                            filterChip("Home", active: false)
-                        }
-
-                        Text("Due today")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(Color(.label).opacity(0.35))
-                            .padding(.top, 2)
-
-                        // Task row
-                        HStack(spacing: 7) {
-                            Circle()
-                                .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
-                                .frame(width: 13, height: 13)
-                            Text("Get milk and eggs for baking")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.primary)
-                        }
-
-                        // Pills
-                        HStack(spacing: 4) {
-                            metadataPill("FRIDAY", coral: true)
-                            metadataPill("ERRANDS", coral: false)
-                        }
-                        .padding(.leading, 20)
-
-                        // Subtasks
-                        VStack(alignment: .leading, spacing: 4) {
-                            subtaskRow("Milk")
-                            subtaskRow("Eggs")
-                        }
-                        .padding(.leading, 20)
-                    }
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
-                    )
-                    .padding(.horizontal, 16)
-                }
-                .padding(.top, 16)
-
-                // Title + description
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Organized")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.primary)
-                    Text("Auto-tags, deadlines, and org tools.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color(.secondaryLabel))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 4)
+    private var simpleIllustration: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Added today")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(Color(.label).opacity(0.35))
+            HStack(spacing: 7) {
+                Circle()
+                    .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
+                    .frame(width: 14, height: 14)
+                Text("Get milk and eggs")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.primary)
             }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.secondarySystemBackground))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .strokeBorder(coral.opacity(0.25), lineWidth: 1.5)
-                    )
-            )
         }
-        .buttonStyle(.plain)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
+        )
+        .padding(.horizontal, 16)
+    }
+
+    private var organizedIllustration: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 4) {
+                filterChip("All", active: true)
+                filterChip("Work", active: false)
+                filterChip("Errands", active: false)
+                filterChip("Home", active: false)
+            }
+            Text("Due today")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(Color(.label).opacity(0.35))
+                .padding(.top, 2)
+            HStack(spacing: 7) {
+                Circle()
+                    .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
+                    .frame(width: 13, height: 13)
+                Text("Get milk and eggs for baking")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.primary)
+            }
+            HStack(spacing: 4) {
+                metadataPill("FRIDAY", coral: true)
+                metadataPill("ERRANDS", coral: false)
+            }
+            .padding(.leading, 20)
+            VStack(alignment: .leading, spacing: 4) {
+                subtaskRow("Milk")
+                subtaskRow("Eggs")
+            }
+            .padding(.leading, 20)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
+        )
+        .padding(.horizontal, 16)
     }
 
     // MARK: Shared illustration elements
 
     private var voiceInputRow: some View {
         HStack(spacing: 10) {
-            // Waveform bars
             HStack(spacing: 2) {
                 waveBar(height: 8, opacity: 0.3)
                 waveBar(height: 16, opacity: 0.45)
@@ -457,6 +402,159 @@ private struct ModeChoiceView: View {
                 .font(.system(size: 10))
                 .foregroundStyle(Color(.secondaryLabel))
         }
+    }
+}
+
+// MARK: - First task recording screen
+
+private struct FirstTaskRecordingView: View {
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var recorder = VoiceRecorder()
+    @State private var showPermissionAlert = false
+
+    private let settings = AppSettings.shared
+    private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
+    private let sampleText = "\"Pick up milk and eggs, and book a car service for Friday\""
+
+    private var isIdle: Bool { recorder.recordingState == .idle }
+    private var isRecording: Bool { recorder.recordingState == .recording }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            // Header text
+            if recorder.recordingState == .processing {
+                ProgressView()
+                    .tint(coral)
+                Text("Creating your tasks...")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color(.secondaryLabel))
+                    .padding(.top, 12)
+            } else {
+                Text(isRecording ? "Listening..." : "Add your first tasks")
+                    .font(.system(size: 24, weight: .semibold))
+                    .animation(.easeInOut(duration: 0.2), value: isRecording)
+
+                Text(isRecording ? "Tap to stop" : "Tap the mic and try saying:")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color(.secondaryLabel))
+                    .padding(.top, 6)
+                    .animation(.easeInOut(duration: 0.2), value: isRecording)
+            }
+
+            // Sample text (visible in idle and recording states)
+            if recorder.recordingState != .processing {
+                HStack(spacing: 8) {
+                    HStack(spacing: 2) {
+                        waveBar(height: 6, opacity: 0.3)
+                        waveBar(height: 12, opacity: 0.45)
+                        waveBar(height: 16, opacity: 0.7)
+                        waveBar(height: 10, opacity: 0.5)
+                        waveBar(height: 14, opacity: 0.6)
+                        waveBar(height: 8, opacity: 0.4)
+                        waveBar(height: 5, opacity: 0.3)
+                    }
+                    Text(sampleText)
+                        .font(.system(size: 13, weight: .medium))
+                        .italic()
+                        .foregroundStyle(coral)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(coral.opacity(0.06))
+                )
+                .padding(.horizontal, 32)
+                .padding(.top, 28)
+            }
+
+            Spacer()
+
+            // Voice button at bottom center
+            VoiceButton(
+                state: voiceButtonState,
+                audioLevel: recorder.audioLevel,
+                onTap: handleTap
+            )
+            .frame(maxWidth: .infinity, minHeight: 96)
+            .padding(.bottom, 24)
+        }
+        .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Spoke needs microphone and speech recognition access to create voice tasks. Please enable them in Settings.")
+        }
+    }
+
+    private var voiceButtonState: VoiceButtonState {
+        switch recorder.recordingState {
+        case .idle:       .idle
+        case .recording:  .recording
+        case .processing: .processing
+        }
+    }
+
+    private func handleTap() {
+        switch recorder.recordingState {
+        case .idle:
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Task {
+                let granted = await recorder.requestPermissionsIfNeeded()
+                guard granted else {
+                    showPermissionAlert = true
+                    return
+                }
+                do {
+                    try recorder.startRecording()
+                } catch {
+                    recorder.finishProcessing()
+                }
+            }
+        case .recording:
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            stopAndProcess()
+        case .processing:
+            break
+        }
+    }
+
+    private func stopAndProcess() {
+        let transcript = recorder.stopRecording()
+        guard !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            recorder.finishProcessing()
+            return
+        }
+        Task {
+            let parsedTasks = await TaskParser.parse(transcript: transcript)
+            for parsed in parsedTasks {
+                let task = SpokeTask(
+                    title: parsed.title,
+                    taskDescription: parsed.description,
+                    deadline: parsed.deadline,
+                    tag: parsed.tag
+                )
+                modelContext.insert(task)
+            }
+            recorder.finishProcessing()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            // Complete onboarding — ContentView takes over
+            settings.hasCompletedOnboarding = true
+        }
+    }
+
+    private func waveBar(height: CGFloat, opacity: Double) -> some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(coral.opacity(opacity))
+            .frame(width: 2.5, height: height)
     }
 }
 

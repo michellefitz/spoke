@@ -36,6 +36,10 @@ final class AppSettings {
         didSet { defaults.set(autoDeleteCompleted, forKey: "autoDeleteCompleted") }
     }
 
+    var hasSeenCoaching: Bool {
+        didSet { defaults.set(hasSeenCoaching, forKey: "hasSeenCoaching") }
+    }
+
     init() {
         if let raw = defaults.string(forKey: "appMode"),
            let mode = AppMode(rawValue: raw) {
@@ -48,5 +52,6 @@ final class AppSettings {
         self.expandSubtasks        = defaults.object(forKey: "expandSubtasks")        as? Bool ?? false
         self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         self.autoDeleteCompleted   = defaults.object(forKey: "autoDeleteCompleted")   as? Bool ?? true
+        self.hasSeenCoaching       = defaults.bool(forKey: "hasSeenCoaching")
     }
 }

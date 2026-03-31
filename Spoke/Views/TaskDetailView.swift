@@ -5,9 +5,11 @@ struct TaskDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Bindable var task: SpokeTask
+    var showCoachingToast: Bool = false
 
     @State private var recorder = VoiceRecorder()
     @State private var showPermissionAlert = false
+    @State private var coachingToastVisible = false
     @State private var showDatePicker = false
     @State private var pickerDate: Date = .now
 
@@ -307,17 +309,39 @@ struct TaskDetailView: View {
             }
 
             // MARK: Voice button
-            VStack(spacing: 4) {
+            ZStack(alignment: .top) {
                 VoiceButton(
                     state: voiceButtonState,
                     audioLevel: recorder.audioLevel,
                     onTap: handleTap
                 )
                 .frame(maxWidth: .infinity, minHeight: 96)
+
+                // Coaching toast
+                if coachingToastVisible {
+                    Text("Tap the mic to add items, a description, or make changes.")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Capsule().fill(Color(.label).opacity(0.8)))
+                        .padding(.horizontal, 20)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .offset(y: -8)
+                        .allowsHitTesting(false)
+                }
             }
             .padding(.bottom, -4)
         }
         .onAppear { initEditingState() }
+        .task {
+            guard showCoachingToast else { return }
+            try? await Task.sleep(for: .milliseconds(500))
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                coachingToastVisible = true
+            }
+        }
         .sheet(isPresented: $showDatePicker) {
             DatePickerSheet(selection: $pickerDate) { date in
                 withAnimation(.easeInOut(duration: 0.2)) { task.deadline = date }
