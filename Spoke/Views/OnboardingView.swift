@@ -457,16 +457,29 @@ private struct FirstTaskRecordingView: View {
                     .font(.system(size: 14))
                     .foregroundStyle(Color(.secondaryLabel))
                     .padding(.top, 12)
-            } else {
-                Text(isRecording ? "Listening..." : "Add your first tasks")
+            } else if isRecording {
+                Text("Listening...")
                     .font(.system(size: 24, weight: .semibold))
-                    .animation(.easeInOut(duration: 0.2), value: isRecording)
-
-                Text(isRecording ? "Tap to stop" : "Tap the mic and try saying:")
+                Text("Tap to stop")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(.secondaryLabel))
                     .padding(.top, 6)
-                    .animation(.easeInOut(duration: 0.2), value: isRecording)
+            } else {
+                Text("Add your first tasks")
+                    .font(.system(size: 24, weight: .semibold))
+                    .padding(.bottom, 8)
+
+                Text("Just say what's on your mind — Spoke turns your words into organised tasks automatically.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color(.secondaryLabel))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 16)
+
+                Text("Tap the mic and try saying:")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color(.secondaryLabel))
             }
 
             // Sample text (visible in idle and recording states)
@@ -494,7 +507,19 @@ private struct FirstTaskRecordingView: View {
                         .fill(coral.opacity(0.06))
                 )
                 .padding(.horizontal, 32)
-                .padding(.top, 28)
+                .padding(.top, isIdle ? 16 : 28)
+            }
+
+            if isIdle && recorder.recordingState != .processing {
+                HStack(spacing: 5) {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color(.tertiaryLabel))
+                    Text("Microphone access required")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(.tertiaryLabel))
+                }
+                .padding(.top, 12)
             }
 
             Spacer()
