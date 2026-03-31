@@ -438,6 +438,7 @@ private struct FirstTaskRecordingView: View {
     @State private var recorder = VoiceRecorder()
     @State private var showPermissionAlert = false
     @State private var showSample = false
+    @State private var showRetry = false
 
     private let settings = AppSettings.shared
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
@@ -499,8 +500,31 @@ private struct FirstTaskRecordingView: View {
 
             Spacer()
 
+            // Retry/skip after failure
+            if showRetry {
+                VStack(spacing: 12) {
+                    Text("We didn't catch that. Try again?")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(.secondaryLabel))
+
+                    Button(action: retry) {
+                        Text("Try again")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(coral)
+                    }
+
+                    Button(action: skip) {
+                        Text("Skip")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color(.tertiaryLabel))
+                    }
+                }
+                .padding(.bottom, 16)
+                .transition(.opacity)
+            }
+
             // Mic permission note (above mic button)
-            if showSample && isIdle {
+            if showSample && isIdle && !showRetry {
                 HStack(spacing: 5) {
                     Image(systemName: "mic.fill")
                         .font(.system(size: 10))
@@ -601,10 +625,16 @@ private struct FirstTaskRecordingView: View {
         let transcript = recorder.stopRecording()
         guard !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             recorder.finishProcessing()
+            showRetry = true
             return
         }
         Task {
             let parsedTasks = await TaskParser.parse(transcript: transcript)
+            if parsedTasks.isEmpty {
+                recorder.finishProcessing()
+                showRetry = true
+                return
+            }
             for parsed in parsedTasks {
                 let task = SpokeTask(
                     title: parsed.title,
@@ -616,9 +646,19 @@ private struct FirstTaskRecordingView: View {
             }
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            // Complete onboarding — ContentView takes over
             settings.hasCompletedOnboarding = true
         }
+    }
+
+    private func retry() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showRetry = false
+        }
+    }
+
+    private func skip() {
+        settings.hasCompletedOnboarding = true
+        settings.hasSeenCoaching = true
     }
 
     private func waveBar(height: CGFloat, opacity: Double) -> some View {
