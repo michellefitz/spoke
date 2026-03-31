@@ -25,7 +25,7 @@ struct SettingsView: View {
                         Text("Organized").tag(AppMode.organized)
                     }
                     .pickerStyle(.segmented)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
                     .listRowBackground(Color.clear)
                 } header: {
                     sectionHeader("Mode")
