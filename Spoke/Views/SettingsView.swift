@@ -8,6 +8,8 @@ struct SettingsView: View {
 
     @State private var isAddingTag = false
     @State private var newTagName = ""
+    @State private var debugTapCount = 0
+    @State private var showDebugLog = false
     @FocusState private var isNewTagFieldFocused: Bool
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
@@ -150,11 +152,26 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        debugTapCount += 1
+                        if debugTapCount >= 5 {
+                            debugTapCount = 0
+                            showDebugLog = true
+                        }
+                    } label: {
+                        // Invisible tap target on the title area
+                        Text("  ")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .fontWeight(.semibold)
                         .foregroundStyle(coral)
                 }
+            }
+            .sheet(isPresented: $showDebugLog) {
+                DebugLogView()
             }
         }
     }
