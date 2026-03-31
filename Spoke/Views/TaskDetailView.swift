@@ -318,6 +318,7 @@ struct TaskDetailView: View {
                     .padding(.vertical, 10)
                     .background(Capsule().fill(Color(.label).opacity(0.8)))
                     .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .allowsHitTesting(false)
             }
