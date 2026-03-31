@@ -308,30 +308,27 @@ struct TaskDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            // MARK: Voice button
-            ZStack(alignment: .top) {
-                VoiceButton(
-                    state: voiceButtonState,
-                    audioLevel: recorder.audioLevel,
-                    onTap: handleTap
-                )
-                .frame(maxWidth: .infinity, minHeight: 96)
-
-                // Coaching toast
-                if coachingToastVisible {
-                    Text("Tap the mic to add items, a description, or make changes.")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Capsule().fill(Color(.label).opacity(0.8)))
-                        .padding(.horizontal, 20)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .offset(y: -8)
-                        .allowsHitTesting(false)
-                }
+            // Coaching toast
+            if coachingToastVisible {
+                Text("Tap the mic to add items, a description, or make changes.")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(Color(.label).opacity(0.8)))
+                    .padding(.horizontal, 20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .allowsHitTesting(false)
             }
+
+            // MARK: Voice button
+            VoiceButton(
+                state: voiceButtonState,
+                audioLevel: recorder.audioLevel,
+                onTap: handleTap
+            )
+            .frame(maxWidth: .infinity, minHeight: 96)
             .padding(.bottom, -4)
         }
         .onAppear { initEditingState() }
