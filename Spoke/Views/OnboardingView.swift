@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 // MARK: - OnboardingView (manages three-screen intro flow)
 
@@ -439,6 +440,8 @@ private struct FirstTaskRecordingView: View {
     @State private var showPermissionAlert = false
     @State private var showSample = false
     @State private var showRetry = false
+    @State private var micDenied = false
+    @State private var sampleTaskCreated = false
 
     private let settings = AppSettings.shared
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
@@ -523,27 +526,66 @@ private struct FirstTaskRecordingView: View {
                 .transition(.opacity)
             }
 
-            // Mic permission note (above mic button)
-            if showSample && isIdle && !showRetry {
-                HStack(spacing: 5) {
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(Color(.tertiaryLabel))
-                    Text("Microphone access required")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color(.tertiaryLabel))
-                }
-                .padding(.bottom, 8)
-            }
+            if micDenied {
+                // Mic permission denied — show disabled state
+                VStack(spacing: 10) {
+                    Text("Spoke requires microphone access to create tasks by voice.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(.secondaryLabel))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
 
-            // Voice button at bottom center
-            VoiceButton(
-                state: voiceButtonState,
-                audioLevel: recorder.audioLevel,
-                onTap: handleTap
-            )
-            .frame(maxWidth: .infinity, minHeight: 96)
-            .padding(.bottom, 24)
+                    Button {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Text("Enable in Settings")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(coral)
+                    }
+
+                    Button(action: skip) {
+                        Text("Continue without mic")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color(.tertiaryLabel))
+                    }
+                }
+                .padding(.bottom, 16)
+
+                // Greyed-out mic button
+                Circle()
+                    .fill(Color(.systemGray4))
+                    .frame(width: 72, height: 72)
+                    .overlay(
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.5))
+                    )
+                    .padding(.bottom, 24)
+            } else {
+                // Mic permission note (above mic button)
+                if showSample && isIdle && !showRetry {
+                    HStack(spacing: 5) {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color(.tertiaryLabel))
+                        Text("Microphone access required")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color(.tertiaryLabel))
+                    }
+                    .padding(.bottom, 8)
+                }
+
+                // Voice button at bottom center
+                VoiceButton(
+                    state: voiceButtonState,
+                    audioLevel: recorder.audioLevel,
+                    onTap: handleTap
+                )
+                .frame(maxWidth: .infinity, minHeight: 96)
+                .padding(.bottom, 24)
+            }
         }
         .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
             Button("Open Settings") {
@@ -556,9 +598,33 @@ private struct FirstTaskRecordingView: View {
             Text("Spoke needs microphone and speech recognition access to create voice tasks. Please enable them in Settings.")
         }
         .task {
+            // Create the sample task on appear
+            if !sampleTaskCreated {
+                sampleTaskCreated = true
+                let sampleTask = SpokeTask(
+                    title: "Sample task: Learn how to use Spoke",
+                    taskDescription: "Spoke is a voice-first task manager. Say what's on your mind and Spoke organises it into tasks automatically. You can edit tasks by voice or manually — whatever works for you.\n• Create a task using the microphone\n• Edit a task — tap it, then use the mic\n• Try adding multiple tasks in one go\n• Set up your tags in Settings\n• Complete a task by tapping the circle"
+                )
+                modelContext.insert(sampleTask)
+            }
+
+            // Check mic permission status
+            let status = AVAudioApplication.shared.recordPermission
+            if status == .denied {
+                micDenied = true
+            }
+
+            // Fade in sample prompt
             try? await Task.sleep(for: .seconds(1))
             withAnimation(.easeOut(duration: 0.5)) {
                 showSample = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // Re-check mic permission when returning from Settings
+            let status = AVAudioApplication.shared.recordPermission
+            if status == .granted {
+                withAnimation { micDenied = false }
             }
         }
     }
@@ -604,7 +670,7 @@ private struct FirstTaskRecordingView: View {
             Task {
                 let granted = await recorder.requestPermissionsIfNeeded()
                 guard granted else {
-                    showPermissionAlert = true
+                    withAnimation { micDenied = true }
                     return
                 }
                 do {

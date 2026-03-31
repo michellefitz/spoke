@@ -651,7 +651,7 @@ struct ContentView: View {
             }
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            if parsedTasks.count > 1 {
+            if parsedTasks.count > 1 && !coachingActive {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     toastMessage = "\(parsedTasks.count) tasks added"
                 }
