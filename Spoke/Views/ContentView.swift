@@ -78,6 +78,7 @@ struct ContentView: View {
     @State private var completedExpanded = false
     @State private var toastMessage: String?
     @State private var coachingActive = false
+    @State private var coachingEditedInDetail = false
     private let tagStore = TagStore.shared
 
     private var hasTasks: Bool { !activeTasks.isEmpty || !completedTasks.isEmpty }
@@ -178,7 +179,8 @@ struct ContentView: View {
             }
         }
         .sheet(item: $selectedTask, onDismiss: {
-            if coachingActive {
+            if coachingActive && coachingEditedInDetail {
+                // User completed the full coaching flow: viewed + edited
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(400))
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -189,11 +191,22 @@ struct ContentView: View {
                         toastMessage = nil
                     }
                     coachingActive = false
+                    coachingEditedInDetail = false
                     settings.hasSeenCoaching = true
+                }
+            } else if coachingActive {
+                // User viewed but didn't edit — keep coaching active, re-show list toast
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(400))
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        toastMessage = "Great, you've added your first tasks. Tap one to view details."
+                    }
                 }
             }
         }) { task in
-            TaskDetailView(task: task, showCoachingToast: coachingActive)
+            TaskDetailView(task: task, showCoachingToast: coachingActive, onCoachingEdit: {
+                coachingEditedInDetail = true
+            })
                 .presentationDetents([.medium, .large])
                 .presentationBackground(Color(.systemBackground))
         }
