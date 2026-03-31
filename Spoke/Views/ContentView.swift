@@ -145,20 +145,6 @@ struct ContentView: View {
             taskListView
                 .safeAreaInset(edge: .top) {
                 VStack(spacing: 0) {
-                    // Offline bar
-                    if !network.isConnected {
-                        HStack(spacing: 6) {
-                            Image(systemName: "wifi.slash")
-                                .font(.system(size: 11, weight: .semibold))
-                            Text("No connection. Tasks can't be processed.")
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(Color.red)
-                    }
-
                     // Wordmark + settings
                     HStack {
                         Spacer()
@@ -199,6 +185,25 @@ struct ContentView: View {
 
             bottomVoiceBar
 
+            // Offline toast (persistent, near mic)
+            if !network.isConnected {
+                VStack {
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Image(systemName: "wifi.slash")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("No connection. Tasks can't be processed.")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(Color(white: 0.15).opacity(0.9)))
+                    .padding(.bottom, bottomBarHeight + 8)
+                }
+                .allowsHitTesting(false)
+            }
+
             // Toast for multi-task creation
             if let message = toastMessage {
                 VStack {
@@ -208,7 +213,7 @@ struct ContentView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(Capsule().fill(Color(.label).opacity(0.8)))
+                        .background(Capsule().fill(Color(white: 0.15).opacity(0.9)))
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .padding(.bottom, bottomBarHeight + 8)
                 }
