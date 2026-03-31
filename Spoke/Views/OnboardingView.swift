@@ -437,6 +437,7 @@ private struct FirstTaskRecordingView: View {
 
     @State private var recorder = VoiceRecorder()
     @State private var showPermissionAlert = false
+    @State private var showSample = false
 
     private let settings = AppSettings.shared
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
@@ -464,53 +465,42 @@ private struct FirstTaskRecordingView: View {
                     .font(.system(size: 14))
                     .foregroundStyle(Color(.secondaryLabel))
                     .padding(.top, 6)
+
+                // Sample stays visible during recording
+                sampleCard
+                    .padding(.top, 28)
             } else {
-                Text("Add your first tasks")
+                // Phase 1: heading + value prop (always visible)
+                Text("Get started")
                     .font(.system(size: 24, weight: .semibold))
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 10)
 
                 Text("Just say what's on your mind — Spoke turns your words into organised tasks automatically.")
                     .font(.system(size: 15))
                     .foregroundStyle(Color(.secondaryLabel))
                     .multilineTextAlignment(.center)
                     .lineSpacing(2)
-                    .padding(.horizontal, 32)
-                    .padding(.bottom, 16)
+                    .padding(.horizontal, 36)
 
-                Text("Tap the mic and try saying:")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color(.secondaryLabel))
-            }
+                // Phase 2: sample + mic note (fades in after 1s)
+                if showSample {
+                    VStack(spacing: 0) {
+                        Text("Tap the mic and try saying:")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color(.secondaryLabel))
+                            .padding(.top, 28)
 
-            // Sample text (visible in idle and recording states)
-            if recorder.recordingState != .processing {
-                HStack(spacing: 8) {
-                    HStack(spacing: 2) {
-                        waveBar(height: 6, opacity: 0.3)
-                        waveBar(height: 12, opacity: 0.45)
-                        waveBar(height: 16, opacity: 0.7)
-                        waveBar(height: 10, opacity: 0.5)
-                        waveBar(height: 14, opacity: 0.6)
-                        waveBar(height: 8, opacity: 0.4)
-                        waveBar(height: 5, opacity: 0.3)
+                        sampleCard
+                            .padding(.top, 14)
                     }
-                    Text(sampleText)
-                        .font(.system(size: 13, weight: .medium))
-                        .italic()
-                        .foregroundStyle(coral)
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity)
                 }
-                .padding(14)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(coral.opacity(0.06))
-                )
-                .padding(.horizontal, 32)
-                .padding(.top, isIdle ? 16 : 28)
             }
 
-            if isIdle && recorder.recordingState != .processing {
+            Spacer()
+
+            // Mic permission note (above mic button)
+            if showSample && isIdle {
                 HStack(spacing: 5) {
                     Image(systemName: "mic.fill")
                         .font(.system(size: 10))
@@ -519,10 +509,8 @@ private struct FirstTaskRecordingView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Color(.tertiaryLabel))
                 }
-                .padding(.top, 12)
+                .padding(.bottom, 8)
             }
-
-            Spacer()
 
             // Voice button at bottom center
             VoiceButton(
@@ -543,6 +531,38 @@ private struct FirstTaskRecordingView: View {
         } message: {
             Text("Spoke needs microphone and speech recognition access to create voice tasks. Please enable them in Settings.")
         }
+        .task {
+            try? await Task.sleep(for: .seconds(1))
+            withAnimation(.easeOut(duration: 0.5)) {
+                showSample = true
+            }
+        }
+    }
+
+    private var sampleCard: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 2) {
+                waveBar(height: 6, opacity: 0.3)
+                waveBar(height: 12, opacity: 0.45)
+                waveBar(height: 16, opacity: 0.7)
+                waveBar(height: 10, opacity: 0.5)
+                waveBar(height: 14, opacity: 0.6)
+                waveBar(height: 8, opacity: 0.4)
+                waveBar(height: 5, opacity: 0.3)
+            }
+            Text(sampleText)
+                .font(.system(size: 13, weight: .medium))
+                .italic()
+                .foregroundStyle(coral)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(coral.opacity(0.06))
+        )
+        .padding(.horizontal, 32)
     }
 
     private var voiceButtonState: VoiceButtonState {
