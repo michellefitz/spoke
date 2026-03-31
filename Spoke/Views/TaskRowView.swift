@@ -74,10 +74,19 @@ struct TaskRowView: View {
                     if !task.isCompleted, let counts = subtaskCounts, counts.total > 0 {
                         let showExpanded = settings.appMode == .organized && settings.expandSubtasks
                         if !showExpanded {
-                            Text("\(counts.done)/\(counts.total)")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(counts.done == counts.total ? coral : Color(.secondaryLabel))
-                                .padding(.trailing, 2)
+                            HStack(spacing: 4) {
+                                Image(systemName: "checklist")
+                                    .font(.system(size: 10, weight: .medium))
+                                Text("\(counts.done)/\(counts.total)")
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .foregroundStyle(counts.done == counts.total ? coral : Color(.secondaryLabel))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule().fill(Color(.tertiarySystemFill))
+                            )
+                            .padding(.trailing, 2)
                         }
                     }
 

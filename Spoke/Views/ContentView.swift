@@ -533,7 +533,7 @@ struct ContentView: View {
         } label: {
             Image(systemName: "arrow.up.arrow.down")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(sortMode == .dueDate ? coral : Color(.secondaryLabel))
+                .foregroundStyle(coral)
                 .frame(width: 32, height: 32)
         }
     }
