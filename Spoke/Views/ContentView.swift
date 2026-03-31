@@ -85,9 +85,7 @@ struct ContentView: View {
     private let bottomBarHeight: CGFloat = 132
 
     private var availableTags: [String] {
-        let allowed = Set(tagStore.tags)
-        let allTasks = activeTasks + completedTasks
-        return Array(Set(allTasks.compactMap { $0.tag }).intersection(allowed)).sorted()
+        tagStore.tags
     }
 
     private var filteredActiveTasks: [SpokeTask] {
