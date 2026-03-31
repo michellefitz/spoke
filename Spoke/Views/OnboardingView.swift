@@ -72,7 +72,7 @@ private struct SplashIntroView: View {
                 if showDot {
                     PulsingMicDot(size: dotSize, coral: coral)
                         .scaleEffect(dotScale)
-                        .frame(width: dotSize * 2.4, height: dotSize * 2.4)
+                        .frame(width: dotSize * 1.8, height: dotSize * 1.8)
                         .offset(x: 3, y: -14)
                 } else {
                     RoundedRectangle(cornerRadius: 2)
@@ -149,14 +149,14 @@ private struct PulsingMicDot: View {
     var body: some View {
         ZStack {
             Circle()
-                .strokeBorder(coral, lineWidth: 1.5)
-                .scaleEffect(pulsing ? 2.2 : 1.0)
-                .opacity(pulsing ? 0 : 0.4)
+                .strokeBorder(coral, lineWidth: 1)
+                .scaleEffect(pulsing ? 1.5 : 1.0)
+                .opacity(pulsing ? 0 : 0.3)
                 .animation(.easeOut(duration: 1.4).repeatForever(autoreverses: false), value: pulsing)
             Circle()
-                .strokeBorder(coral, lineWidth: 1.5)
-                .scaleEffect(pulsing ? 2.2 : 1.0)
-                .opacity(pulsing ? 0 : 0.4)
+                .strokeBorder(coral, lineWidth: 1)
+                .scaleEffect(pulsing ? 1.5 : 1.0)
+                .opacity(pulsing ? 0 : 0.3)
                 .animation(.easeOut(duration: 1.4).repeatForever(autoreverses: false).delay(0.7), value: pulsing)
             Circle()
                 .fill(coral)
