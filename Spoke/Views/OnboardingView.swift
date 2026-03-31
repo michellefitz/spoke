@@ -213,27 +213,17 @@ private struct ModeChoiceView: View {
                     .fill(coral)
                     .frame(width: 6, height: 6)
             }
-            .padding(.bottom, 32)
+            .padding(.bottom, 24)
 
             Text("How do you want to work?")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
-                .padding(.bottom, 32)
+                .padding(.bottom, 24)
 
             VStack(spacing: 16) {
-                ModeCard(
-                    title: "Simple",
-                    description: "Just capture your thoughts. No fuss.",
-                    systemImage: "mic.circle.fill",
-                    mode: .simple
-                )
-                ModeCard(
-                    title: "Organized",
-                    description: "Auto-tags, deadlines, and org tools.",
-                    systemImage: "list.bullet.clipboard.fill",
-                    mode: .organized
-                )
+                simpleModeCard
+                organizedModeCard
             }
             .padding(.horizontal, 24)
 
@@ -247,43 +237,57 @@ private struct ModeChoiceView: View {
                 .padding(.bottom, 48)
         }
     }
-}
 
-// MARK: - Mode card
+    // MARK: Simple card
 
-private struct ModeCard: View {
-    let title: String
-    let description: String
-    let systemImage: String
-    let mode: AppMode
-
-    private let settings = AppSettings.shared
-    private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
-
-    var body: some View {
+    private var simpleModeCard: some View {
         Button {
-            settings.appMode = mode
+            settings.appMode = .simple
             settings.hasCompletedOnboarding = true
         } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 28))
-                    .foregroundStyle(coral)
+            VStack(spacing: 14) {
+                // Illustration
+                VStack(spacing: 0) {
+                    voiceInputRow
+                    bubbleDots
+                    // Result: section header + task
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Added today")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(Color(.label).opacity(0.35))
+                        HStack(spacing: 7) {
+                            Circle()
+                                .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
+                                .frame(width: 14, height: 14)
+                            Text("Get milk and eggs")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
+                    )
+                    .padding(.horizontal, 16)
+                }
+                .padding(.top, 16)
 
-                Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.primary)
-
-                Text(description)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color(.secondaryLabel))
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer()
+                // Title + description
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Simple")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text("Just capture your thoughts. No fuss.")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(.secondaryLabel))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 4)
             }
-            .frame(maxWidth: .infinity, minHeight: 160, alignment: .topLeading)
-            .padding(20)
+            .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color(.secondarySystemBackground))
@@ -294,6 +298,165 @@ private struct ModeCard: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: Organized card
+
+    private var organizedModeCard: some View {
+        Button {
+            settings.appMode = .organized
+            settings.hasCompletedOnboarding = true
+        } label: {
+            VStack(spacing: 14) {
+                // Illustration
+                VStack(spacing: 0) {
+                    voiceInputRow
+                    bubbleDots
+                    // Result: filter pills + section header + task + pills + subtasks
+                    VStack(alignment: .leading, spacing: 5) {
+                        // Tag filter pills
+                        HStack(spacing: 4) {
+                            filterChip("All", active: true)
+                            filterChip("Work", active: false)
+                            filterChip("Errands", active: false)
+                            filterChip("Home", active: false)
+                        }
+
+                        Text("Due today")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(Color(.label).opacity(0.35))
+                            .padding(.top, 2)
+
+                        // Task row
+                        HStack(spacing: 7) {
+                            Circle()
+                                .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
+                                .frame(width: 13, height: 13)
+                            Text("Get milk and eggs for baking")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.primary)
+                        }
+
+                        // Pills
+                        HStack(spacing: 4) {
+                            metadataPill("FRIDAY", coral: true)
+                            metadataPill("ERRANDS", coral: false)
+                        }
+                        .padding(.leading, 20)
+
+                        // Subtasks
+                        VStack(alignment: .leading, spacing: 4) {
+                            subtaskRow("Milk")
+                            subtaskRow("Eggs")
+                        }
+                        .padding(.leading, 20)
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
+                    )
+                    .padding(.horizontal, 16)
+                }
+                .padding(.top, 16)
+
+                // Title + description
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Organized")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text("Auto-tags, deadlines, and org tools.")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(.secondaryLabel))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 4)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .strokeBorder(coral.opacity(0.25), lineWidth: 1.5)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Shared illustration elements
+
+    private var voiceInputRow: some View {
+        HStack(spacing: 10) {
+            // Waveform bars
+            HStack(spacing: 2) {
+                waveBar(height: 8, opacity: 0.3)
+                waveBar(height: 16, opacity: 0.45)
+                waveBar(height: 22, opacity: 0.7)
+                waveBar(height: 12, opacity: 0.5)
+                waveBar(height: 18, opacity: 0.6)
+                waveBar(height: 10, opacity: 0.4)
+                waveBar(height: 6, opacity: 0.3)
+            }
+            Text("\"Get milk and eggs for baking on Friday\"")
+                .font(.system(size: 11, weight: .medium))
+                .italic()
+                .foregroundStyle(coral)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.bottom, 8)
+    }
+
+    private var bubbleDots: some View {
+        VStack(spacing: 4) {
+            Circle().fill(coral.opacity(0.5)).frame(width: 8, height: 8)
+            Circle().fill(coral.opacity(0.32)).frame(width: 6, height: 6)
+            Circle().fill(coral.opacity(0.18)).frame(width: 4, height: 4)
+        }
+        .padding(.bottom, 6)
+    }
+
+    private func waveBar(height: CGFloat, opacity: Double) -> some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(coral.opacity(opacity))
+            .frame(width: 2.5, height: height)
+    }
+
+    private func filterChip(_ label: String, active: Bool) -> some View {
+        Text(label)
+            .font(.system(size: 8, weight: active ? .semibold : .medium))
+            .foregroundStyle(active ? .white : Color(.secondaryLabel))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(active ? coral : Color(.tertiarySystemFill)))
+    }
+
+    private func metadataPill(_ label: String, coral isCoral: Bool) -> some View {
+        Text(label)
+            .font(.system(size: 7, weight: .bold))
+            .tracking(0.3)
+            .foregroundStyle(isCoral ? coral : Color(.secondaryLabel))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(isCoral ? coral.opacity(0.12) : Color(.tertiarySystemFill))
+            )
+    }
+
+    private func subtaskRow(_ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .strokeBorder(Color(.systemGray3), lineWidth: 1)
+                .frame(width: 10, height: 10)
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundStyle(Color(.secondaryLabel))
+        }
     }
 }
 
