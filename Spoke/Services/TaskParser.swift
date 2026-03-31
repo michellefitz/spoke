@@ -8,15 +8,19 @@ struct ParsedTask {
 }
 
 enum TaskParser {
+    private static let logger = TaskParserLogger.shared
+
     static func parse(transcript: String) async -> [ParsedTask] {
+        let start = Date()
         let wordCount = transcript.split(separator: " ").count
         if wordCount <= 3 {
-            return [ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)]
+            let result = [ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)]
+            logEntry(mode: "create", transcript: transcript, system: "(short — skipped API)", user: transcript, response: nil, tasks: result, error: nil, start: start)
+            return result
         }
         let today = isoToday()
         let tagInstruction = tagPromptInstruction()
-        return await callClaudeMulti(
-            system: """
+        let system = """
             Today's date is \(today). You are a task parser. Given a voice transcript, extract one or more tasks. \
             Rules: \
             - If the transcript contains MULTIPLE UNRELATED tasks (e.g. "call the dentist, do grocery shopping, and pick up Alex"), return a JSON ARRAY of task objects. \
@@ -36,19 +40,21 @@ enum TaskParser {
             Single task: [{"title": "Call the dentist"}] \
             Single task with details: [{"title": "Do grocery shopping", "description": "Things to pick up:\\n• Milk\\n• Eggs\\n• Broccoli"}] \
             Multiple tasks: [{"title": "Call the dentist"}, {"title": "Do grocery shopping", "description": "Things to pick up:\\n• Milk\\n• Eggs"}, {"title": "Pick up Alex at 5 PM tomorrow", "deadline": "YYYY-MM-DD"}]
-            """,
-            user: "Transcript: \"\(transcript)\""
-        ) ?? [fallback(transcript)]
+            """
+        let user = "Transcript: \"\(transcript)\""
+        let result = await callClaudeMulti(system: system, user: user) ?? [fallback(transcript)]
+        logEntry(mode: "create", transcript: transcript, system: system, user: user, response: nil, tasks: result, error: result.isEmpty ? "empty" : nil, start: start)
+        return result
     }
 
     static func parseEdit(transcript: String, currentTitle: String, currentDescription: String?, currentDeadline: Date? = nil, currentTag: String? = nil) async -> ParsedTask {
+        let start = Date()
         let desc = currentDescription ?? "none"
         let today = isoToday()
         let tagInstruction = tagPromptInstruction()
         let deadlineStr = currentDeadline.map { isoFormatter.string(from: $0) } ?? "none"
         let tagStr = currentTag ?? "none"
-        return await callClaude(
-            system: """
+        let system = """
             Today's date is \(today). You are a task assistant that refines tasks from voice input. \
             You are given an existing task and new voice input spoken by the user. \
             Synthesize the existing task and the new voice into the best, most complete version of the task. \
@@ -66,8 +72,8 @@ enum TaskParser {
             - Preserve the existing tag if it still fits. \(tagInstruction) \
             Return ONLY valid JSON, no markdown, no code fences, no commentary. \
             Example: {"title": "…", "description": "…", "deadline": "YYYY-MM-DD", "tag": "work"}
-            """,
-            user: """
+            """
+        let user = """
             Existing task:
             Title: "\(currentTitle)"
             Description: "\(desc)"
@@ -76,7 +82,9 @@ enum TaskParser {
 
             New voice input: "\(transcript)"
             """
-        ) ?? fallback(transcript)
+        let result = await callClaude(system: system, user: user) ?? fallback(transcript)
+        logEntry(mode: "edit", transcript: transcript, system: system, user: user, response: nil, tasks: [result], error: nil, start: start)
+        return result
     }
 
     // MARK: - Private
@@ -240,5 +248,23 @@ enum TaskParser {
     private static func sentenceCase(_ text: String) -> String {
         guard !text.isEmpty else { return text }
         return text.prefix(1).uppercased() + text.dropFirst()
+    }
+
+    private static func logEntry(mode: String, transcript: String, system: String, user: String, response: String?, tasks: [ParsedTask], error: String?, start: Date) {
+        let entry = ParserLogEntry(
+            id: UUID(),
+            timestamp: Date(),
+            mode: mode,
+            transcript: transcript,
+            systemPrompt: system,
+            userMessage: user,
+            claudeResponse: response,
+            parsedTasks: tasks.map {
+                .init(title: $0.title, description: $0.description, deadline: $0.deadline.map { isoFormatter.string(from: $0) }, tag: $0.tag)
+            },
+            error: error,
+            durationMs: Int(Date().timeIntervalSince(start) * 1000)
+        )
+        logger.log(entry)
     }
 }
