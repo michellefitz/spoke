@@ -200,7 +200,7 @@ struct ContentView: View {
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(400))
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        toastMessage = "Great, you've added your first tasks. Tap one to view details."
+                        toastMessage = "Nice! Tap a task to see more."
                     }
                 }
             }
@@ -233,7 +233,7 @@ struct ContentView: View {
             coachingActive = true
             try? await Task.sleep(for: .milliseconds(600))
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                toastMessage = "Great, you've added your first tasks. Tap one to view details."
+                toastMessage = "Nice! Tap a task to see more."
             }
         }
         .onChange(of: selectedTask) { _, task in
@@ -420,7 +420,7 @@ struct ContentView: View {
                     .strokeBorder(Color(.systemGray4).opacity(0.4), lineWidth: 1)
             )
 
-            Text("Tap the mic to add your first task.")
+            Text("Say something. We'll handle the rest.")
                 .font(.subheadline)
                 .foregroundStyle(Color(.systemGray2))
                 .multilineTextAlignment(.center)
@@ -468,7 +468,7 @@ struct ContentView: View {
                     .strokeBorder(Color(.systemGray4).opacity(0.3), lineWidth: 1)
             )
 
-            Text("No tasks for \(selectedTag?.capitalized ?? "this tag") yet.")
+            Text("Nothing here yet. Speak to add one.")
                 .font(.subheadline)
                 .foregroundStyle(Color(.systemGray2))
                 .multilineTextAlignment(.center)
@@ -646,11 +646,11 @@ struct ContentView: View {
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             stopAndProcess()
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                toastMessage = "Recording limited to 1 minute"
+                toastMessage = "Recording stopped — 1 minute max."
             }
             try? await Task.sleep(for: .seconds(2.5))
             withAnimation(.easeOut(duration: 0.3)) {
-                if toastMessage == "Recording limited to 1 minute" { toastMessage = nil }
+                if toastMessage == "Recording stopped — 1 minute max." { toastMessage = nil }
             }
         }
     }
@@ -666,11 +666,11 @@ struct ContentView: View {
             guard !parsedTasks.isEmpty else {
                 recorder.finishProcessing()
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    toastMessage = "Task couldn't be processed. Please try again."
+                    toastMessage = "Something went wrong. Give it another go."
                 }
                 try? await Task.sleep(for: .seconds(2.5))
                 withAnimation(.easeOut(duration: 0.3)) {
-                    if toastMessage == "Task couldn't be processed. Please try again." { toastMessage = nil }
+                    if toastMessage == "Something went wrong. Give it another go." { toastMessage = nil }
                 }
                 return
             }
