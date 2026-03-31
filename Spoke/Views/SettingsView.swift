@@ -31,8 +31,8 @@ struct SettingsView: View {
                     sectionHeader("Mode")
                 } footer: {
                     Text(settings.appMode == .simple
-                         ? "Just capture tasks. No tags, dates, or categories."
-                         : "Full features with customisable display options.")
+                         ? "A clean list. Nothing more, nothing less."
+                         : "Tags, deadlines, and subtasks — sorted automatically.")
                         .font(.footnote)
                         .foregroundStyle(Color(.secondaryLabel))
                 }
@@ -140,7 +140,7 @@ struct SettingsView: View {
                 } header: {
                     sectionHeader("Data")
                 } footer: {
-                    Text("Completed tasks older than 14 days are removed automatically.")
+                    Text("Completed tasks are cleared after 14 days.")
                         .font(.footnote)
                         .foregroundStyle(Color(.secondaryLabel))
                 }

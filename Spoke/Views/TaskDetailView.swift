@@ -107,7 +107,7 @@ struct TaskDetailView: View {
             .padding(.bottom, 4)
 
             // MARK: Title
-            TextField("Task title", text: $task.title, axis: .vertical)
+            TextField("What needs doing?", text: $task.title, axis: .vertical)
                 .font(.title2)
                 .fontWeight(.semibold)
                 .focused($focusedField, equals: .title)
@@ -240,7 +240,7 @@ struct TaskDetailView: View {
 
                     // Notes field — hidden for completed tasks with no description
                     if !task.isCompleted || !editingNotes.isEmpty {
-                        TextField("Add a description…", text: $editingNotes, axis: .vertical)
+                        TextField("Add some detail…", text: $editingNotes, axis: .vertical)
                             .font(.body)
                             .foregroundStyle(.primary.opacity(0.75))
                             .focused($focusedField, equals: .notes)
@@ -267,7 +267,7 @@ struct TaskDetailView: View {
                                 .buttonStyle(.plain)
                                 .padding(.top, 2)
 
-                                TextField("Item", text: $bullet.text, axis: .vertical)
+                                TextField("To do…", text: $bullet.text, axis: .vertical)
                                     .font(.body)
                                     .strikethrough(bullet.checked)
                                     .foregroundStyle(.primary.opacity(bullet.checked ? 0.35 : 0.75))
@@ -295,7 +295,7 @@ struct TaskDetailView: View {
                                 HStack(spacing: 5) {
                                     Image(systemName: "plus")
                                         .font(.system(size: 11, weight: .semibold))
-                                    Text("Add item")
+                                    Text("Add a step")
                                         .font(.system(size: 14))
                                 }
                                 .foregroundStyle(coral.opacity(0.75))
@@ -329,7 +329,7 @@ struct TaskDetailView: View {
 
             // Coaching toast
             if coachingToastVisible {
-                Text("Tap the mic to add items, a description, or make changes.")
+                Text("Use the mic to add details or make changes.")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
@@ -563,7 +563,7 @@ struct TaskDetailView: View {
             guard recorder.recordingState == .recording else { return }
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             stopAndProcess()
-            showErrorToast("Recording limited to 1 minute")
+            showErrorToast("Recording stopped — 1 minute max.")
         }
     }
 

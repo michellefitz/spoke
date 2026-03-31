@@ -93,7 +93,7 @@ private struct SplashIntroView: View {
             Spacer()
 
             Button(action: onContinue) {
-                Text("Get started")
+                Text("Let's go")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -200,13 +200,13 @@ private struct ModeChoiceView: View {
             }
             .padding(.bottom, 16)
 
-            Text("How do you want to work?")
+            Text("How do you like to get things done?")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
                 .padding(.bottom, 6)
 
-            Text("Don't worry, you can always change this later.")
+            Text("You can switch anytime in Settings.")
                 .font(.footnote)
                 .foregroundStyle(Color(.secondaryLabel))
                 .multilineTextAlignment(.center)
@@ -217,13 +217,13 @@ private struct ModeChoiceView: View {
                 modeCard(
                     mode: .simple,
                     title: "Simple",
-                    description: "Just capture your thoughts. No fuss.",
+                    description: "A clean list. Nothing more, nothing less.",
                     illustration: simpleIllustration
                 )
                 modeCard(
                     mode: .organized,
                     title: "Organized",
-                    description: "Auto-tags, deadlines, and org tools.",
+                    description: "Tags, deadlines, and subtasks — sorted automatically.",
                     illustration: organizedIllustration
                 )
             }
@@ -458,7 +458,7 @@ private struct FirstTaskRecordingView: View {
             if recorder.recordingState == .processing {
                 ProgressView()
                     .tint(coral)
-                Text("Creating your tasks...")
+                Text("Working on it...")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(.secondaryLabel))
                     .padding(.top, 12)
@@ -475,11 +475,11 @@ private struct FirstTaskRecordingView: View {
                     .padding(.top, 28)
             } else {
                 // Phase 1: heading + value prop (always visible)
-                Text("Get started")
+                Text("Say it, we'll sort it")
                     .font(.system(size: 24, weight: .semibold))
                     .padding(.bottom, 10)
 
-                Text("Just say what's on your mind — Spoke turns your words into organised tasks automatically.")
+                Text("Just talk. Spoke turns your words into organized tasks.")
                     .font(.system(size: 15))
                     .foregroundStyle(Color(.secondaryLabel))
                     .multilineTextAlignment(.center)
@@ -489,7 +489,7 @@ private struct FirstTaskRecordingView: View {
                 // Phase 2: sample + mic note (fades in after 1s)
                 if showSample {
                     VStack(spacing: 0) {
-                        Text("Tap the mic and try saying:")
+                        Text("Tap the mic and say something like:")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Color(.secondaryLabel))
                             .padding(.top, 28)
@@ -506,7 +506,7 @@ private struct FirstTaskRecordingView: View {
             // Retry/skip after failure
             if showRetry {
                 VStack(spacing: 12) {
-                    Text("We didn't catch that. Try again?")
+                    Text("Hmm, we didn't catch that.")
                         .font(.system(size: 14))
                         .foregroundStyle(Color(.secondaryLabel))
 
@@ -546,7 +546,7 @@ private struct FirstTaskRecordingView: View {
                     }
 
                     Button(action: skip) {
-                        Text("Continue without mic")
+                        Text("Skip for now")
                             .font(.system(size: 13))
                             .foregroundStyle(Color(.tertiaryLabel))
                     }
@@ -602,8 +602,8 @@ private struct FirstTaskRecordingView: View {
             if !sampleTaskCreated {
                 sampleTaskCreated = true
                 let sampleTask = SpokeTask(
-                    title: "Sample task: Learn how to use Spoke",
-                    taskDescription: "Spoke is a voice-first task manager. Say what's on your mind and Spoke organises it into tasks automatically. You can edit tasks by voice or manually — whatever works for you.\n• Create a task using the microphone\n• Edit a task — tap it, then use the mic\n• Try adding multiple tasks in one go\n• Set up your tags in Settings\n• Complete a task by tapping the circle"
+                    title: "Welcome to Spoke",
+                    taskDescription: "Spoke turns your voice into organized tasks. Here's how to get started:\n• Record your first task — tap the mic and speak\n• Edit a task — open it and use the mic to add detail\n• Try a brain dump — say several tasks at once\n• Customize your tags in Settings (top right)\n• Check off a task by tapping the circle"
                 )
                 modelContext.insert(sampleTask)
             }
