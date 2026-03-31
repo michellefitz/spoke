@@ -440,7 +440,7 @@ private struct FirstTaskRecordingView: View {
 
     private let settings = AppSettings.shared
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
-    private let sampleText = "\"Book a car service for Friday, and I need to do the grocery shopping — get milk, eggs, and bread\""
+    private let sampleText = "\"Book a dentist appointment for Friday, and I need to do the grocery shopping — get milk, eggs, and bread\""
 
     private var isIdle: Bool { recorder.recordingState == .idle }
     private var isRecording: Bool { recorder.recordingState == .recording }
