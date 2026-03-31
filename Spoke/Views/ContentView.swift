@@ -77,6 +77,7 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var completedExpanded = false
     @State private var toastMessage: String?
+    @State private var coachingActive = false
     private let tagStore = TagStore.shared
 
     private var hasTasks: Bool { !activeTasks.isEmpty || !completedTasks.isEmpty }
@@ -178,8 +179,23 @@ struct ContentView: View {
                 .allowsHitTesting(false)
             }
         }
-        .sheet(item: $selectedTask) { task in
-            TaskDetailView(task: task)
+        .sheet(item: $selectedTask, onDismiss: {
+            if coachingActive {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(400))
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        toastMessage = "You're all set ✓"
+                    }
+                    try? await Task.sleep(for: .seconds(2.5))
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        toastMessage = nil
+                    }
+                    coachingActive = false
+                    settings.hasSeenCoaching = true
+                }
+            }
+        }) { task in
+            TaskDetailView(task: task, showCoachingToast: coachingActive)
                 .presentationDetents([.medium, .large])
                 .presentationBackground(Color(.systemBackground))
         }
@@ -199,6 +215,20 @@ struct ContentView: View {
             Text("Spoke needs microphone and speech recognition access to create voice tasks. Please enable them in Settings.")
         }
         .task { pruneCompletedTasks() }
+        .task {
+            // Coaching: show first toast after onboarding creates tasks
+            guard !settings.hasSeenCoaching && !activeTasks.isEmpty else { return }
+            coachingActive = true
+            try? await Task.sleep(for: .milliseconds(600))
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                toastMessage = "Great, you've added your first tasks. Tap one to view details."
+            }
+        }
+        .onChange(of: selectedTask) { _, task in
+            if task != nil && coachingActive {
+                withAnimation(.easeOut(duration: 0.2)) { toastMessage = nil }
+            }
+        }
         .onChange(of: settings.appMode) { _, mode in
             if mode == .simple { sortMode = .dateAdded }
         }
