@@ -80,7 +80,7 @@ struct TaskRowView: View {
                                 Text("\(counts.done)/\(counts.total)")
                                     .font(.system(size: 10, weight: .semibold))
                             }
-                            .foregroundStyle(counts.done == counts.total ? coral : Color(.secondaryLabel))
+                            .foregroundStyle(counts.done < counts.total ? coral : Color(.secondaryLabel))
                             .padding(.horizontal, 7)
                             .padding(.vertical, 3)
                             .background(
