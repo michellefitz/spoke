@@ -100,7 +100,6 @@ struct ContentView: View {
     // completedExpanded is persisted via settings.completedExpanded
     @State private var toastMessage: String?
     @State private var coachingActive = false
-    @State private var coachingEditedInDetail = false
     @State private var recordingTimer: Task<Void, Never>?
     private let tagStore = TagStore.shared
 
@@ -221,8 +220,7 @@ struct ContentView: View {
             }
         }
         .sheet(item: $selectedTask, onDismiss: {
-            if coachingActive && coachingEditedInDetail {
-                // User completed the full coaching flow: viewed + edited
+            if coachingActive {
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(400))
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -233,22 +231,11 @@ struct ContentView: View {
                         toastMessage = nil
                     }
                     coachingActive = false
-                    coachingEditedInDetail = false
                     settings.hasSeenCoaching = true
-                }
-            } else if coachingActive {
-                // User viewed but didn't edit — keep coaching active, re-show list toast
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(400))
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        toastMessage = "Nice! Tap a task to see more."
-                    }
                 }
             }
         }) { task in
-            TaskDetailView(task: task, showCoachingToast: coachingActive, onCoachingEdit: {
-                coachingEditedInDetail = true
-            })
+            TaskDetailView(task: task, showCoachingToast: coachingActive)
                 .presentationDetents([.medium, .large])
                 .presentationBackground(Color(.systemBackground))
         }
@@ -269,12 +256,16 @@ struct ContentView: View {
         }
         .task { pruneCompletedTasks() }
         .task {
-            // Coaching: show first toast after onboarding creates tasks
+            // Coaching: show first toast once after onboarding
             guard !settings.hasSeenCoaching && !activeTasks.isEmpty else { return }
             coachingActive = true
             try? await Task.sleep(for: .milliseconds(600))
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 toastMessage = "Nice! Tap a task to see more."
+            }
+            try? await Task.sleep(for: .seconds(4))
+            withAnimation(.easeOut(duration: 0.3)) {
+                if toastMessage == "Nice! Tap a task to see more." { toastMessage = nil }
             }
         }
         .onChange(of: selectedTask) { _, task in

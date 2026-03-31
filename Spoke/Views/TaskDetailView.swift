@@ -6,7 +6,6 @@ struct TaskDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var task: SpokeTask
     var showCoachingToast: Bool = false
-    var onCoachingEdit: (() -> Void)? = nil
 
     @State private var recorder = VoiceRecorder()
     @State private var showPermissionAlert = false
@@ -563,10 +562,9 @@ struct TaskDetailView: View {
             editingBullets = bullets
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            // Dismiss coaching toast and signal edit completed
+            // Dismiss coaching toast after edit
             if coachingToastVisible {
                 withAnimation(.easeOut(duration: 0.2)) { coachingToastVisible = false }
-                onCoachingEdit?()
             }
         }
     }
