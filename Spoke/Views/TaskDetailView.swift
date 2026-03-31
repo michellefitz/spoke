@@ -228,6 +228,7 @@ struct TaskDetailView: View {
                 }
             }
             .padding(.top, 10)
+            .padding(.bottom, 6)
             .padding(.horizontal, 24)
 
             // MARK: Scrollable description area
