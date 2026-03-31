@@ -43,7 +43,7 @@ enum TaskParser {
             """
         let user = "Transcript: \"\(transcript)\""
         let result = await callClaudeMulti(system: system, user: user) ?? [fallback(transcript)]
-        logEntry(mode: "create", transcript: transcript, system: system, user: user, response: nil, tasks: result, error: result.isEmpty ? "empty" : nil, start: start)
+        logEntry(mode: "create", transcript: transcript, system: system, user: user, response: lastRawResponse, tasks: result, error: result.isEmpty ? "empty" : nil, start: start)
         return result
     }
 
@@ -83,16 +83,18 @@ enum TaskParser {
             New voice input: "\(transcript)"
             """
         let result = await callClaude(system: system, user: user) ?? fallback(transcript)
-        logEntry(mode: "edit", transcript: transcript, system: system, user: user, response: nil, tasks: [result], error: nil, start: start)
+        logEntry(mode: "edit", transcript: transcript, system: system, user: user, response: lastRawResponse, tasks: [result], error: nil, start: start)
         return result
     }
 
     // MARK: - Private
 
+    private static var lastRawResponse: String?
+
     private static func callClaude(system: String, user: String) async -> ParsedTask? {
-        guard let text = await callClaudeRaw(system: system, user: user) else { return nil }
+        guard let text = await callClaudeRaw(system: system, user: user) else { lastRawResponse = nil; return nil }
+        lastRawResponse = text
         let json = extractJSON(from: text)
-        // Handle both single object and array (take first element)
         if let tasks = parseJSONArray(json), let first = tasks.first {
             return first
         }
@@ -100,9 +102,9 @@ enum TaskParser {
     }
 
     private static func callClaudeMulti(system: String, user: String) async -> [ParsedTask]? {
-        guard let text = await callClaudeRaw(system: system, user: user) else { return nil }
+        guard let text = await callClaudeRaw(system: system, user: user) else { lastRawResponse = nil; return nil }
+        lastRawResponse = text
         let json = extractJSON(from: text)
-        // Handle both array and single object
         if let tasks = parseJSONArray(json), !tasks.isEmpty {
             return tasks
         }
