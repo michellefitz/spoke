@@ -79,6 +79,7 @@ struct ContentView: View {
     @State private var toastMessage: String?
     @State private var coachingActive = false
     @State private var coachingEditedInDetail = false
+    @State private var recordingTimer: Task<Void, Never>?
     private let tagStore = TagStore.shared
 
     private var hasTasks: Bool { !activeTasks.isEmpty || !completedTasks.isEmpty }
@@ -623,15 +624,34 @@ struct ContentView: View {
                 }
                 do {
                     try recorder.startRecording()
+                    startRecordingTimer()
                 } catch {
                     recorder.finishProcessing()
                 }
             }
         case .recording:
+            recordingTimer?.cancel()
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             stopAndProcess()
         case .processing:
             break
+        }
+    }
+
+    private func startRecordingTimer() {
+        recordingTimer?.cancel()
+        recordingTimer = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(60))
+            guard recorder.recordingState == .recording else { return }
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            stopAndProcess()
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                toastMessage = "Recording limited to 1 minute"
+            }
+            try? await Task.sleep(for: .seconds(2.5))
+            withAnimation(.easeOut(duration: 0.3)) {
+                if toastMessage == "Recording limited to 1 minute" { toastMessage = nil }
+            }
         }
     }
 
@@ -643,6 +663,17 @@ struct ContentView: View {
         }
         Task {
             let parsedTasks = await TaskParser.parse(transcript: transcript)
+            guard !parsedTasks.isEmpty else {
+                recorder.finishProcessing()
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    toastMessage = "Task couldn't be processed. Please try again."
+                }
+                try? await Task.sleep(for: .seconds(2.5))
+                withAnimation(.easeOut(duration: 0.3)) {
+                    if toastMessage == "Task couldn't be processed. Please try again." { toastMessage = nil }
+                }
+                return
+            }
             withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
                 for parsed in parsedTasks {
                     let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag)
