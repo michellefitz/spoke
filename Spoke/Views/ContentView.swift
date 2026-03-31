@@ -75,7 +75,7 @@ struct ContentView: View {
     @State private var showPermissionAlert = false
     @State private var selectedTag: String? = nil
     @State private var showSettings = false
-    @State private var completedExpanded = false
+    // completedExpanded is persisted via settings.completedExpanded
     @State private var toastMessage: String?
     @State private var coachingActive = false
     @State private var coachingEditedInDetail = false
@@ -308,7 +308,7 @@ struct ContentView: View {
 
                     if !filteredCompletedTasks.isEmpty {
                         Section {
-                            if completedExpanded {
+                            if settings.completedExpanded {
                                 ForEach(filteredCompletedTasks) { task in
                                     TaskRowView(
                                         task: task,
@@ -321,7 +321,7 @@ struct ContentView: View {
                         } header: {
                             Button {
                                 withAnimation(.easeInOut(duration: 0.25)) {
-                                    completedExpanded.toggle()
+                                    settings.completedExpanded.toggle()
                                 }
                             } label: {
                                 HStack(spacing: 6) {
@@ -334,7 +334,7 @@ struct ContentView: View {
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 11, weight: .bold))
                                         .foregroundStyle(Color(.secondaryLabel))
-                                        .rotationEffect(.degrees(completedExpanded ? 90 : 0))
+                                        .rotationEffect(.degrees(settings.completedExpanded ? 90 : 0))
                                 }
                             }
                             .buttonStyle(.plain)
