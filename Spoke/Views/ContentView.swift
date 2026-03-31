@@ -1,5 +1,26 @@
 import SwiftUI
 import SwiftData
+import Network
+
+// MARK: - Network monitor
+
+@Observable
+final class NetworkMonitor {
+    static let shared = NetworkMonitor()
+    var isConnected = true
+
+    private let monitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "NetworkMonitor")
+
+    init() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                self?.isConnected = path.status == .satisfied
+            }
+        }
+        monitor.start(queue: queue)
+    }
+}
 
 // MARK: - Time bucket
 
@@ -69,6 +90,7 @@ struct ContentView: View {
 
     @AppStorage("sortMode") private var sortMode: SortMode = .dateAdded
     private let settings = AppSettings.shared
+    private let network = NetworkMonitor.shared
 
     @State private var recorder = VoiceRecorder()
     @State private var selectedTask: SpokeTask?
@@ -123,6 +145,20 @@ struct ContentView: View {
             taskListView
                 .safeAreaInset(edge: .top) {
                 VStack(spacing: 0) {
+                    // Offline bar
+                    if !network.isConnected {
+                        HStack(spacing: 6) {
+                            Image(systemName: "wifi.slash")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text("No connection. Tasks can't be processed.")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.red)
+                    }
+
                     // Wordmark + settings
                     HStack {
                         Spacer()
@@ -718,6 +754,16 @@ struct ContentView: View {
     // MARK: - Prune
 
     private func pruneCompletedTasks() {
+        // Auto-complete sample task after 7 days
+        let expiry = UserDefaults.standard.double(forKey: "sampleTaskExpiry")
+        if expiry > 0 && Date.now.timeIntervalSince1970 > expiry {
+            if let sample = activeTasks.first(where: { $0.title == "Welcome to Spoke" }) {
+                sample.isCompleted = true
+                sample.completedAt = .now
+            }
+            UserDefaults.standard.removeObject(forKey: "sampleTaskExpiry")
+        }
+
         guard settings.autoDeleteCompleted else { return }
         let cutoff = Calendar.current.date(byAdding: .day, value: -14, to: .now)!
         let predicate = #Predicate<SpokeTask> {
