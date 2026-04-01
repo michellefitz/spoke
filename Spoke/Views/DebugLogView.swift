@@ -3,8 +3,8 @@ import SwiftUI
 struct DebugLogView: View {
     private let logger = TaskParserLogger.shared
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
-    @State private var shareURL: URL?
-    @State private var showShareSheet = false
+    @State private var exportedURL: URL?
+    @State private var showCopied = false
 
     var body: some View {
         NavigationStack {
@@ -61,14 +61,26 @@ struct DebugLogView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button {
-                            if let url = logger.exportCSV() {
-                                shareURL = url
-                                showShareSheet = true
+                        if let url = exportedURL {
+                            ShareLink(item: url) {
+                                Label("Share CSV", systemImage: "square.and.arrow.up")
                             }
-                        } label: {
-                            Label("Export CSV", systemImage: "square.and.arrow.up")
                         }
+                        Button {
+                            exportedURL = logger.exportCSV()
+                        } label: {
+                            Label("Prepare CSV", systemImage: "doc.text")
+                        }
+                        Button {
+                            let text = logger.entries.map { entry in
+                                "[\(entry.mode)] \"\(entry.transcript)\" → \(entry.parsedTasks.map { $0.title }.joined(separator: " | ")) (\(entry.durationMs)ms)"
+                            }.joined(separator: "\n")
+                            UIPasteboard.general.string = text
+                            showCopied = true
+                        } label: {
+                            Label("Copy to clipboard", systemImage: "doc.on.doc")
+                        }
+                        Divider()
                         Button(role: .destructive) {
                             logger.clearAll()
                         } label: {
@@ -80,9 +92,19 @@ struct DebugLogView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showShareSheet) {
-                if let url = shareURL {
-                    ShareSheet(url: url)
+            .overlay {
+                if showCopied {
+                    Text("Copied")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Capsule().fill(Color(white: 0.15).opacity(0.9)))
+                        .transition(.opacity)
+                        .task {
+                            try? await Task.sleep(for: .seconds(1.5))
+                            withAnimation { showCopied = false }
+                        }
                 }
             }
         }
@@ -191,14 +213,3 @@ private struct LogDetailView: View {
     }
 }
 
-// MARK: - Share sheet
-
-private struct ShareSheet: UIViewControllerRepresentable {
-    let url: URL
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [url], applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
-}

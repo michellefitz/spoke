@@ -40,7 +40,7 @@ final class VoiceRecorder {
         recordingState = .recording
 
         let audioSession = AVAudioSession.sharedInstance()
-        try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+        try audioSession.setCategory(.record, mode: .default, options: .duckOthers)
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
 
         connectWebSocket()
@@ -131,7 +131,7 @@ final class VoiceRecorder {
     private func connectWebSocket() {
         var comps = URLComponents(string: "wss://api.deepgram.com/v1/listen")!
         comps.queryItems = [
-            URLQueryItem(name: "model",           value: "nova-2"),
+            URLQueryItem(name: "model",           value: "nova-3"),
             URLQueryItem(name: "language",        value: "en"),
             URLQueryItem(name: "smart_format",    value: "true"),
             URLQueryItem(name: "interim_results", value: "true"),
