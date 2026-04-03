@@ -159,14 +159,33 @@ struct ContentView: View {
                         }
                         .frame(maxWidth: .infinity)
 
-                        Button { showSettings = true } label: {
+                        Menu {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dateAdded }
+                            } label: {
+                                Label("Sort by date added", systemImage: sortMode == .dateAdded ? "checkmark" : "")
+                            }
+
+                            if settings.showDueDates {
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dueDate }
+                                } label: {
+                                    Label("Sort by due date", systemImage: sortMode == .dueDate ? "checkmark" : "")
+                                }
+                            }
+
+                            Divider()
+
+                            Button { showSettings = true } label: {
+                                Label("Settings", systemImage: "gearshape")
+                            }
+                        } label: {
                             Image(systemName: "ellipsis")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(coral)
                                 .frame(width: 28, height: 28)
                                 .background(Color(.tertiarySystemFill), in: Circle())
                         }
-                        .buttonStyle(.plain)
                         .frame(width: 44, height: 44)
                     }
                     .padding(.horizontal, 8)
@@ -556,31 +575,6 @@ struct ContentView: View {
                 }
             )
 
-            sortToggleButton
-                .padding(.trailing, 16)
-        }
-    }
-
-    private var sortToggleButton: some View {
-        Menu {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dateAdded }
-            } label: {
-                Label("Sort by date added", systemImage: sortMode == .dateAdded ? "checkmark" : "")
-            }
-
-            if settings.appMode == .organized && settings.showDueDates {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dueDate }
-                } label: {
-                    Label("Sort by due date", systemImage: sortMode == .dueDate ? "checkmark" : "")
-                }
-            }
-        } label: {
-            Image(systemName: "arrow.up.arrow.down")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(coral)
-                .frame(width: 32, height: 32)
         }
     }
 
