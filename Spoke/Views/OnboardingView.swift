@@ -184,115 +184,125 @@ private struct ModeChoiceView: View {
 
     private let settings = AppSettings.shared
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
-    @State private var selectedMode: AppMode?
+    @State private var selectedMode: AppMode = .simple
+
+    private var modeDescription: String {
+        selectedMode == .simple
+            ? "A clean list. Nothing more, nothing less."
+            : "Tags, deadlines, and subtasks — sorted automatically."
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
 
+            // Wordmark
             HStack(spacing: 4) {
                 Text("spoke")
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(.primary)
                 Circle()
                     .fill(coral)
-                    .frame(width: 6, height: 6)
+                    .frame(width: 5, height: 5)
             }
-            .padding(.bottom, 16)
+            .padding(.bottom, 20)
 
-            Text("How do you like to get things done?")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .multilineTextAlignment(.center)
+            // Heading
+            Text("Pick your style")
+                .font(.system(size: 24, weight: .semibold))
                 .padding(.bottom, 6)
 
             Text("You can switch anytime in Settings.")
                 .font(.footnote)
                 .foregroundStyle(Color(.secondaryLabel))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-                .padding(.bottom, 20)
+                .padding(.bottom, 24)
 
-            VStack(spacing: 16) {
-                modeCard(
-                    mode: .simple,
-                    title: "Simple",
-                    description: "A clean list. Nothing more, nothing less.",
-                    illustration: simpleIllustration
-                )
-                modeCard(
-                    mode: .organized,
-                    title: "Organized",
-                    description: "Tags, deadlines, and subtasks — sorted automatically.",
-                    illustration: organizedIllustration
-                )
+            // Segmented picker
+            Picker("Mode", selection: $selectedMode) {
+                Text("Simple").tag(AppMode.simple)
+                Text("Organized").tag(AppMode.organized)
             }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 32)
+            .padding(.bottom, 20)
+
+            // Single illustration card — swaps based on selection
+            VStack(spacing: 0) {
+                // Voice input (same for both)
+                HStack(spacing: 10) {
+                    HStack(spacing: 2) {
+                        waveBar(height: 8, opacity: 0.3)
+                        waveBar(height: 16, opacity: 0.45)
+                        waveBar(height: 22, opacity: 0.7)
+                        waveBar(height: 12, opacity: 0.5)
+                        waveBar(height: 18, opacity: 0.6)
+                        waveBar(height: 10, opacity: 0.4)
+                        waveBar(height: 6, opacity: 0.3)
+                    }
+                    Text("\"Get milk and eggs for baking on Friday\"")
+                        .font(.system(size: 11, weight: .medium))
+                        .italic()
+                        .foregroundStyle(coral)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.bottom, 8)
+
+                // Bubble dots
+                VStack(spacing: 4) {
+                    Circle().fill(coral.opacity(0.45)).frame(width: 7, height: 7)
+                    Circle().fill(coral.opacity(0.25)).frame(width: 5, height: 5)
+                }
+                .padding(.bottom, 8)
+
+                // Result card — changes with selection
+                Group {
+                    if selectedMode == .simple {
+                        simpleResult
+                    } else {
+                        organizedResult
+                    }
+                }
+                .animation(.easeInOut(duration: 0.25), value: selectedMode)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemBackground))
+            )
             .padding(.horizontal, 24)
+
+            // Description — changes with selection
+            Text(modeDescription)
+                .font(.system(size: 15))
+                .foregroundStyle(Color(.secondaryLabel))
+                .multilineTextAlignment(.center)
+                .padding(.top, 16)
+                .padding(.horizontal, 40)
+                .animation(.easeInOut(duration: 0.2), value: selectedMode)
 
             Spacer()
 
-            // Next button
+            // Next button — always active since a mode is always selected
             Button {
-                if let mode = selectedMode {
-                    settings.appMode = mode
-                    onModeSelected()
-                }
+                settings.appMode = selectedMode
+                onModeSelected()
             } label: {
                 Text("Next")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Capsule().fill(selectedMode != nil ? coral : Color(.systemGray4)))
+                    .background(Capsule().fill(coral))
             }
-            .disabled(selectedMode == nil)
             .padding(.horizontal, 32)
             .padding(.bottom, 48)
-            .animation(.easeInOut(duration: 0.2), value: selectedMode)
         }
     }
 
-    private func modeCard(mode: AppMode, title: String, description: String, illustration: some View) -> some View {
-        let isSelected = selectedMode == mode
-        return Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                selectedMode = mode
-            }
-        } label: {
-            VStack(spacing: 14) {
-                VStack(spacing: 0) {
-                    voiceInputRow
-                    bubbleDots
-                    illustration
-                }
-                .padding(.top, 16)
+    // MARK: - Result illustrations
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.primary)
-                    Text(description)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color(.secondaryLabel))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 4)
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.secondarySystemBackground))
-                    .overlay(
-                        isSelected ? RoundedRectangle(cornerRadius: 16)
-                            .strokeBorder(coral, lineWidth: 2)
-                        : nil
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var simpleIllustration: some View {
+    private var simpleResult: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Added today")
                 .font(.system(size: 9, weight: .medium))
@@ -313,16 +323,16 @@ private struct ModeChoiceView: View {
                 .fill(Color(.systemBackground))
                 .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
         )
-        .padding(.horizontal, 16)
+        .transition(.opacity)
     }
 
-    private var organizedIllustration: some View {
+    private var organizedResult: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 4) {
                 filterChip("All", active: true)
                 filterChip("Work", active: false)
-                filterChip("Errands", active: false)
-                filterChip("Home", active: false)
+                filterChip("Shopping", active: false)
+                filterChip("Health", active: false)
             }
             Text("Due today")
                 .font(.system(size: 9, weight: .medium))
@@ -338,7 +348,7 @@ private struct ModeChoiceView: View {
             }
             HStack(spacing: 4) {
                 metadataPill("FRIDAY", coral: true)
-                metadataPill("ERRANDS", coral: false)
+                metadataPill("SHOPPING", coral: false)
             }
             .padding(.leading, 20)
             VStack(alignment: .leading, spacing: 4) {
@@ -354,40 +364,10 @@ private struct ModeChoiceView: View {
                 .fill(Color(.systemBackground))
                 .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
         )
-        .padding(.horizontal, 16)
+        .transition(.opacity)
     }
 
-    // MARK: Shared illustration elements
-
-    private var voiceInputRow: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 2) {
-                waveBar(height: 8, opacity: 0.3)
-                waveBar(height: 16, opacity: 0.45)
-                waveBar(height: 22, opacity: 0.7)
-                waveBar(height: 12, opacity: 0.5)
-                waveBar(height: 18, opacity: 0.6)
-                waveBar(height: 10, opacity: 0.4)
-                waveBar(height: 6, opacity: 0.3)
-            }
-            Text("\"Get milk and eggs for baking on Friday\"")
-                .font(.system(size: 11, weight: .medium))
-                .italic()
-                .foregroundStyle(coral)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.bottom, 8)
-    }
-
-    private var bubbleDots: some View {
-        VStack(spacing: 4) {
-            Circle().fill(coral.opacity(0.5)).frame(width: 8, height: 8)
-            Circle().fill(coral.opacity(0.32)).frame(width: 6, height: 6)
-            Circle().fill(coral.opacity(0.18)).frame(width: 4, height: 4)
-        }
-        .padding(.bottom, 6)
-    }
+    // MARK: - Shared elements
 
     private func waveBar(height: CGFloat, opacity: Double) -> some View {
         RoundedRectangle(cornerRadius: 2)
