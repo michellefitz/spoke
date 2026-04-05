@@ -226,14 +226,15 @@ private struct ModeChoiceView: View {
             .padding(.horizontal, 32)
             .padding(.bottom, 20)
 
-            // App preview card — swaps based on selection
-            Group {
+            // App preview card — fixed height container so switching doesn't shift layout
+            ZStack(alignment: .top) {
                 if selectedMode == .simple {
                     simplePreview
                 } else {
                     organizedPreview
                 }
             }
+            .frame(maxWidth: .infinity, minHeight: 320, alignment: .top)
             .animation(.easeInOut(duration: 0.25), value: selectedMode)
             .padding(.horizontal, 24)
 
@@ -295,6 +296,7 @@ private struct ModeChoiceView: View {
             }
         }
         .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(Color(.secondarySystemBackground))
