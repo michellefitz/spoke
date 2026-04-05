@@ -118,7 +118,6 @@ struct TaskDetailView: View {
 
             // MARK: Pills row
             HStack(spacing: 6) {
-                if settings.appMode == .organized {
                     if let deadline = task.deadline {
                         if task.isCompleted {
                             Text(deadlineLabel(for: deadline))
@@ -218,16 +217,13 @@ struct TaskDetailView: View {
                                 )
                         }
                     }
-                }
 
                 Spacer()
 
-                if settings.appMode == .organized {
-                    Text(metadataDateString)
-                        .font(.caption)
-                        .italic()
-                        .foregroundStyle(Color(.secondaryLabel))
-                }
+                Text(metadataDateString)
+                    .font(.caption)
+                    .italic()
+                    .foregroundStyle(Color(.secondaryLabel))
             }
             .padding(.top, 10)
             .padding(.bottom, 6)

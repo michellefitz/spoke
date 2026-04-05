@@ -192,7 +192,7 @@ struct ContentView: View {
                     .padding(.top, 14)
                     .padding(.bottom, 10)
 
-                    if hasTasks && settings.appMode == .organized && settings.showTags {
+                    if hasTasks && settings.showTags {
                         filterPillsView
                             .padding(.bottom, 0)
                     }
@@ -291,9 +291,6 @@ struct ContentView: View {
             if task != nil && coachingActive {
                 withAnimation(.easeOut(duration: 0.2)) { toastMessage = nil }
             }
-        }
-        .onChange(of: settings.appMode) { _, mode in
-            if mode == .simple { sortMode = .dateAdded }
         }
         .onChange(of: settings.showDueDates) { _, show in
             if !show { sortMode = .dateAdded }
