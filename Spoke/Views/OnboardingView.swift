@@ -196,6 +196,9 @@ private struct ModeChoiceView: View {
         VStack(spacing: 0) {
             Spacer()
 
+            // Constrain width for iPad
+            VStack(spacing: 0) {
+
             // Wordmark
             HStack(spacing: 4) {
                 Text("spoke")
@@ -251,6 +254,9 @@ private struct ModeChoiceView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(Color(.tertiaryLabel))
                 .padding(.top, 8)
+
+            } // end constrained width VStack
+            .frame(maxWidth: 400)
 
             Spacer()
 
