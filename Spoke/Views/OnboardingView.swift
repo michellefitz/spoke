@@ -8,7 +8,6 @@ struct OnboardingView: View {
 
     private enum OnboardingPhase: Equatable {
         case splash
-        case modeChoice
         case firstTask
     }
 
@@ -17,17 +16,9 @@ struct OnboardingView: View {
             switch phase {
             case .splash:
                 SplashIntroView {
-                    withAnimation(.easeInOut(duration: 0.45)) { phase = .modeChoice }
-                }
-                .transition(.opacity)
-            case .modeChoice:
-                ModeChoiceView {
                     withAnimation(.easeInOut(duration: 0.45)) { phase = .firstTask }
                 }
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .scale(scale: 0.98)),
-                    removal: .opacity
-                ))
+                .transition(.opacity)
             case .firstTask:
                 FirstTaskRecordingView()
                     .transition(.asymmetric(
@@ -173,262 +164,6 @@ private struct PulsingMicDot: View {
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { pulsing = true }
-        }
-    }
-}
-
-// MARK: - Mode choice screen
-
-private struct ModeChoiceView: View {
-    let onModeSelected: () -> Void
-
-    private let settings = AppSettings.shared
-    private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
-    @State private var selectedMode: AppMode = .simple
-
-    private var modeDescription: String {
-        selectedMode == .simple
-            ? "A clean list. Nothing more, nothing less."
-            : "Tags, deadlines, and subtasks — sorted automatically."
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
-
-            // Constrain width for iPad
-            VStack(spacing: 0) {
-
-            // Wordmark
-            HStack(spacing: 4) {
-                Text("spoke")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.primary)
-                Circle()
-                    .fill(coral)
-                    .frame(width: 5, height: 5)
-            }
-            .padding(.bottom, 20)
-
-            // Heading
-            Text("Pick your mode")
-                .font(.system(size: 26, weight: .semibold))
-                .padding(.bottom, 6)
-
-            Text("Choose how you like to get things done.")
-                .font(.system(size: 14))
-                .foregroundStyle(Color(.secondaryLabel))
-                .padding(.bottom, 24)
-
-            // Segmented picker
-            Picker("Mode", selection: $selectedMode) {
-                Text("Simple").tag(AppMode.simple)
-                Text("Organized").tag(AppMode.organized)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 32)
-            .padding(.bottom, 20)
-
-            // App preview card — fixed height container so switching doesn't shift layout
-            ZStack(alignment: .top) {
-                if selectedMode == .simple {
-                    simplePreview
-                } else {
-                    organizedPreview
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 320, alignment: .top)
-            .animation(.easeInOut(duration: 0.25), value: selectedMode)
-            .padding(.horizontal, 24)
-
-            // Description — changes with selection
-            Text(modeDescription)
-                .font(.system(size: 15))
-                .foregroundStyle(Color(.secondaryLabel))
-                .multilineTextAlignment(.center)
-                .padding(.top, 16)
-                .padding(.horizontal, 40)
-                .animation(.easeInOut(duration: 0.2), value: selectedMode)
-
-            Text("You can switch anytime in Settings.")
-                .font(.system(size: 12))
-                .foregroundStyle(Color(.tertiaryLabel))
-                .padding(.top, 8)
-
-            } // end constrained width VStack
-            .frame(maxWidth: 400)
-
-            Spacer()
-
-            // Next button — always active since a mode is always selected
-            Button {
-                settings.appMode = selectedMode
-                onModeSelected()
-            } label: {
-                Text("Next")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Capsule().fill(coral))
-            }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 48)
-        }
-    }
-
-    // MARK: - Simple preview (clean task list)
-
-    private var simplePreview: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Added today")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(Color(.label).opacity(0.35))
-                .padding(.bottom, 8)
-
-            ForEach(["Book dentist appointment", "Do grocery shopping", "Call insurance company", "Pick up dry cleaning"], id: \.self) { task in
-                HStack(spacing: 10) {
-                    Circle()
-                        .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
-                        .frame(width: 16, height: 16)
-                    Text(task)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.primary)
-                }
-                .padding(.vertical, 10)
-                .overlay(alignment: .bottom) {
-                    Rectangle().fill(Color(.separator).opacity(0.3)).frame(height: 0.5)
-                }
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.secondarySystemBackground))
-        )
-        .transition(.opacity)
-    }
-
-    // MARK: - Organized preview (task list with tags, dates, subtasks, filter pills)
-
-    private var organizedPreview: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Filter pills
-            HStack(spacing: 6) {
-                filterChip("ALL", active: true)
-                filterChip("PERSONAL", active: false)
-                filterChip("SHOPPING", active: false)
-                filterChip("HEALTH", active: false)
-            }
-            .padding(.bottom, 10)
-
-            Text("Added today")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(Color(.label).opacity(0.35))
-                .padding(.bottom, 8)
-
-            // Task 1: with date + tag
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 10) {
-                    Circle()
-                        .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
-                        .frame(width: 16, height: 16)
-                    Text("Book dentist appointment")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.primary)
-                }
-                HStack(spacing: 4) {
-                    metadataPill("FRIDAY", isCoral: true)
-                    metadataPill("HEALTH", isCoral: false)
-                }
-                .padding(.leading, 26)
-            }
-            .padding(.vertical, 8)
-            .overlay(alignment: .bottom) {
-                Rectangle().fill(Color(.separator).opacity(0.3)).frame(height: 0.5)
-            }
-
-            // Task 2: with tag + subtasks
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 10) {
-                    Circle()
-                        .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
-                        .frame(width: 16, height: 16)
-                    Text("Do grocery shopping")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.primary)
-                }
-                HStack(spacing: 4) {
-                    metadataPill("SHOPPING", isCoral: false)
-                }
-                .padding(.leading, 26)
-                VStack(alignment: .leading, spacing: 3) {
-                    miniSubtask("Milk")
-                    miniSubtask("Eggs")
-                    miniSubtask("Bread")
-                }
-                .padding(.leading, 26)
-            }
-            .padding(.vertical, 8)
-            .overlay(alignment: .bottom) {
-                Rectangle().fill(Color(.separator).opacity(0.3)).frame(height: 0.5)
-            }
-
-            // Task 3: with tag
-            HStack(spacing: 10) {
-                Circle()
-                    .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
-                    .frame(width: 16, height: 16)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Call insurance company")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.primary)
-                    metadataPill("PERSONAL", isCoral: false)
-                }
-            }
-            .padding(.vertical, 8)
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.secondarySystemBackground))
-        )
-        .transition(.opacity)
-    }
-
-    // MARK: - Shared elements
-
-    private func filterChip(_ label: String, active: Bool) -> some View {
-        Text(label)
-            .font(.system(size: 10, weight: active ? .semibold : .medium))
-            .foregroundStyle(active ? .white : Color(.secondaryLabel))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Capsule().fill(active ? coral : Color(.tertiarySystemFill)))
-    }
-
-    private func metadataPill(_ label: String, isCoral: Bool) -> some View {
-        Text(label)
-            .font(.system(size: 9, weight: .bold))
-            .tracking(0.3)
-            .foregroundStyle(isCoral ? coral : Color(.secondaryLabel))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(isCoral ? coral.opacity(0.12) : Color(.tertiarySystemFill))
-            )
-    }
-
-    private func miniSubtask(_ label: String) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .strokeBorder(Color(.systemGray3), lineWidth: 1)
-                .frame(width: 12, height: 12)
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundStyle(Color(.secondaryLabel))
         }
     }
 }
@@ -605,7 +340,7 @@ private struct FirstTaskRecordingView: View {
                 sampleTaskCreated = true
                 let sampleTask = SpokeTask(
                     title: "Welcome to Spoke",
-                    taskDescription: "This is a sample task! Spoke turns your voice into organized tasks. Here's how to get started:\n• Record your first task — tap the mic and speak\n• Edit a task — open it and use the mic to add detail\n• Try a brain dump — say several tasks at once\n• Tasks can be edited with the keyboard as well as voice\n• Tap Settings to switch between Simple and Organized mode\n• Customize your tags in Settings (top right)\n• Check off a task by tapping the circle",
+                    taskDescription: "This is a sample task! Spoke turns your voice into organized tasks. Here's how to get started:\n• Record your first task — tap the mic and speak\n• Edit a task — open it and use the mic to add detail\n• Try a brain dump — say several tasks at once\n• Tasks can be edited with the keyboard as well as voice\n• Customize your tags and display in Settings (top right)\n• Check off a task by tapping the circle",
                     deadline: .now,
                     tag: "personal"
                 )

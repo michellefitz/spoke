@@ -72,7 +72,7 @@ struct TaskRowView: View {
                     Spacer()
 
                     if !task.isCompleted, let counts = subtaskCounts, counts.total > 0 {
-                        let showExpanded = settings.appMode == .organized && settings.expandSubtasks
+                        let showExpanded = settings.expandSubtasks
                         if !showExpanded {
                             HStack(spacing: 4) {
                                 Image(systemName: "checklist")
@@ -98,8 +98,8 @@ struct TaskRowView: View {
                         .padding(.leading, 2)
                 }
 
-                let showDeadline = task.deadline != nil && settings.appMode == .organized && settings.showDueDates
-                let showTag = task.tag != nil && settings.appMode == .organized && settings.showTags
+                let showDeadline = task.deadline != nil && settings.showDueDates
+                let showTag = task.tag != nil && settings.showTags
                 if showDeadline || showTag {
                     HStack(spacing: 4) {
                         if showDeadline, let deadline = task.deadline {
@@ -128,7 +128,7 @@ struct TaskRowView: View {
                     }
                 }
 
-                if settings.appMode == .organized && settings.expandSubtasks && !task.isCompleted {
+                if settings.expandSubtasks && !task.isCompleted {
                     InlineChecklistView(task: task, coral: coral)
                 }
             }
