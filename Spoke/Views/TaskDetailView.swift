@@ -97,7 +97,7 @@ struct TaskDetailView: View {
 
                 Spacer()
 
-                Button("Done") { dismiss() }
+                Button("Close") { dismiss() }
                     .fontWeight(.semibold)
                     .foregroundStyle(coral)
             }
@@ -229,137 +229,142 @@ struct TaskDetailView: View {
             .padding(.bottom, 6)
             .padding(.horizontal, 24)
 
-            // MARK: Scrollable description area
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
+            // MARK: Scrollable description area + voice button
+            ZStack(alignment: .bottom) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
 
-                    // Notes field — hidden for completed tasks with no description
-                    if !task.isCompleted || !editingNotes.isEmpty {
-                        TextField("Add some detail…", text: $editingNotes, axis: .vertical)
-                            .font(.body)
-                            .foregroundStyle(.primary.opacity(0.75))
-                            .focused($focusedField, equals: .notes)
-                            .disabled(task.isCompleted)
-                            .onChange(of: editingNotes) { _, _ in syncToModel() }
-                            .padding(.horizontal, 24)
-                            .padding(.top, 10)
-                    }
+                        // Notes field — hidden for completed tasks with no description
+                        if !task.isCompleted || !editingNotes.isEmpty {
+                            TextField("Add some detail…", text: $editingNotes, axis: .vertical)
+                                .font(.body)
+                                .foregroundStyle(.primary.opacity(0.75))
+                                .focused($focusedField, equals: .notes)
+                                .disabled(task.isCompleted)
+                                .onChange(of: editingNotes) { _, _ in syncToModel() }
+                                .padding(.horizontal, 24)
+                                .padding(.top, 10)
+                        }
 
-                    // Subtask items
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach($editingBullets) { $bullet in
-                            HStack(alignment: .top, spacing: 10) {
-                                Button {
-                                    bullet.checked.toggle()
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    syncToModel()
-                                } label: {
-                                    Image(systemName: bullet.checked ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: 16))
-                                        .foregroundStyle(bullet.checked ? coral : Color(.tertiaryLabel))
-                                        .animation(.easeInOut(duration: 0.2), value: bullet.checked)
-                                }
-                                .buttonStyle(.plain)
-                                .padding(.top, 2)
-
-                                TextField("To do…", text: $bullet.text, axis: .vertical)
-                                    .font(.body)
-                                    .strikethrough(bullet.checked)
-                                    .foregroundStyle(.primary.opacity(bullet.checked ? 0.35 : 0.75))
-                                    .focused($focusedField, equals: .bullet(bullet.id))
-                                    .disabled(task.isCompleted)
-                                    .submitLabel(.next)
-                                    .onSubmit { addBulletAfter(bullet.id) }
-                                    .onChange(of: bullet.text) { _, _ in syncToModel() }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                if focusedField == .bullet(bullet.id) {
-                                    Button { deleteBullet(bullet.id) } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundStyle(Color(.quaternaryLabel))
+                        // Subtask items
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach($editingBullets) { $bullet in
+                                HStack(alignment: .top, spacing: 10) {
+                                    Button {
+                                        bullet.checked.toggle()
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        syncToModel()
+                                    } label: {
+                                        Image(systemName: bullet.checked ? "checkmark.circle.fill" : "circle")
                                             .font(.system(size: 16))
+                                            .foregroundStyle(bullet.checked ? coral : Color(.tertiaryLabel))
+                                            .animation(.easeInOut(duration: 0.2), value: bullet.checked)
                                     }
                                     .buttonStyle(.plain)
-                                    .transition(.opacity.combined(with: .scale))
-                                }
-                            }
-                        }
+                                    .padding(.top, 2)
 
-                        if !task.isCompleted {
-                            Button { addBullet() } label: {
-                                HStack(spacing: 5) {
-                                    Image(systemName: "plus")
-                                        .font(.system(size: 11, weight: .semibold))
-                                    Text("Add a step")
-                                        .font(.system(size: 14))
+                                    TextField("To do…", text: $bullet.text, axis: .vertical)
+                                        .font(.body)
+                                        .strikethrough(bullet.checked)
+                                        .foregroundStyle(.primary.opacity(bullet.checked ? 0.35 : 0.75))
+                                        .focused($focusedField, equals: .bullet(bullet.id))
+                                        .disabled(task.isCompleted)
+                                        .submitLabel(.next)
+                                        .onSubmit { addBulletAfter(bullet.id) }
+                                        .onChange(of: bullet.text) { _, _ in syncToModel() }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    if focusedField == .bullet(bullet.id) {
+                                        Button { deleteBullet(bullet.id) } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(Color(.quaternaryLabel))
+                                                .font(.system(size: 16))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .transition(.opacity.combined(with: .scale))
+                                    }
                                 }
-                                .foregroundStyle(coral.opacity(0.75))
                             }
-                            .buttonStyle(.plain)
-                            .padding(.top, editingBullets.isEmpty ? 8 : 4)
+
+                            if !task.isCompleted {
+                                Button { addBullet() } label: {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 11, weight: .semibold))
+                                        Text("Add a step")
+                                            .font(.system(size: 14))
+                                    }
+                                    .foregroundStyle(coral.opacity(0.75))
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, editingBullets.isEmpty ? 8 : 4)
+                            }
                         }
+                        .padding(.horizontal, 24)
+                        .padding(.top, editingNotes.isEmpty && editingBullets.isEmpty ? 4 : 20)
+
+                        // Extra space so content can scroll above the voice button
+                        Spacer(minLength: 120)
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.top, editingNotes.isEmpty && editingBullets.isEmpty ? 4 : 20)
-
-                    Spacer(minLength: 24)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
 
-            // Error toast
-            if let message = errorToast {
-                Text(message)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Capsule().fill(Color(white: 0.15).opacity(0.9)))
-                    .padding(.horizontal, 20)
-                    .frame(maxWidth: .infinity)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                // Bottom overlay: fade + toasts + voice button
+                VStack(spacing: 0) {
+                    // Fade gradient above solid area
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(.systemBackground).opacity(0), location: 0.0),
+                            .init(color: Color(.systemBackground).opacity(0.9), location: 0.5),
+                            .init(color: Color(.systemBackground), location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 40)
                     .allowsHitTesting(false)
-            }
 
-            // Coaching toast
-            if coachingToastVisible {
-                Text("Use the mic to add details or make changes.")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Capsule().fill(Color(white: 0.15).opacity(0.9)))
-                    .padding(.horizontal, 20)
-                    .frame(maxWidth: .infinity)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .allowsHitTesting(false)
-            }
+                    VStack(spacing: 0) {
+                        // Error toast
+                        if let message = errorToast {
+                            Text(message)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(Capsule().fill(Color(white: 0.15).opacity(0.9)))
+                                .padding(.horizontal, 20)
+                                .frame(maxWidth: .infinity)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .allowsHitTesting(false)
+                        }
 
-            // MARK: Voice button
-            ZStack(alignment: .bottom) {
-                // Fade gradient to indicate scrollable content above
-                LinearGradient(
-                    stops: [
-                        .init(color: Color(.systemBackground).opacity(0), location: 0.0),
-                        .init(color: Color(.systemBackground).opacity(0.9), location: 0.4),
-                        .init(color: Color(.systemBackground), location: 1.0)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 110)
-                .allowsHitTesting(false)
+                        // Coaching toast
+                        if coachingToastVisible {
+                            Text("Use the mic to add details or make changes.")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(Capsule().fill(Color(white: 0.15).opacity(0.9)))
+                                .padding(.horizontal, 20)
+                                .frame(maxWidth: .infinity)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .allowsHitTesting(false)
+                        }
 
-                VoiceButton(
-                    state: voiceButtonState,
-                    audioLevel: recorder.audioLevel,
-                    onTap: handleTap
-                )
-                .frame(maxWidth: .infinity, minHeight: 96)
+                        VoiceButton(
+                            state: voiceButtonState,
+                            audioLevel: recorder.audioLevel,
+                            onTap: handleTap
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 96)
+                    }
+                    .background(Color(.systemBackground))
+                }
             }
-            .padding(.bottom, -4)
         }
         .onAppear { initEditingState() }
         .task {

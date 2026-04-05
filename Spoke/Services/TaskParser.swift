@@ -7,6 +7,11 @@ struct ParsedTask {
     let tag: String?
 }
 
+enum ParsedAction {
+    case create(ParsedTask)
+    case edit(matchTitle: String, updates: ParsedTask)
+}
+
 enum TaskParser {
     private static let logger = TaskParserLogger.shared
 
@@ -85,6 +90,74 @@ enum TaskParser {
         let result = await callClaude(system: system, user: user) ?? fallback(transcript)
         logEntry(mode: "edit", transcript: transcript, system: system, user: user, response: lastRawResponse, tasks: [result], error: nil, start: start)
         return result
+    }
+
+    static func parseUnified(transcript: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) async -> [ParsedAction] {
+        let start = Date()
+        let wordCount = transcript.split(separator: " ").count
+        if wordCount <= 3 {
+            let task = ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)
+            logEntry(mode: "unified", transcript: transcript, system: "(short — skipped API)", user: transcript, response: nil, tasks: [task], error: nil, start: start)
+            return [.create(task)]
+        }
+        let today = isoToday()
+        let tagInstruction = tagPromptInstruction()
+
+        // Build existing task list for context
+        let taskList: String
+        if existingTasks.isEmpty {
+            taskList = "There are no existing tasks."
+        } else {
+            let items = existingTasks.map { t in
+                var parts = ["\"\(t.title)\""]
+                if let desc = t.description, !desc.isEmpty {
+                    let preview = String(desc.prefix(80)).replacingOccurrences(of: "\n", with: " ")
+                    parts.append("desc: \(preview)")
+                }
+                return "- " + parts.joined(separator: " | ")
+            }
+            taskList = "Existing tasks:\n" + items.joined(separator: "\n")
+        }
+
+        let system = """
+            Today's date is \(today). You are a voice task assistant. Given a voice transcript, determine whether the user wants to CREATE new tasks, EDIT existing tasks, or both. \
+            \(taskList) \
+            Rules: \
+            - Return a JSON ARRAY of action objects. Each object MUST have an "action" field: either "create" or "edit". \
+            - For "create" actions: include "title" (required), "description" (optional), "deadline" (optional), "tag" (optional). Same rules as a task parser — action-oriented title, max 50 chars, bullets for multi-item descriptions. \
+            - For "edit" actions: include "match" (the title of the existing task to edit — must closely match one from the list above) and the updated fields: "title", "description", "deadline", "tag". Merge new information with what exists — don't drop existing content. \
+            - CRITICAL: Only use "edit" when the user clearly refers to an existing task by name or obvious reference (e.g. "add milk to the grocery list", "change the dentist appointment to Thursday"). If in doubt, create a new task. \
+            - If the transcript contains multiple unrelated tasks, return multiple action objects. \
+            - If the transcript is about adding detail to an existing task (e.g. "add eggs and bread to the grocery shopping"), return one "edit" action. \
+            - Title must be action-oriented, max 50 chars. Keep specific details (times, names, locations) in the title when they fit. \
+            - NEVER silently drop information. \
+            - If a description needs 2+ items, use bullet format: "intro:\\n• Item1\\n• Item2" \
+            - Dates: resolve relative to today as YYYY-MM-DD. A deadline applies only to the task it was mentioned with. \
+            - \(tagInstruction) \
+            Return ONLY a valid JSON ARRAY, no markdown, no code fences, no commentary. \
+            Examples: \
+            New task: [{"action": "create", "title": "Call the dentist"}] \
+            Edit existing: [{"action": "edit", "match": "Do grocery shopping", "title": "Do grocery shopping", "description": "Things to pick up:\\n• Milk\\n• Eggs\\n• Bread"}] \
+            Mixed: [{"action": "create", "title": "Book hotel for trip"}, {"action": "edit", "match": "Pack for vacation", "description": "Don't forget:\\n• Sunscreen\\n• Charger"}]
+            """
+        let user = "Transcript: \"\(transcript)\""
+        guard let text = await callClaudeRaw(system: system, user: user) else {
+            lastRawResponse = nil
+            let fb = fallback(transcript)
+            logEntry(mode: "unified", transcript: transcript, system: system, user: user, response: nil, tasks: [fb], error: "api_failed", start: start)
+            return [.create(fb)]
+        }
+        lastRawResponse = text
+        let json = extractJSON(from: text)
+        let actions = parseActionArray(json, existingTasks: existingTasks)
+        let allTasks = actions.map { action -> ParsedTask in
+            switch action {
+            case .create(let t): return t
+            case .edit(_, let t): return t
+            }
+        }
+        logEntry(mode: "unified", transcript: transcript, system: system, user: user, response: text, tasks: allTasks, error: actions.isEmpty ? "empty" : nil, start: start)
+        return actions.isEmpty ? [.create(fallback(transcript))] : actions
     }
 
     // MARK: - Private
@@ -169,6 +242,67 @@ enum TaskParser {
             return inner.isEmpty ? trimmed : inner
         }
         return trimmed
+    }
+
+    private static func parseActionArray(_ text: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) -> [ParsedAction] {
+        guard
+            let data = text.data(using: .utf8),
+            let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else {
+            // Try single object
+            if let single = parseJSONObject(text) {
+                return [.create(single)]
+            }
+            return []
+        }
+        return array.compactMap { dict -> ParsedAction? in
+            let action = dict["action"] as? String ?? "create"
+            guard let parsed = parseDictionary(dict) else { return nil }
+
+            if action == "edit", let matchTitle = dict["match"] as? String {
+                // Find best matching existing task (case-insensitive, prefix-tolerant)
+                let match = existingTasks.first { $0.title.lowercased() == matchTitle.lowercased() }
+                    ?? existingTasks.first { $0.title.lowercased().contains(matchTitle.lowercased()) }
+                    ?? existingTasks.first { matchTitle.lowercased().contains($0.title.lowercased()) }
+
+                if let match {
+                    // Merge: keep existing values where the edit doesn't provide new ones
+                    let mergedDesc = mergeDescription(existing: match.description, new: parsed.description)
+                    let mergedDeadline = parsed.deadline ?? match.deadline
+                    let mergedTag = parsed.tag ?? match.tag
+                    let merged = ParsedTask(
+                        title: parsed.title,
+                        description: mergedDesc,
+                        deadline: mergedDeadline,
+                        tag: mergedTag
+                    )
+                    return .edit(matchTitle: match.title, updates: merged)
+                } else {
+                    // No match found — treat as create
+                    return .create(parsed)
+                }
+            }
+            return .create(parsed)
+        }
+    }
+
+    /// Merge existing and new descriptions, preserving existing bullets and adding new ones.
+    private static func mergeDescription(existing: String?, new: String?) -> String? {
+        guard let new, !new.isEmpty else { return existing }
+        guard let existing, !existing.isEmpty else { return new }
+        // If the new description already contains the existing content, use it as-is
+        if new.contains(existing) { return new }
+        // If both have bullets, combine them
+        let existingLines = existing.components(separatedBy: "\n")
+        let newLines = new.components(separatedBy: "\n")
+        let existingBullets = Set(existingLines.filter { $0.hasPrefix("• ") || $0.hasPrefix("✓ ") })
+        let newBullets = newLines.filter { $0.hasPrefix("• ") || $0.hasPrefix("✓ ") }
+        let newProse = newLines.filter { !$0.hasPrefix("• ") && !$0.hasPrefix("✓ ") && !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        // If Claude already merged properly, just use the new description
+        if !newBullets.isEmpty && newBullets.allSatisfy({ existingBullets.contains($0) || !existingBullets.isEmpty }) {
+            return new
+        }
+        return new
     }
 
     private static func parseJSONArray(_ text: String) -> [ParsedTask]? {

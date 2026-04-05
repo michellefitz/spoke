@@ -255,7 +255,7 @@ struct ContentView: View {
             }
         }) { task in
             TaskDetailView(task: task, showCoachingToast: coachingActive)
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.fraction(0.7), .large])
                 .presentationBackground(Color(.systemBackground))
         }
         .sheet(isPresented: $showSettings) {
@@ -685,8 +685,12 @@ struct ContentView: View {
             return
         }
         Task {
-            let parsedTasks = await TaskParser.parse(transcript: transcript)
-            guard !parsedTasks.isEmpty else {
+            // Build context of existing tasks for the unified parser
+            let existingContext = activeTasks.map { t in
+                (title: t.title, description: t.taskDescription, deadline: t.deadline, tag: t.tag)
+            }
+            let actions = await TaskParser.parseUnified(transcript: transcript, existingTasks: existingContext)
+            guard !actions.isEmpty else {
                 recorder.finishProcessing()
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     toastMessage = "Something went wrong. Give it another go."
@@ -697,21 +701,62 @@ struct ContentView: View {
                 }
                 return
             }
+
+            var createdCount = 0
+            var editedTitles: [String] = []
+
             withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                for parsed in parsedTasks {
-                    let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag)
-                    modelContext.insert(task)
+                for action in actions {
+                    switch action {
+                    case .create(let parsed):
+                        let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag)
+                        modelContext.insert(task)
+                        createdCount += 1
+
+                    case .edit(let matchTitle, let updates):
+                        if let existing = activeTasks.first(where: { $0.title == matchTitle }) {
+                            existing.title = updates.title
+                            existing.taskDescription = updates.description
+                            existing.deadline = updates.deadline
+                            existing.tag = updates.tag
+                            editedTitles.append(updates.title)
+                        } else {
+                            // Fallback: create if match not found
+                            let task = SpokeTask(title: updates.title, taskDescription: updates.description, deadline: updates.deadline, tag: updates.tag)
+                            modelContext.insert(task)
+                            createdCount += 1
+                        }
+                    }
                 }
             }
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            if parsedTasks.count > 1 && !coachingActive {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    toastMessage = "\(parsedTasks.count) tasks added"
+
+            // Toast feedback
+            if !coachingActive {
+                let message: String?
+                if !editedTitles.isEmpty && createdCount > 0 {
+                    message = "Updated \(editedTitles.count) task\(editedTitles.count == 1 ? "" : "s"), added \(createdCount)"
+                } else if !editedTitles.isEmpty {
+                    if editedTitles.count == 1 {
+                        let short = String(editedTitles[0].prefix(30))
+                        message = "Updated \"\(short)\""
+                    } else {
+                        message = "Updated \(editedTitles.count) tasks"
+                    }
+                } else if createdCount > 1 {
+                    message = "\(createdCount) tasks added"
+                } else {
+                    message = nil
                 }
-                try? await Task.sleep(for: .seconds(2))
-                withAnimation(.easeOut(duration: 0.3)) {
-                    toastMessage = nil
+                if let message {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        toastMessage = message
+                    }
+                    try? await Task.sleep(for: .seconds(2.5))
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        toastMessage = nil
+                    }
                 }
             }
         }
