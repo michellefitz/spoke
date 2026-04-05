@@ -208,12 +208,12 @@ private struct ModeChoiceView: View {
             .padding(.bottom, 20)
 
             // Heading
-            Text("Pick your style")
-                .font(.system(size: 24, weight: .semibold))
+            Text("Pick your mode")
+                .font(.system(size: 26, weight: .semibold))
                 .padding(.bottom, 6)
 
-            Text("You can switch anytime in Settings.")
-                .font(.footnote)
+            Text("Choose how you like to get things done.")
+                .font(.system(size: 14))
                 .foregroundStyle(Color(.secondaryLabel))
                 .padding(.bottom, 24)
 
@@ -226,50 +226,15 @@ private struct ModeChoiceView: View {
             .padding(.horizontal, 32)
             .padding(.bottom, 20)
 
-            // Single illustration card — swaps based on selection
-            VStack(spacing: 0) {
-                // Voice input (same for both)
-                HStack(spacing: 10) {
-                    HStack(spacing: 2) {
-                        waveBar(height: 8, opacity: 0.3)
-                        waveBar(height: 16, opacity: 0.45)
-                        waveBar(height: 22, opacity: 0.7)
-                        waveBar(height: 12, opacity: 0.5)
-                        waveBar(height: 18, opacity: 0.6)
-                        waveBar(height: 10, opacity: 0.4)
-                        waveBar(height: 6, opacity: 0.3)
-                    }
-                    Text("\"Get milk and eggs for baking on Friday\"")
-                        .font(.system(size: 11, weight: .medium))
-                        .italic()
-                        .foregroundStyle(coral)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+            // App preview card — swaps based on selection
+            Group {
+                if selectedMode == .simple {
+                    simplePreview
+                } else {
+                    organizedPreview
                 }
-                .padding(.bottom, 8)
-
-                // Bubble dots
-                VStack(spacing: 4) {
-                    Circle().fill(coral.opacity(0.45)).frame(width: 7, height: 7)
-                    Circle().fill(coral.opacity(0.25)).frame(width: 5, height: 5)
-                }
-                .padding(.bottom, 8)
-
-                // Result card — changes with selection
-                Group {
-                    if selectedMode == .simple {
-                        simpleResult
-                    } else {
-                        organizedResult
-                    }
-                }
-                .animation(.easeInOut(duration: 0.25), value: selectedMode)
             }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.secondarySystemBackground))
-            )
+            .animation(.easeInOut(duration: 0.25), value: selectedMode)
             .padding(.horizontal, 24)
 
             // Description — changes with selection
@@ -280,6 +245,11 @@ private struct ModeChoiceView: View {
                 .padding(.top, 16)
                 .padding(.horizontal, 40)
                 .animation(.easeInOut(duration: 0.2), value: selectedMode)
+
+            Text("You can switch anytime in Settings.")
+                .font(.system(size: 12))
+                .foregroundStyle(Color(.tertiaryLabel))
+                .padding(.top, 8)
 
             Spacer()
 
@@ -300,110 +270,156 @@ private struct ModeChoiceView: View {
         }
     }
 
-    // MARK: - Result illustrations
+    // MARK: - Simple preview (clean task list)
 
-    private var simpleResult: some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private var simplePreview: some View {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Added today")
-                .font(.system(size: 9, weight: .medium))
+                .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(Color(.label).opacity(0.35))
-            HStack(spacing: 7) {
-                Circle()
-                    .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
-                    .frame(width: 14, height: 14)
-                Text("Get milk and eggs")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.primary)
+                .padding(.bottom, 8)
+
+            ForEach(["Book dentist appointment", "Do grocery shopping", "Call insurance company", "Pick up dry cleaning"], id: \.self) { task in
+                HStack(spacing: 10) {
+                    Circle()
+                        .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
+                        .frame(width: 16, height: 16)
+                    Text(task)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.primary)
+                }
+                .padding(.vertical, 10)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Color(.separator).opacity(0.3)).frame(height: 0.5)
+                }
             }
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.secondarySystemBackground))
         )
         .transition(.opacity)
     }
 
-    private var organizedResult: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 4) {
-                filterChip("All", active: true)
-                filterChip("Work", active: false)
-                filterChip("Shopping", active: false)
-                filterChip("Health", active: false)
+    // MARK: - Organized preview (task list with tags, dates, subtasks, filter pills)
+
+    private var organizedPreview: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Filter pills
+            HStack(spacing: 6) {
+                filterChip("ALL", active: true)
+                filterChip("PERSONAL", active: false)
+                filterChip("SHOPPING", active: false)
+                filterChip("HEALTH", active: false)
             }
-            Text("Due today")
-                .font(.system(size: 9, weight: .medium))
+            .padding(.bottom, 10)
+
+            Text("Added today")
+                .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(Color(.label).opacity(0.35))
-                .padding(.top, 2)
-            HStack(spacing: 7) {
+                .padding(.bottom, 8)
+
+            // Task 1: with date + tag
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 10) {
+                    Circle()
+                        .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
+                        .frame(width: 16, height: 16)
+                    Text("Book dentist appointment")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.primary)
+                }
+                HStack(spacing: 4) {
+                    metadataPill("FRIDAY", isCoral: true)
+                    metadataPill("HEALTH", isCoral: false)
+                }
+                .padding(.leading, 26)
+            }
+            .padding(.vertical, 8)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color(.separator).opacity(0.3)).frame(height: 0.5)
+            }
+
+            // Task 2: with tag + subtasks
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 10) {
+                    Circle()
+                        .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
+                        .frame(width: 16, height: 16)
+                    Text("Do grocery shopping")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.primary)
+                }
+                HStack(spacing: 4) {
+                    metadataPill("SHOPPING", isCoral: false)
+                }
+                .padding(.leading, 26)
+                VStack(alignment: .leading, spacing: 3) {
+                    miniSubtask("Milk")
+                    miniSubtask("Eggs")
+                    miniSubtask("Bread")
+                }
+                .padding(.leading, 26)
+            }
+            .padding(.vertical, 8)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color(.separator).opacity(0.3)).frame(height: 0.5)
+            }
+
+            // Task 3: with tag
+            HStack(spacing: 10) {
                 Circle()
                     .strokeBorder(Color(.systemGray3), lineWidth: 1.5)
-                    .frame(width: 13, height: 13)
-                Text("Get milk and eggs for baking")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.primary)
+                    .frame(width: 16, height: 16)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Call insurance company")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.primary)
+                    metadataPill("PERSONAL", isCoral: false)
+                }
             }
-            HStack(spacing: 4) {
-                metadataPill("FRIDAY", coral: true)
-                metadataPill("SHOPPING", coral: false)
-            }
-            .padding(.leading, 20)
-            VStack(alignment: .leading, spacing: 4) {
-                subtaskRow("Milk")
-                subtaskRow("Eggs")
-            }
-            .padding(.leading, 20)
+            .padding(.vertical, 8)
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.secondarySystemBackground))
         )
         .transition(.opacity)
     }
 
     // MARK: - Shared elements
 
-    private func waveBar(height: CGFloat, opacity: Double) -> some View {
-        RoundedRectangle(cornerRadius: 2)
-            .fill(coral.opacity(opacity))
-            .frame(width: 2.5, height: height)
-    }
-
     private func filterChip(_ label: String, active: Bool) -> some View {
         Text(label)
-            .font(.system(size: 8, weight: active ? .semibold : .medium))
+            .font(.system(size: 10, weight: active ? .semibold : .medium))
             .foregroundStyle(active ? .white : Color(.secondaryLabel))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
             .background(Capsule().fill(active ? coral : Color(.tertiarySystemFill)))
     }
 
-    private func metadataPill(_ label: String, coral isCoral: Bool) -> some View {
+    private func metadataPill(_ label: String, isCoral: Bool) -> some View {
         Text(label)
-            .font(.system(size: 7, weight: .bold))
+            .font(.system(size: 9, weight: .bold))
             .tracking(0.3)
             .foregroundStyle(isCoral ? coral : Color(.secondaryLabel))
-            .padding(.horizontal, 5)
+            .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: 4)
                     .fill(isCoral ? coral.opacity(0.12) : Color(.tertiarySystemFill))
             )
     }
 
-    private func subtaskRow(_ label: String) -> some View {
-        HStack(spacing: 5) {
+    private func miniSubtask(_ label: String) -> some View {
+        HStack(spacing: 6) {
             Circle()
                 .strokeBorder(Color(.systemGray3), lineWidth: 1)
-                .frame(width: 10, height: 10)
+                .frame(width: 12, height: 12)
             Text(label)
-                .font(.system(size: 10))
+                .font(.system(size: 12))
                 .foregroundStyle(Color(.secondaryLabel))
         }
     }
