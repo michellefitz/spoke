@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import Network
+import WidgetKit
 
 // MARK: - Network monitor
 
@@ -731,6 +732,7 @@ struct ContentView: View {
             }
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+            WidgetCenter.shared.reloadAllTimelines()
 
             // Toast feedback
             if !coachingActive {
@@ -776,11 +778,13 @@ struct ContentView: View {
             }
         }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     private func deleteTask(_ task: SpokeTask) {
         modelContext.delete(task)
         UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: - Prune
