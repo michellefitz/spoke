@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 struct TaskDetailView: View {
     @Environment(\.modelContext) private var modelContext
@@ -97,9 +98,13 @@ struct TaskDetailView: View {
 
                 Spacer()
 
-                Button("Close") { dismiss() }
-                    .fontWeight(.semibold)
-                    .foregroundStyle(coral)
+                Button("Close") {
+                    try? modelContext.save()
+                    WidgetCenter.shared.reloadAllTimelines()
+                    dismiss()
+                }
+                .fontWeight(.semibold)
+                .foregroundStyle(coral)
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)

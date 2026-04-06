@@ -311,6 +311,10 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { pruneCompletedTasks() }
+            if phase == .background {
+                try? modelContext.save()
+                WidgetCenter.shared.reloadAllTimelines()
+            }
         }
     }
 
@@ -732,6 +736,7 @@ struct ContentView: View {
             }
             recorder.finishProcessing()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+            try? modelContext.save()
             WidgetCenter.shared.reloadAllTimelines()
 
             // Toast feedback
@@ -778,12 +783,14 @@ struct ContentView: View {
             }
         }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        try? modelContext.save()
         WidgetCenter.shared.reloadAllTimelines()
     }
 
     private func deleteTask(_ task: SpokeTask) {
         modelContext.delete(task)
         UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        try? modelContext.save()
         WidgetCenter.shared.reloadAllTimelines()
     }
 
