@@ -8,6 +8,7 @@ private let darkBackground = Color(red: 0.07, green: 0.07, blue: 0.07)
 struct SpokeApp: App {
     @Environment(\.colorScheme) private var colorScheme
     private let settings = AppSettings.shared
+    private let container = SharedContainer.modelContainer
 
     var body: some Scene {
         WindowGroup {
@@ -21,6 +22,6 @@ struct SpokeApp: App {
             .background(colorScheme == .dark ? darkBackground : Color(.systemBackground))
             .preferredColorScheme(nil) // respect system setting
         }
-        .modelContainer(for: SpokeTask.self)
+        .modelContainer(container)
     }
 }
