@@ -7,6 +7,8 @@ import SwiftData
 struct TaskEntry: TimelineEntry {
     let date: Date
     let dueTodayTasks: [TaskSnapshot]
+    let overdueTasks: [TaskSnapshot]
+    let recentTasks: [TaskSnapshot]
     let totalActiveCount: Int
 }
 
@@ -25,8 +27,10 @@ struct SpokeTimelineProvider: TimelineProvider {
             dueTodayTasks: [
                 TaskSnapshot(title: "Call the dentist", isCompleted: false, tag: "personal"),
                 TaskSnapshot(title: "Review Q2 budget", isCompleted: false, tag: "work"),
-                TaskSnapshot(title: "Pick up dry cleaning", isCompleted: true, tag: nil)
+                TaskSnapshot(title: "Pick up dry cleaning", isCompleted: false, tag: nil)
             ],
+            overdueTasks: [],
+            recentTasks: [],
             totalActiveCount: 5
         )
     }
@@ -46,7 +50,7 @@ struct SpokeTimelineProvider: TimelineProvider {
     private func fetchEntry() -> TaskEntry {
         let storeURL = SharedContainer.url.appendingPathComponent("Spoke.sqlite")
         guard FileManager.default.fileExists(atPath: storeURL.path) else {
-            return TaskEntry(date: .now, dueTodayTasks: [], totalActiveCount: 0)
+            return TaskEntry(date: .now, dueTodayTasks: [], overdueTasks: [], recentTasks: [], totalActiveCount: 0)
         }
 
         let container: ModelContainer
@@ -55,7 +59,7 @@ struct SpokeTimelineProvider: TimelineProvider {
                 url: storeURL
             ))
         } catch {
-            return TaskEntry(date: .now, dueTodayTasks: [], totalActiveCount: 0)
+            return TaskEntry(date: .now, dueTodayTasks: [], overdueTasks: [], recentTasks: [], totalActiveCount: 0)
         }
 
         let context = ModelContext(container)
@@ -70,14 +74,30 @@ struct SpokeTimelineProvider: TimelineProvider {
 
         let today = Calendar.current.startOfDay(for: .now)
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        let activeTasks = allTasks.filter { !$0.isCompleted }
 
-        let dueTodayTasks: [TaskSnapshot] = allTasks
-            .filter { !$0.isCompleted && $0.deadline != nil && $0.deadline! >= today && $0.deadline! < tomorrow }
-            .map { TaskSnapshot(title: $0.title, isCompleted: $0.isCompleted, tag: $0.tag) }
+        let dueTodayTasks: [TaskSnapshot] = activeTasks
+            .filter { $0.deadline != nil && $0.deadline! >= today && $0.deadline! < tomorrow }
+            .map { TaskSnapshot(title: $0.title, isCompleted: false, tag: $0.tag) }
 
-        let totalActive = allTasks.filter { !$0.isCompleted }.count
+        let overdueTasks: [TaskSnapshot] = activeTasks
+            .filter { $0.deadline != nil && $0.deadline! < today }
+            .sorted { $0.deadline! > $1.deadline! }
+            .map { TaskSnapshot(title: $0.title, isCompleted: false, tag: $0.tag) }
 
-        return TaskEntry(date: .now, dueTodayTasks: dueTodayTasks, totalActiveCount: totalActive)
+        // Recent tasks (no deadline or future deadline) — fallback when nothing due today
+        let recentTasks: [TaskSnapshot] = activeTasks
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(6)
+            .map { TaskSnapshot(title: $0.title, isCompleted: false, tag: $0.tag) }
+
+        return TaskEntry(
+            date: .now,
+            dueTodayTasks: dueTodayTasks,
+            overdueTasks: overdueTasks,
+            recentTasks: recentTasks,
+            totalActiveCount: activeTasks.count
+        )
     }
 }
 
@@ -87,6 +107,9 @@ struct SpokeWidgetSmallView: View {
     let entry: TaskEntry
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
+
+    private var urgentCount: Int { entry.overdueTasks.count + entry.dueTodayTasks.count }
+    private var hasUrgent: Bool { urgentCount > 0 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -101,22 +124,39 @@ struct SpokeWidgetSmallView: View {
 
             Spacer()
 
-            if entry.dueTodayTasks.isEmpty {
-                Text("Nothing due today")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("\(entry.dueTodayTasks.count)")
+            if hasUrgent {
+                Text("\(urgentCount)")
                     .font(.system(size: 42, weight: .semibold))
                     .foregroundStyle(coral)
-                Text("due today")
+                if entry.overdueTasks.isEmpty {
+                    Text("due today")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                } else if entry.dueTodayTasks.isEmpty {
+                    Text("overdue")
+                        .font(.system(size: 13))
+                        .foregroundStyle(coral.opacity(0.7))
+                } else {
+                    Text("\(entry.overdueTasks.count) overdue, \(entry.dueTodayTasks.count) today")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            } else if entry.totalActiveCount > 0 {
+                Text("\(entry.totalActiveCount)")
+                    .font(.system(size: 42, weight: .semibold))
+                    .foregroundStyle(.primary.opacity(0.6))
+                Text("active task\(entry.totalActiveCount == 1 ? "" : "s")")
                     .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("All clear")
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            if entry.totalActiveCount > 0 {
+            if hasUrgent && entry.totalActiveCount > urgentCount {
                 Text("\(entry.totalActiveCount) total")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
@@ -134,6 +174,13 @@ struct SpokeWidgetMediumView: View {
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let maxItems = 4
 
+    /// Combined list: overdue first, then due today
+    private var urgentTasks: [WidgetTaskItem] {
+        let overdue = entry.overdueTasks.map { WidgetTaskItem(title: $0.title, isOverdue: true) }
+        let today = entry.dueTodayTasks.map { WidgetTaskItem(title: $0.title, isOverdue: false) }
+        return overdue + today
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -148,62 +195,73 @@ struct SpokeWidgetMediumView: View {
 
                 Spacer()
 
-                if !entry.dueTodayTasks.isEmpty {
-                    Text("Due Today")
+                if !urgentTasks.isEmpty {
+                    let label = entry.overdueTasks.isEmpty ? "Due Today" : "Needs Attention"
+                    Text(label)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(coral)
+                } else if entry.totalActiveCount > 0 {
+                    Text("Recent")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
                 }
             }
 
             Spacer(minLength: 8)
 
-            if entry.dueTodayTasks.isEmpty {
+            if !urgentTasks.isEmpty {
+                taskList(urgentTasks, total: urgentTasks.count)
+            } else if !entry.recentTasks.isEmpty {
+                taskList(entry.recentTasks.map { WidgetTaskItem(title: $0.title, isOverdue: false) }, total: entry.totalActiveCount)
+            } else {
                 Spacer()
-                Text("Nothing due today ✓")
-                    .font(.system(size: 15))
+                Text("All clear")
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
                 Spacer()
-            } else {
-                let visible = Array(entry.dueTodayTasks.prefix(maxItems))
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(Array(visible.enumerated()), id: \.offset) { _, task in
-                        HStack(spacing: 8) {
-                            Image(systemName: "circle")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Color(.tertiaryLabel))
-                            Text(task.title)
-                                .font(.system(size: 14))
-                                .lineLimit(1)
-                            Spacer()
-                            if let tag = task.tag {
-                                Text(tag.uppercased())
-                                    .font(.system(size: 9, weight: .semibold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 3)
-                                            .fill(Color(.tertiarySystemFill))
-                                    )
-                            }
-                        }
-                    }
-                }
-
-                let overflow = entry.dueTodayTasks.count - maxItems
-                if overflow > 0 {
-                    Text("+\(overflow) more")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
-                        .padding(.top, 4)
-                }
             }
 
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+
+    private func taskList(_ items: [WidgetTaskItem], total: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            let visible = Array(items.prefix(maxItems))
+            ForEach(Array(visible.enumerated()), id: \.offset) { _, item in
+                HStack(spacing: 8) {
+                    Circle()
+                        .strokeBorder(item.isOverdue ? coral.opacity(0.6) : Color(.tertiaryLabel), lineWidth: 1.5)
+                        .frame(width: 12, height: 12)
+                    Text(item.title)
+                        .font(.system(size: 14))
+                        .foregroundStyle(item.isOverdue ? .primary : .primary)
+                        .lineLimit(1)
+                    Spacer()
+                    if item.isOverdue {
+                        Text("OVERDUE")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(coral.opacity(0.8))
+                    }
+                }
+            }
+
+            let overflow = total - maxItems
+            if overflow > 0 {
+                Text("+\(overflow) more")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 2)
+            }
+        }
+    }
+}
+
+private struct WidgetTaskItem {
+    let title: String
+    let isOverdue: Bool
 }
 
 // MARK: - Lock screen widget (accessory circular)
@@ -211,14 +269,17 @@ struct SpokeWidgetMediumView: View {
 struct SpokeWidgetLockScreenView: View {
     let entry: TaskEntry
 
+    private var urgentCount: Int { entry.overdueTasks.count + entry.dueTodayTasks.count }
+
     var body: some View {
         ZStack {
             AccessoryWidgetBackground()
-            VStack(spacing: 1) {
-                Text("\(entry.dueTodayTasks.count)")
-                    .font(.system(size: 22, weight: .semibold))
-                Text("today")
-                    .font(.system(size: 9))
+            if urgentCount > 0 {
+                Text("\(urgentCount)")
+                    .font(.system(size: 24, weight: .semibold))
+            } else {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(.secondary)
             }
         }
@@ -230,12 +291,15 @@ struct SpokeWidgetLockScreenView: View {
 struct SpokeWidgetInlineView: View {
     let entry: TaskEntry
 
+    private var urgentCount: Int { entry.overdueTasks.count + entry.dueTodayTasks.count }
+
     var body: some View {
-        let count = entry.dueTodayTasks.count
-        if count == 0 {
-            Text("Nothing due today")
+        if urgentCount == 0 {
+            Text("Spoke — all clear")
+        } else if entry.overdueTasks.isEmpty {
+            Text("\(urgentCount) due today")
         } else {
-            Text("\(count) task\(count == 1 ? "" : "s") due today")
+            Text("\(urgentCount) need attention")
         }
     }
 }
@@ -250,8 +314,8 @@ struct SpokeWidget: Widget {
             SpokeWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Due Today")
-        .description("See what's due today at a glance.")
+        .configurationDisplayName("Spoke Tasks")
+        .description("See what needs attention at a glance.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryInline])
     }
 }
@@ -287,7 +351,7 @@ struct SpokeWidgetBundle: WidgetBundle {
 
 // MARK: - Previews
 
-#Preview("Small", as: .systemSmall) {
+#Preview("Small — Due Today", as: .systemSmall) {
     SpokeWidget()
 } timeline: {
     TaskEntry(
@@ -297,28 +361,63 @@ struct SpokeWidgetBundle: WidgetBundle {
             TaskSnapshot(title: "Review Q2 budget", isCompleted: false, tag: "work"),
             TaskSnapshot(title: "Pick up dry cleaning", isCompleted: false, tag: nil)
         ],
+        overdueTasks: [],
+        recentTasks: [],
         totalActiveCount: 7
     )
 }
 
-#Preview("Medium", as: .systemMedium) {
+#Preview("Medium — Mixed", as: .systemMedium) {
     SpokeWidget()
 } timeline: {
     TaskEntry(
         date: .now,
         dueTodayTasks: [
-            TaskSnapshot(title: "Call the dentist", isCompleted: false, tag: "personal"),
             TaskSnapshot(title: "Review Q2 budget", isCompleted: false, tag: "work"),
-            TaskSnapshot(title: "Pick up dry cleaning", isCompleted: false, tag: nil),
-            TaskSnapshot(title: "Grocery shopping", isCompleted: false, tag: "shopping"),
-            TaskSnapshot(title: "Book flights", isCompleted: false, tag: "personal")
+            TaskSnapshot(title: "Pick up dry cleaning", isCompleted: false, tag: nil)
         ],
+        overdueTasks: [
+            TaskSnapshot(title: "File tax return", isCompleted: false, tag: "finance"),
+            TaskSnapshot(title: "Renew car insurance", isCompleted: false, tag: nil)
+        ],
+        recentTasks: [],
         totalActiveCount: 12
     )
 }
 
-#Preview("Empty", as: .systemSmall) {
+#Preview("Small — No Deadlines", as: .systemSmall) {
     SpokeWidget()
 } timeline: {
-    TaskEntry(date: .now, dueTodayTasks: [], totalActiveCount: 3)
+    TaskEntry(
+        date: .now,
+        dueTodayTasks: [],
+        overdueTasks: [],
+        recentTasks: [
+            TaskSnapshot(title: "Buy birthday present", isCompleted: false, tag: "personal"),
+            TaskSnapshot(title: "Clean garage", isCompleted: false, tag: nil)
+        ],
+        totalActiveCount: 5
+    )
+}
+
+#Preview("Medium — Recent Fallback", as: .systemMedium) {
+    SpokeWidget()
+} timeline: {
+    TaskEntry(
+        date: .now,
+        dueTodayTasks: [],
+        overdueTasks: [],
+        recentTasks: [
+            TaskSnapshot(title: "Buy birthday present", isCompleted: false, tag: "personal"),
+            TaskSnapshot(title: "Clean garage", isCompleted: false, tag: nil),
+            TaskSnapshot(title: "Call electrician", isCompleted: false, tag: nil)
+        ],
+        totalActiveCount: 3
+    )
+}
+
+#Preview("Small — All Clear", as: .systemSmall) {
+    SpokeWidget()
+} timeline: {
+    TaskEntry(date: .now, dueTodayTasks: [], overdueTasks: [], recentTasks: [], totalActiveCount: 0)
 }

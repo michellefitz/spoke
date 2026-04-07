@@ -340,7 +340,7 @@ private struct FirstTaskRecordingView: View {
                 sampleTaskCreated = true
                 let sampleTask = SpokeTask(
                     title: "Welcome to Spoke",
-                    taskDescription: "This is a sample task! Spoke turns your voice into organized tasks. Here's how to get started:\n• Record your first task — tap the mic and speak\n• Edit a task — open it and use the mic to add detail\n• Try a brain dump — say several tasks at once\n• Tasks can be edited with the keyboard as well as voice\n• Customize your tags and display in Settings (top right)\n• Check off a task by tapping the circle",
+                    taskDescription: "This is a sample task! Spoke turns your voice into organized tasks. Here's how to get started:\n• Record your first task — tap the mic and speak\n• Edit a task — open it and use the mic to add detail\n• Try a brain dump — say several tasks at once\n• Update existing tasks by name — \"add milk to the grocery list\"\n• Customize your tags and display in Settings\n• Check off a task by tapping the circle",
                     deadline: .now,
                     tag: "personal"
                 )
