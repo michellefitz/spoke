@@ -175,18 +175,17 @@ struct TaskRowView: View {
             isAnimating = true
 
             // 1. Checkmark fills in immediately; strikethrough draws left → right
-            withAnimation(.easeInOut(duration: 0.15)) { pendingComplete = true }
+            withAnimation(.spokeFeedback) { pendingComplete = true }
             withAnimation(.linear(duration: 0.38)) { strikeProgress = 1.0 }
 
             // 2. After the line lands, trigger the section move
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                pendingComplete = false  // task.isCompleted takes over from here
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(500))
+                pendingComplete = false
                 onToggleComplete()
-                // Reset in case the row isn't destroyed (e.g. uncomplete mid-flight)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    strikeProgress = 0
-                    isAnimating = false
-                }
+                try? await Task.sleep(for: .milliseconds(400))
+                strikeProgress = 0
+                isAnimating = false
             }
         }
     }

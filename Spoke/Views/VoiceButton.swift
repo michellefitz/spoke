@@ -66,7 +66,7 @@ struct VoiceButton: View {
                         .animation(.spring(response: 0.25, dampingFraction: 0.8), value: state)
                     }
                     .scaleEffect(state == .recording ? 1.08 : 1.0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: state)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.75), value: state)
             }
 
             // Right waveform (mirrored so newest bars are near center, flows outward)
@@ -75,8 +75,6 @@ struct VoiceButton: View {
                 .opacity(state == .recording ? 1 : 0)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: state)
         }
-        .shadow(color: coral.opacity(state == .recording ? 0.5 : 0.4),
-                radius: state == .recording ? 16 : 12, x: 0, y: 4)
         .onTapGesture { onTap() }
         .disabled(state == .processing)
     }

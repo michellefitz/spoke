@@ -91,6 +91,7 @@ private struct SplashIntroView: View {
                     .padding(.vertical, 16)
                     .background(Capsule().fill(coral))
             }
+            .buttonStyle(PressScaleButtonStyle())
             .padding(.horizontal, 32)
             .padding(.bottom, 56)
             .opacity(buttonOpacity)
@@ -162,8 +163,9 @@ private struct PulsingMicDot: View {
                 .scaleEffect(pulsing ? 1.07 : 1.0)
                 .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulsing)
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { pulsing = true }
+        .task {
+            try? await Task.sleep(for: .milliseconds(500))
+            pulsing = true
         }
     }
 }
