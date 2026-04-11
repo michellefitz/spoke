@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		061CB711E670940715A50834 /* TaskDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC4CAC813C3E973A8D4E2DF3 /* TaskDetailView.swift */; };
 		0FE50EA79A24F4A0E062B416 /* SpokeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5E5EBF24AADF435E693DE4 /* SpokeWidget.swift */; };
+		153D8089070586358B3806BC /* AnimationTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75AA58387684AE038DC9F198 /* AnimationTokens.swift */; };
 		1A4CB5968BBCB0DBB8A87C28 /* VoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F45466236E0D0B9CC126A7D /* VoiceRecorder.swift */; };
 		1D2FC799922D2EE8BC416A37 /* SpokeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FC117A79B9FEDB31E29C8998 /* SpokeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		1FA6B1BBDA6BCEABA70CB41E /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E808A3AF60E6265518225A16 /* OnboardingView.swift */; };
@@ -71,6 +72,7 @@
 		5B14AEDED788DDEE5A8A5056 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
 		5E5E5EBF24AADF435E693DE4 /* SpokeWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpokeWidget.swift; sourceTree = "<group>"; };
 		61697DD7E73DC52F3DBF8513 /* SpokeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpokeApp.swift; sourceTree = "<group>"; };
+		75AA58387684AE038DC9F198 /* AnimationTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationTokens.swift; sourceTree = "<group>"; };
 		85FEDC74B870B88EF832273A /* AudioWaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioWaveformView.swift; sourceTree = "<group>"; };
 		8B96425A91D679AC36BA7C73 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A08F2B6B5A0014D582AAA8EA /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 		756A939EF1BFB3DD087537DF /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				75AA58387684AE038DC9F198 /* AnimationTokens.swift */,
 				85FEDC74B870B88EF832273A /* AudioWaveformView.swift */,
 				CBF04D4396113B1353FED13C /* ContentView.swift */,
 				2B9ECBC00511873856CA81A9 /* DebugLogView.swift */,
@@ -268,6 +271,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				153D8089070586358B3806BC /* AnimationTokens.swift in Sources */,
 				57466ECD1EF9863C4277C39E /* AppSettings.swift in Sources */,
 				B79877F5D5FFEC7D83D7C154 /* AudioWaveformView.swift in Sources */,
 				9D391789B1CDC9BB717A1FF3 /* Config.swift in Sources */,

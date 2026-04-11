@@ -243,11 +243,11 @@ struct ContentView: View {
             if coachingActive {
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(400))
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    withAnimation(.spokeTransition) {
                         toastMessage = "You're all set ✓"
                     }
                     try? await Task.sleep(for: .seconds(2.5))
-                    withAnimation(.easeOut(duration: 0.3)) {
+                    withAnimation(.easeOut(duration: 0.18)) {
                         toastMessage = nil
                     }
                     coachingActive = false
@@ -280,11 +280,11 @@ struct ContentView: View {
             guard !settings.hasSeenCoaching && !activeTasks.isEmpty else { return }
             coachingActive = true
             try? await Task.sleep(for: .milliseconds(600))
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            withAnimation(.spokeTransition) {
                 toastMessage = "Nice! Tap a task to see more."
             }
             try? await Task.sleep(for: .seconds(4))
-            withAnimation(.easeOut(duration: 0.3)) {
+            withAnimation(.easeOut(duration: 0.18)) {
                 if toastMessage == "Nice! Tap a task to see more." { toastMessage = nil }
             }
         }
@@ -583,7 +583,7 @@ struct ContentView: View {
     private func filterPill(label: String, tag: String?) -> some View {
         let isActive = selectedTag == tag
         return Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(.spokeFeedback) {
                 selectedTag = isActive ? nil : tag
             }
         } label: {
@@ -673,11 +673,11 @@ struct ContentView: View {
             guard recorder.recordingState == .recording else { return }
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             stopAndProcess()
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            withAnimation(.spokeTransition) {
                 toastMessage = "Recording stopped — 1 minute max."
             }
             try? await Task.sleep(for: .seconds(2.5))
-            withAnimation(.easeOut(duration: 0.3)) {
+            withAnimation(.easeOut(duration: 0.18)) {
                 if toastMessage == "Recording stopped — 1 minute max." { toastMessage = nil }
             }
         }
@@ -697,11 +697,11 @@ struct ContentView: View {
             let actions = await TaskParser.parseUnified(transcript: transcript, existingTasks: existingContext)
             guard !actions.isEmpty else {
                 recorder.finishProcessing()
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                withAnimation(.spokeTransition) {
                     toastMessage = "Something went wrong. Give it another go."
                 }
                 try? await Task.sleep(for: .seconds(2.5))
-                withAnimation(.easeOut(duration: 0.3)) {
+                withAnimation(.easeOut(duration: 0.18)) {
                     if toastMessage == "Something went wrong. Give it another go." { toastMessage = nil }
                 }
                 return
@@ -757,11 +757,11 @@ struct ContentView: View {
                     message = nil
                 }
                 if let message {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    withAnimation(.spokeTransition) {
                         toastMessage = message
                     }
                     try? await Task.sleep(for: .seconds(2.5))
-                    withAnimation(.easeOut(duration: 0.3)) {
+                    withAnimation(.easeOut(duration: 0.18)) {
                         toastMessage = nil
                     }
                 }

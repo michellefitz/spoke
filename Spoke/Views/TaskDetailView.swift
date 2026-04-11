@@ -375,7 +375,7 @@ struct TaskDetailView: View {
         .task {
             guard showCoachingToast else { return }
             try? await Task.sleep(for: .milliseconds(500))
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            withAnimation(.spokeTransition) {
                 coachingToastVisible = true
             }
         }
@@ -588,11 +588,11 @@ struct TaskDetailView: View {
 
     private func showErrorToast(_ message: String) {
         Task { @MainActor in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            withAnimation(.spokeTransition) {
                 errorToast = message
             }
             try? await Task.sleep(for: .seconds(2.5))
-            withAnimation(.easeOut(duration: 0.3)) {
+            withAnimation(.easeOut(duration: 0.18)) {
                 if errorToast == message { errorToast = nil }
             }
         }
