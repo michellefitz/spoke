@@ -43,8 +43,9 @@ private func bucket(for task: SpokeTask) -> TaskBucket {
 // MARK: - Sort mode
 
 private enum SortMode: String {
-    case dateAdded = "dateAdded"
-    case dueDate   = "dueDate"
+    case dateAdded  = "dateAdded"
+    case dueDate    = "dueDate"
+    case groupByTag = "groupByTag"
 }
 
 private enum DeadlineBucket: String, CaseIterable {
@@ -140,6 +141,28 @@ struct ContentView: View {
         }
     }
 
+    // Group active tasks by tag (Settings order), sub-sorted by due date; untagged at bottom
+    private var tagGroupedActiveTasks: [(String, [SpokeTask])] {
+        let tasks = filteredActiveTasks
+        let orderedTags = tagStore.tags
+        let byDeadline: (SpokeTask, SpokeTask) -> Bool = { lhs, rhs in
+            switch (lhs.deadline, rhs.deadline) {
+            case let (l?, r?): return l < r
+            case (_?, nil):    return true
+            default:           return false
+            }
+        }
+        var groups: [(String, [SpokeTask])] = orderedTags.compactMap { tag in
+            let tagTasks = tasks.filter { $0.tag == tag }.sorted(by: byDeadline)
+            return tagTasks.isEmpty ? nil : (tag, tagTasks)
+        }
+        let untagged = tasks
+            .filter { $0.tag == nil || !orderedTags.contains($0.tag!) }
+            .sorted(by: byDeadline)
+        if !untagged.isEmpty { groups.append(("", untagged)) }
+        return groups
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             taskListView
@@ -172,6 +195,14 @@ struct ContentView: View {
                                     withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dueDate }
                                 } label: {
                                     Label("Sort by due date", systemImage: sortMode == .dueDate ? "checkmark" : "")
+                                }
+                            }
+
+                            if settings.showTags {
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.2)) { sortMode = .groupByTag }
+                                } label: {
+                                    Label("Group by tag", systemImage: sortMode == .groupByTag ? "checkmark" : "")
                                 }
                             }
 
@@ -294,7 +325,10 @@ struct ContentView: View {
             }
         }
         .onChange(of: settings.showDueDates) { _, show in
-            if !show { sortMode = .dateAdded }
+            if !show && sortMode == .dueDate { sortMode = .dateAdded }
+        }
+        .onChange(of: settings.showTags) { _, show in
+            if !show && sortMode == .groupByTag { sortMode = .dateAdded }
         }
         .onChange(of: availableTags) { _, tags in
             if let selected = selectedTag, !tags.contains(selected) {
@@ -343,7 +377,7 @@ struct ContentView: View {
                                 sectionHeader(sectionLabel(b))
                             }
                         }
-                    } else {
+                    } else if sortMode == .dueDate {
                         ForEach(deadlineGroupedActiveTasks, id: \.0.rawValue) { (b, tasks) in
                             Section {
                                 ForEach(Array(tasks.enumerated()), id: \.element.id) { _, task in
@@ -356,6 +390,21 @@ struct ContentView: View {
                                 }
                             } header: {
                                 sectionHeader(sectionLabel(b))
+                            }
+                        }
+                    } else {
+                        ForEach(tagGroupedActiveTasks, id: \.0) { (tag, tasks) in
+                            Section {
+                                ForEach(tasks) { task in
+                                    TaskRowView(
+                                        task: task,
+                                        onToggleComplete: { toggleComplete(task) },
+                                        onDelete: { deleteTask(task) },
+                                        onTap: { selectedTask = task }
+                                    )
+                                }
+                            } header: {
+                                sectionHeader(tag.isEmpty ? "No category" : tag.capitalized)
                             }
                         }
                     }
