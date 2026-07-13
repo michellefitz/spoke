@@ -2,8 +2,10 @@ import SwiftUI
 import SwiftData
 import WidgetKit
 
-/// Weekly planning view: a pool of week-bucket tasks ("this week, any day")
-/// followed by the seven days with their day-specific tasks.
+/// Weekly planning view styled like a calendar schedule: a prominent date
+/// column on the left, tasks indented to the right, a hairline between days,
+/// and today badged with a filled circle. The week-bucket pool ("any day")
+/// sits pinned above the days.
 struct WeekCalendarView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -18,6 +20,7 @@ struct WeekCalendarView: View {
     @State private var selectedTask: SpokeTask?
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
+    private let dateColumnWidth: CGFloat = 52
     private var cal: Calendar { Calendar.current }
 
     private var weekStart: Date {
@@ -68,37 +71,19 @@ struct WeekCalendarView: View {
             } else {
                 List {
                     if !poolTasks.isEmpty {
-                        Section {
-                            ForEach(poolTasks) { task in
-                                row(task)
-                            }
-                        } header: {
-                            HStack(spacing: 6) {
-                                Text(weekOffset == 1 ? "Next week — any day" : "Any day")
-                                    .font(.caption)
-                                    .foregroundStyle(Color(.label).opacity(0.6))
-                                Text("\(poolTasks.count)")
-                                    .font(.caption)
-                                    .foregroundStyle(Color(.label).opacity(0.35))
-                            }
-                        }
+                        scheduleRows(tasks: poolTasks, emptyText: nil) { poolColumn }
+                        dayDivider
                     }
 
-                    ForEach(days, id: \.timeIntervalSinceReferenceDate) { day in
-                        let dayTasks = tasks(on: day)
-                        if !dayTasks.isEmpty {
-                            Section {
-                                ForEach(dayTasks) { task in
-                                    row(task)
-                                }
-                            } header: {
-                                dayHeader(day)
-                            }
+                    ForEach(Array(days.enumerated()), id: \.element.timeIntervalSinceReferenceDate) { index, day in
+                        scheduleRows(tasks: tasks(on: day), emptyText: "Nothing planned") { dateColumn(day) }
+                        if index < days.count - 1 {
+                            dayDivider
                         }
                     }
                 }
                 .listStyle(.plain)
-                .listSectionSpacing(0)
+                .environment(\.defaultMinListRowHeight, 10)
             }
         }
         .sheet(item: $selectedTask) { task in
@@ -106,6 +91,96 @@ struct WeekCalendarView: View {
                 .presentationDetents([.fraction(0.7), .large])
                 .presentationBackground(Color(.systemBackground))
         }
+    }
+
+    // MARK: - Schedule rows
+
+    /// Renders one day (or the pool) as schedule rows: the label column is
+    /// visible on the first row only, so tasks stack beside a single date.
+    @ViewBuilder
+    private func scheduleRows<Label: View>(tasks: [SpokeTask], emptyText: String?, @ViewBuilder label: @escaping () -> Label) -> some View {
+        if tasks.isEmpty {
+            if let emptyText {
+                HStack(alignment: .center, spacing: 14) {
+                    label()
+                        .frame(width: dateColumnWidth)
+                    Text(emptyText)
+                        .font(.system(size: 13))
+                        .italic()
+                        .foregroundStyle(Color(.quaternaryLabel))
+                    Spacer(minLength: 0)
+                }
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            }
+        } else {
+            ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
+                HStack(alignment: .top, spacing: 14) {
+                    label()
+                        .frame(width: dateColumnWidth)
+                        .opacity(index == 0 ? 1 : 0)
+                    TaskRowView(
+                        task: task,
+                        onToggleComplete: { toggleComplete(task) },
+                        onDelete: { deleteTask(task) },
+                        onTap: { selectedTask = task },
+                        hideDeadlineChip: true
+                    )
+                }
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            }
+        }
+    }
+
+    private var dayDivider: some View {
+        Rectangle()
+            .fill(Color(.separator).opacity(0.5))
+            .frame(height: 0.5)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+    }
+
+    // MARK: - Date columns
+
+    private func dateColumn(_ day: Date) -> some View {
+        let isToday = cal.isDateInToday(day)
+        let dayNumber = "\(cal.component(.day, from: day))"
+        let weekdayFormatter = DateFormatter()
+        weekdayFormatter.dateFormat = "EEE"
+        let weekday = weekdayFormatter.string(from: day).uppercased()
+
+        return VStack(spacing: 3) {
+            Text(dayNumber)
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(isToday ? .white : Color(.label))
+                .frame(width: 34, height: 34)
+                .background {
+                    if isToday {
+                        Circle().fill(coral)
+                    }
+                }
+            Text(weekday)
+                .font(.system(size: 10, weight: .semibold))
+                .kerning(0.6)
+                .foregroundStyle(isToday ? coral : Color(.secondaryLabel))
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var poolColumn: some View {
+        VStack(spacing: 3) {
+            Image(systemName: "tray")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(coral)
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(coral.opacity(0.12)))
+            Text("ANY DAY")
+                .font(.system(size: 9, weight: .semibold))
+                .kerning(0.5)
+                .foregroundStyle(coral)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Header
@@ -153,23 +228,6 @@ struct WeekCalendarView: View {
         .padding(.bottom, 12)
     }
 
-    private func dayHeader(_ day: Date) -> some View {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE d MMM"
-        let isToday = cal.isDateInToday(day)
-        return HStack(spacing: 6) {
-            Text(formatter.string(from: day))
-                .font(.caption)
-                .fontWeight(isToday ? .bold : .regular)
-                .foregroundStyle(isToday ? coral : Color(.label).opacity(0.6))
-            if isToday {
-                Text("Today")
-                    .font(.caption)
-                    .foregroundStyle(coral.opacity(0.7))
-            }
-        }
-    }
-
     private var emptyState: some View {
         VStack(spacing: 10) {
             Spacer()
@@ -190,16 +248,7 @@ struct WeekCalendarView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Rows & actions
-
-    private func row(_ task: SpokeTask) -> some View {
-        TaskRowView(
-            task: task,
-            onToggleComplete: { toggleComplete(task) },
-            onDelete: { deleteTask(task) },
-            onTap: { selectedTask = task }
-        )
-    }
+    // MARK: - Actions
 
     private func toggleComplete(_ task: SpokeTask) {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {

@@ -5,6 +5,8 @@ struct TaskRowView: View {
     let onToggleComplete: () -> Void
     let onDelete: () -> Void
     let onTap: () -> Void
+    /// Set in contexts where the date is already visible (e.g. the calendar view).
+    var hideDeadlineChip: Bool = false
 
     @State private var strikeProgress: CGFloat = 0
     @State private var isAnimating = false
@@ -105,7 +107,7 @@ struct TaskRowView: View {
                         .padding(.leading, 2)
                 }
 
-                let showDeadline = task.deadline != nil && settings.showDueDates
+                let showDeadline = task.deadline != nil && settings.showDueDates && !hideDeadlineChip
                 let showTag = task.tag != nil && settings.showTags
                 if showDeadline || showTag {
                     HStack(spacing: 4) {
