@@ -25,6 +25,13 @@ struct TaskRowView: View {
 
     private func deadlineLabel(for date: Date) -> String {
         let cal = Calendar.current
+        if task.deadlineIsWeek {
+            let week = cal.weekStart(for: date)
+            let thisWeek = cal.weekStart(for: .now)
+            if week == thisWeek { return "THIS WEEK" }
+            if let next = cal.date(byAdding: .weekOfYear, value: 1, to: thisWeek), week == next { return "NEXT WEEK" }
+            return "WK OF " + Self.deadlineFormatter.string(from: week).uppercased()
+        }
         if cal.isDateInToday(date)    { return "TODAY" }
         if cal.isDateInTomorrow(date) { return "TOMORROW" }
         return Self.deadlineFormatter.string(from: date).uppercased()

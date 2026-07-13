@@ -5,6 +5,7 @@ struct ParsedTask {
     let description: String?
     let deadline: Date?
     let tag: String?
+    var deadlineIsWeek: Bool = false
 }
 
 enum ParsedAction {
@@ -55,7 +56,7 @@ enum TaskParser {
             - When using bullets, always write a short intro sentence first (e.g. "Things to pick up:"), then each bullet on its OWN LINE using \\n as the separator. Each bullet MUST start at the beginning of its line as "• item" — never inline. JSON example: "description": "Things to pick up:\\n• Milk\\n• Eggs\\n• Broccoli" \
             - Use plain prose only (no bullets) when there is a single sentence of overflow detail. \
             - Omit description entirely when the title captures everything. \
-            - If the user mentions a date or deadline (e.g. "by next Wednesday", "on Tuesday", "before April 20", "this Friday"), resolve it relative to today and include it as "deadline" in YYYY-MM-DD format. Omit "deadline" if no date is mentioned. A deadline applies only to the task it was mentioned with — do not copy it to other tasks. \
+            - If the user mentions a specific day (e.g. "by next Wednesday", "on Tuesday", "before April 20", "this Friday"), resolve it relative to today and include it as "deadline" in YYYY-MM-DD format. If they say something is for "this week" or "next week" WITHOUT naming a day, use the literal string "this-week" or "next-week" as the deadline — do NOT invent a specific day. Omit "deadline" if no date is mentioned. A deadline applies only to the task it was mentioned with — do not copy it to other tasks. \
             - \(tagInstruction) \
             Return ONLY a valid JSON ARRAY, no markdown, no code fences, no commentary. \
             Examples: \
@@ -69,12 +70,12 @@ enum TaskParser {
         return result
     }
 
-    static func parseEdit(transcript: String, currentTitle: String, currentDescription: String?, currentDeadline: Date? = nil, currentTag: String? = nil) async -> ParsedTask {
+    static func parseEdit(transcript: String, currentTitle: String, currentDescription: String?, currentDeadline: Date? = nil, currentTag: String? = nil, currentDeadlineIsWeek: Bool = false) async -> ParsedTask {
         let start = Date()
         let desc = currentDescription ?? "none"
         let today = isoToday()
         let tagInstruction = tagPromptInstruction()
-        let deadlineStr = currentDeadline.map { isoFormatter.string(from: $0) } ?? "none"
+        let deadlineStr = currentDeadline.map { deadlineToken($0, isWeek: currentDeadlineIsWeek) } ?? "none"
         let tagStr = currentTag ?? "none"
         let system = """
             Today's date is \(today). You are a task assistant that refines tasks from voice input. \
@@ -90,7 +91,7 @@ enum TaskParser {
             - When using bullets, always write a short intro sentence first (e.g. "Things to cover:"), then each bullet on its OWN LINE using \\n as the separator. Each bullet MUST start at the beginning of its line as "• item" — never inline. JSON example: "description": "Things to cover:\\n• Strategy doc\\n• New targets". If the existing description already has a prose intro, preserve or refine it. \
             - Use plain prose only (no bullets) when there is a single sentence of overflow detail. \
             - Omit description only when the title captures everything. \
-            - If the voice mentions a date or deadline, resolve it relative to today and include as "deadline" in YYYY-MM-DD format. Preserve the existing deadline if no new date is mentioned and existing deadline is not "none". Omit "deadline" if there is none. \
+            - If the voice mentions a specific day, resolve it relative to today and include as "deadline" in YYYY-MM-DD format. If the voice says "this week" or "next week" without naming a day, use the literal string "this-week" or "next-week" — do NOT invent a specific day. Preserve the existing deadline if no new date is mentioned and existing deadline is not "none". Omit "deadline" if there is none. \
             - Preserve the existing tag if it still fits. \(tagInstruction) \
             Return ONLY valid JSON, no markdown, no code fences, no commentary. \
             Example: {"title": "…", "description": "…", "deadline": "YYYY-MM-DD", "tag": "work"}
@@ -111,7 +112,7 @@ enum TaskParser {
 
     /// Main assistant entry point: parses the transcript into actions plus an optional
     /// remark (something worth telling the user) and at most one clarifying question.
-    static func parseAssistant(transcript: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) async -> AssistantResponse {
+    static func parseAssistant(transcript: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) async -> AssistantResponse {
         let start = Date()
         let wordCount = transcript.split(separator: " ").count
         if wordCount <= 3 {
@@ -139,7 +140,7 @@ enum TaskParser {
             Return ONLY the JSON object, no markdown, no code fences, no commentary. \
             Examples: \
             Simple: {"actions": [{"action": "create", "title": "Call the dentist"}]} \
-            Braindump: {"actions": [{"action": "create", "title": "Book car in for MOT", "deadline": "YYYY-MM-DD"}, {"action": "create", "title": "Email landlord about boiler"}], "remark": "Got 2 tasks — the MOT sounded time-sensitive so I set Friday."} \
+            Braindump: {"actions": [{"action": "create", "title": "Book car in for MOT", "deadline": "YYYY-MM-DD"}, {"action": "create", "title": "Sort out travel insurance", "deadline": "this-week"}, {"action": "create", "title": "Email landlord about boiler"}], "remark": "Got 3 tasks — set Friday on the MOT and put the insurance down for this week."} \
             Duplicate: {"actions": [], "question": {"text": "You already have \\"Call the dentist\\" — same one, or a new appointment?", "options": ["Same one", "New task"]}}
             """
         let user = "Transcript: \"\(transcript)\""
@@ -163,7 +164,7 @@ enum TaskParser {
     /// Second turn after a clarifying question: produce the final actions for the
     /// original transcript, honoring the user's answer. Returns nil on API/parse
     /// failure; an empty array is a deliberate "nothing to change".
-    static func resolveClarification(transcript: String, question: String, answer: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) async -> [ParsedAction]? {
+    static func resolveClarification(transcript: String, question: String, answer: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) async -> [ParsedAction]? {
         let start = Date()
         let today = isoToday()
         let tagInstruction = tagPromptInstruction()
@@ -200,7 +201,7 @@ enum TaskParser {
 
     /// Follow-up turn on a pending summary: the user spoke again while reviewing the
     /// proposed tasks. The reply is an approval, a cancellation, or a replacement set.
-    static func refineActions(transcript: String, pending: [ParsedAction], correction: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) async -> RefineOutcome {
+    static func refineActions(transcript: String, pending: [ParsedAction], correction: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) async -> RefineOutcome {
         let start = Date()
         let today = isoToday()
         let tagInstruction = tagPromptInstruction()
@@ -261,12 +262,12 @@ enum TaskParser {
         - If the transcript contains multiple unrelated tasks, return multiple action objects. \
         - NEVER silently drop information. If a detail cannot fit the title, it must appear in the description. \
         - If a description needs 2 or more distinct items, use bullet format with a short intro sentence, each bullet on its OWN LINE: "Things to pick up:\\n• Milk\\n• Eggs" \
-        - Dates: resolve relative to today as YYYY-MM-DD in "deadline". A deadline applies only to the task it was mentioned with. \
+        - Dates: if the user names a specific day, resolve it relative to today as YYYY-MM-DD in "deadline". If they say something is for "this week" or "next week" WITHOUT naming a day (e.g. "sometime this week", "I need to get this done next week"), use the literal string "this-week" or "next-week" as the deadline — do NOT invent a specific day. A deadline applies only to the task it was mentioned with. \
         - \(tagInstruction)
         """
     }
 
-    private static func existingTaskListBlock(_ existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) -> String {
+    private static func existingTaskListBlock(_ existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) -> String {
         if existingTasks.isEmpty {
             return "There are no existing tasks."
         }
@@ -286,7 +287,7 @@ enum TaskParser {
             switch action {
             case .create(let t):
                 var line = "- CREATE \"\(t.title)\""
-                if let d = t.deadline { line += " due \(isoFormatter.string(from: d))" }
+                if let d = t.deadline { line += " due \(deadlineToken(d, isWeek: t.deadlineIsWeek))" }
                 if let tag = t.tag { line += " tag:\(tag)" }
                 if let desc = t.description, !desc.isEmpty {
                     line += " — \(String(desc.prefix(80)).replacingOccurrences(of: "\n", with: " "))"
@@ -294,7 +295,7 @@ enum TaskParser {
                 return line
             case .edit(let match, let u):
                 var line = "- EDIT \"\(match)\" → \"\(u.title)\""
-                if let d = u.deadline { line += " due \(isoFormatter.string(from: d))" }
+                if let d = u.deadline { line += " due \(deadlineToken(d, isWeek: u.deadlineIsWeek))" }
                 if let tag = u.tag { line += " tag:\(tag)" }
                 if let desc = u.description, !desc.isEmpty {
                     line += " — \(String(desc.prefix(80)).replacingOccurrences(of: "\n", with: " "))"
@@ -302,6 +303,16 @@ enum TaskParser {
                 return line
             }
         }.joined(separator: "\n")
+    }
+
+    /// Serializes a deadline for prompt context, round-trippable with parseDictionary.
+    private static func deadlineToken(_ date: Date, isWeek: Bool) -> String {
+        guard isWeek else { return isoFormatter.string(from: date) }
+        let cal = Calendar.current
+        let week = cal.weekStart(for: date)
+        if week == cal.weekStart(for: .now) { return "this-week" }
+        if let next = cal.date(byAdding: .weekOfYear, value: 1, to: cal.weekStart(for: .now)), week == next { return "next-week" }
+        return isoFormatter.string(from: date)
     }
 
     private static func task(of action: ParsedAction) -> ParsedTask {
@@ -313,7 +324,7 @@ enum TaskParser {
 
     /// Parses the assistant object shape {"actions": [...], "remark": ..., "question": ...}.
     /// Tolerates a bare array (legacy shape) as actions-only.
-    private static func parseAssistantResponse(_ text: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) -> AssistantResponse? {
+    private static func parseAssistantResponse(_ text: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) -> AssistantResponse? {
         guard let data = text.data(using: .utf8) else { return nil }
         if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             let actionDicts = obj["actions"] as? [[String: Any]] ?? []
@@ -421,7 +432,7 @@ enum TaskParser {
         return trimmed
     }
 
-    private static func parseActions(from array: [[String: Any]], existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) -> [ParsedAction] {
+    private static func parseActions(from array: [[String: Any]], existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) -> [ParsedAction] {
         return array.compactMap { dict -> ParsedAction? in
             let action = dict["action"] as? String ?? "create"
             guard let parsed = parseDictionary(dict) else { return nil }
@@ -436,12 +447,14 @@ enum TaskParser {
                     // Merge: keep existing values where the edit doesn't provide new ones
                     let mergedDesc = mergeDescription(existing: match.description, new: parsed.description)
                     let mergedDeadline = parsed.deadline ?? match.deadline
+                    let mergedIsWeek = parsed.deadline != nil ? parsed.deadlineIsWeek : match.deadlineIsWeek
                     let mergedTag = parsed.tag ?? match.tag
                     let merged = ParsedTask(
                         title: parsed.title,
                         description: mergedDesc,
                         deadline: mergedDeadline,
-                        tag: mergedTag
+                        tag: mergedTag,
+                        deadlineIsWeek: mergedIsWeek
                     )
                     return .edit(matchTitle: match.title, updates: merged)
                 } else {
@@ -499,8 +512,18 @@ enum TaskParser {
 
         let description = json["description"] as? String
         let deadline: Date?
+        var deadlineIsWeek = false
         if let ds = json["deadline"] as? String, !ds.isEmpty {
-            deadline = isoFormatter.date(from: ds)
+            switch ds {
+            case "this-week":
+                deadline = Calendar.current.weekBucketDeadline(offsetWeeks: 0)
+                deadlineIsWeek = true
+            case "next-week":
+                deadline = Calendar.current.weekBucketDeadline(offsetWeeks: 1)
+                deadlineIsWeek = true
+            default:
+                deadline = isoFormatter.date(from: ds)
+            }
         } else {
             deadline = nil
         }
@@ -511,7 +534,7 @@ enum TaskParser {
         } else {
             tag = nil
         }
-        return ParsedTask(title: title, description: description?.isEmpty == true ? nil : description, deadline: deadline, tag: tag)
+        return ParsedTask(title: title, description: description?.isEmpty == true ? nil : description, deadline: deadline, tag: tag, deadlineIsWeek: deadlineIsWeek)
     }
 
     private static func tagPromptInstruction() -> String {

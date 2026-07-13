@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		04E7A1B29C3D5F60718A2B4C /* AssistantSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E7A1B29C3D5F60718A2B4D /* AssistantSheetView.swift */; };
+		05F8B2C39D4E6071829B3C5D /* WeekCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F8B2C39D4E6071829B3C5E /* WeekCalendarView.swift */; };
 		061CB711E670940715A50834 /* TaskDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC4CAC813C3E973A8D4E2DF3 /* TaskDetailView.swift */; };
 		0FE50EA79A24F4A0E062B416 /* SpokeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5E5EBF24AADF435E693DE4 /* SpokeWidget.swift */; };
 		153D8089070586358B3806BC /* AnimationTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75AA58387684AE038DC9F198 /* AnimationTokens.swift */; };
@@ -63,6 +64,7 @@
 /* Begin PBXFileReference section */
 		05D7826DD8178666D5171C12 /* TaskParserLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskParserLogger.swift; sourceTree = "<group>"; };
 		14E7A1B29C3D5F60718A2B4D /* AssistantSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantSheetView.swift; sourceTree = "<group>"; };
+		15F8B2C39D4E6071829B3C5E /* WeekCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekCalendarView.swift; sourceTree = "<group>"; };
 		06091115C946D1019E81CACF /* Spoke.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Spoke.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0AA40E6992C1BF270F39FF84 /* TagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagStore.swift; sourceTree = "<group>"; };
 		0DDFE16C15B248AE931BEDEC /* TaskParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskParser.swift; sourceTree = "<group>"; };
@@ -138,6 +140,7 @@
 				DC4CAC813C3E973A8D4E2DF3 /* TaskDetailView.swift */,
 				B2E6DB242EB2EEC112530FBF /* TaskRowView.swift */,
 				D153848E9BD8A0115C656634 /* VoiceButton.swift */,
+				15F8B2C39D4E6071829B3C5E /* WeekCalendarView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -293,6 +296,7 @@
 				32DE61591E9C74C53CC9E426 /* TaskRowView.swift in Sources */,
 				AA3A56371496FE23703B619F /* VoiceButton.swift in Sources */,
 				1A4CB5968BBCB0DBB8A87C28 /* VoiceRecorder.swift in Sources */,
+				05F8B2C39D4E6071829B3C5D /* WeekCalendarView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

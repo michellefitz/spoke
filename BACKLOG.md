@@ -12,22 +12,18 @@ a small enum of app intents (sort mode, tag filter, settings toggles). Low
 risk because commands are all reversible; silent tier + toast is the right
 feedback ("Grouped by tag ✓").
 
-## Time views: calendar for organising the week
+## Time views — SHIPPED v1, remaining ideas
 
-A weekly view (day columns/rows showing tasks due that day) and possibly a
-monthly overview. Key questions before building: is it read-only (see the
-week) or a planning surface (drag tasks onto days / say "move that to
-Thursday")? Voice-first answer is probably: read it on screen, rearrange it
-by voice. Weekly first; monthly only if weekly proves out.
-
-## "This week" pool — tasks with a week but no day
-
-The real planning model isn't day-assignment: many tasks are "sometime this
-week" and only get a day when reality forces one. Needs a softer deadline
-notion than a date — e.g. deadline granularity (day vs week) on SpokeTask, or
-a computed "this week, unscheduled" bucket. Pairs naturally with the weekly
-calendar view: days across the top, an unscheduled-this-week pool underneath.
-This is arguably the differentiator — most to-do apps force fake precision.
+Weekly calendar view + week-pool shipped: `deadlineIsWeek` on SpokeTask
+(stored as the week's last day), "this-week"/"next-week" in the parser
+protocol, week options in the detail-view date menu, and `WeekCalendarView`
+(any-day pool + per-day sections, week paging) behind a calendar button in
+the header. Remaining ideas:
+- Monthly overview (only if weekly proves out).
+- Rearranging by voice from within the calendar ("move the boiler thing to
+  Thursday") — currently voice always routes through the main screen.
+- Widget treatment of week-bucket tasks (they surface on the last day of
+  the week as "due today", which is defensible but unconsidered).
 
 ## Live transcript legibility & self-correction
 

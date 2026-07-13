@@ -164,8 +164,8 @@ struct AssistantSheetView: View {
                         }
                         .foregroundStyle(coral)
                     }
-                    if let deadline = task.deadline {
-                        chip(deadlineLabel(deadline), tinted: true)
+                    if task.deadline != nil {
+                        chip(deadlineLabel(task), tinted: true)
                     }
                     if let tag = task.tag {
                         chip(tag.uppercased(), tinted: false)
@@ -217,8 +217,18 @@ struct AssistantSheetView: View {
         .padding(.top, 12)
     }
 
-    private func deadlineLabel(_ date: Date) -> String {
+    private func deadlineLabel(_ task: ParsedTask) -> String {
+        guard let date = task.deadline else { return "" }
         let cal = Calendar.current
+        if task.deadlineIsWeek {
+            let week = cal.weekStart(for: date)
+            let thisWeek = cal.weekStart(for: .now)
+            if week == thisWeek { return "This week" }
+            if let next = cal.date(byAdding: .weekOfYear, value: 1, to: thisWeek), week == next { return "Next week" }
+            let formatter = DateFormatter()
+            formatter.dateFormat = "d MMM"
+            return "Week of " + formatter.string(from: week)
+        }
         if cal.isDateInToday(date) { return "Due today" }
         if cal.isDateInTomorrow(date) { return "Due tomorrow" }
         let formatter = DateFormatter()
