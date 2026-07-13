@@ -2,6 +2,29 @@
 
 Ideas parked for later — not committed work.
 
+## Voice as a control surface (settings & views)
+
+Extend voice beyond task CRUD: "group by tag", "show me work stuff", "hide
+completed", "turn off due dates". Fits the product rule (talk to write, touch
+to read) surprisingly well — configuring IS writing. Implementation sketch:
+add a third action type ("command") to `parseAssistant`'s protocol mapping to
+a small enum of app intents (sort mode, tag filter, settings toggles). Low
+risk because commands are all reversible; silent tier + toast is the right
+feedback ("Grouped by tag ✓").
+
+## Time views — SHIPPED v1, remaining ideas
+
+Weekly calendar view + week-pool shipped: `deadlineIsWeek` on SpokeTask
+(stored as the week's last day), "this-week"/"next-week" in the parser
+protocol, week options in the detail-view date menu, and `WeekCalendarView`
+(any-day pool + per-day sections, week paging) behind a calendar button in
+the header. Remaining ideas:
+- Monthly overview (only if weekly proves out).
+- Rearranging by voice from within the calendar ("move the boiler thing to
+  Thursday") — currently voice always routes through the main screen.
+- Widget treatment of week-bucket tasks (they surface on the last day of
+  the week as "due today", which is defensible but unconsidered).
+
 ## Live transcript legibility & self-correction
 
 The live speech-to-text caption (shown above the mic while recording) is hard to

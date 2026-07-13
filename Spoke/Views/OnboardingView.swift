@@ -453,7 +453,8 @@ private struct FirstTaskRecordingView: View {
                     title: parsed.title,
                     taskDescription: parsed.description,
                     deadline: parsed.deadline,
-                    tag: parsed.tag
+                    tag: parsed.tag,
+                    deadlineIsWeek: parsed.deadlineIsWeek
                 )
                 modelContext.insert(task)
             }

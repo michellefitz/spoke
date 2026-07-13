@@ -133,14 +133,19 @@ struct TaskDetailView: View {
                                 .background(RoundedRectangle(cornerRadius: 6).fill(coral.opacity(0.12)))
                         } else {
                             Menu {
-                                Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
-                                Button("Tomorrow")     { task.deadline = quickDate(daysAhead: 1) }
-                                Button("This weekend") { task.deadline = thisWeekend }
-                                Button("Next week")    { task.deadline = nextMonday }
-                                Button("Custom…")      { pickerDate = deadline; showDatePicker = true }
+                                Button("Today")        { setDayDeadline(quickDate(daysAhead: 0)) }
+                                Button("Tomorrow")     { setDayDeadline(quickDate(daysAhead: 1)) }
+                                Button("This weekend") { setDayDeadline(thisWeekend) }
                                 Divider()
+                                Button("This week")    { setWeekDeadline(offsetWeeks: 0) }
+                                Button("Next week")    { setWeekDeadline(offsetWeeks: 1) }
+                                Divider()
+                                Button("Custom…")      { pickerDate = deadline; showDatePicker = true }
                                 Button("Remove date", role: .destructive) {
-                                    withAnimation(.easeInOut(duration: 0.2)) { task.deadline = nil }
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        task.deadline = nil
+                                        task.deadlineIsWeek = false
+                                    }
                                 }
                             } label: {
                                 Text(deadlineLabel(for: deadline))
@@ -154,10 +159,13 @@ struct TaskDetailView: View {
                         }
                     } else if !task.isCompleted {
                         Menu {
-                            Button("Today")        { task.deadline = quickDate(daysAhead: 0) }
-                            Button("Tomorrow")     { task.deadline = quickDate(daysAhead: 1) }
-                            Button("This weekend") { task.deadline = thisWeekend }
-                            Button("Next week")    { task.deadline = nextMonday }
+                            Button("Today")        { setDayDeadline(quickDate(daysAhead: 0)) }
+                            Button("Tomorrow")     { setDayDeadline(quickDate(daysAhead: 1)) }
+                            Button("This weekend") { setDayDeadline(thisWeekend) }
+                            Divider()
+                            Button("This week")    { setWeekDeadline(offsetWeeks: 0) }
+                            Button("Next week")    { setWeekDeadline(offsetWeeks: 1) }
+                            Divider()
                             Button("Custom…")      { pickerDate = .now; showDatePicker = true }
                         } label: {
                             Text("ADD DUE DATE")
@@ -381,9 +389,15 @@ struct TaskDetailView: View {
         }
         .sheet(isPresented: $showDatePicker) {
             DatePickerSheet(selection: $pickerDate) { date in
-                withAnimation(.easeInOut(duration: 0.2)) { task.deadline = date }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    task.deadline = date
+                    task.deadlineIsWeek = false
+                }
             } onClear: {
-                withAnimation(.easeInOut(duration: 0.2)) { task.deadline = nil }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    task.deadline = nil
+                    task.deadlineIsWeek = false
+                }
             }
             .presentationDetents([.height(420)])
             .presentationDragIndicator(.visible)
@@ -478,9 +492,32 @@ struct TaskDetailView: View {
 
     private func deadlineLabel(for date: Date) -> String {
         let cal = Calendar.current
+        if task.deadlineIsWeek {
+            let week = cal.weekStart(for: date)
+            let thisWeek = cal.weekStart(for: .now)
+            if week == thisWeek { return "THIS WEEK" }
+            if let next = cal.date(byAdding: .weekOfYear, value: 1, to: thisWeek), week == next { return "NEXT WEEK" }
+            return "WK OF " + Self.deadlineFormatter.string(from: week).uppercased()
+        }
         if cal.isDateInToday(date)    { return "TODAY" }
         if cal.isDateInTomorrow(date) { return "TOMORROW" }
         return Self.deadlineFormatter.string(from: date).uppercased()
+    }
+
+    // MARK: - Deadline setters
+
+    private func setDayDeadline(_ date: Date) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            task.deadline = date
+            task.deadlineIsWeek = false
+        }
+    }
+
+    private func setWeekDeadline(offsetWeeks: Int) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            task.deadline = Calendar.current.weekBucketDeadline(offsetWeeks: offsetWeeks)
+            task.deadlineIsWeek = true
+        }
     }
 
     // MARK: - Quick dates
@@ -496,14 +533,6 @@ struct TaskDetailView: View {
         let weekday = cal.component(.weekday, from: today)
         let daysUntilSat = (7 - weekday + 7) % 7
         return cal.date(byAdding: .day, value: daysUntilSat == 0 ? 7 : daysUntilSat, to: today) ?? today
-    }
-
-    private var nextMonday: Date {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: .now)
-        let weekday = cal.component(.weekday, from: today)
-        let daysUntilMon = (2 - weekday + 7) % 7
-        return cal.date(byAdding: .day, value: daysUntilMon == 0 ? 7 : daysUntilMon, to: today) ?? today
     }
 
     // MARK: - Voice
@@ -554,12 +583,14 @@ struct TaskDetailView: View {
                 currentTitle: task.title,
                 currentDescription: task.taskDescription,
                 currentDeadline: task.deadline,
-                currentTag: task.tag
+                currentTag: task.tag,
+                currentDeadlineIsWeek: task.deadlineIsWeek
             )
             withAnimation(.easeInOut(duration: 0.3)) {
                 task.title = parsed.title
                 task.taskDescription = parsed.description
                 task.deadline = parsed.deadline
+                task.deadlineIsWeek = parsed.deadlineIsWeek
                 task.tag = parsed.tag
             }
             // Re-sync local editing state after voice update

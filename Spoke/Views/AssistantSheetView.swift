@@ -15,9 +15,7 @@ struct AssistantSheetView: View {
     let onAdjust: () -> Void
     let onOption: (String) -> Void
 
-    @State private var expanded = false
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
-    private let previewCap = 3
 
     var body: some View {
         VStack(spacing: 0) {
@@ -108,39 +106,28 @@ struct AssistantSheetView: View {
 
     // MARK: - Preview list
 
+    /// All parsed tasks are always visible — no click-to-expand. Small braindumps
+    /// keep the sheet short; larger ones grow it toward full screen and scroll inside.
     @ViewBuilder
     private func previewList(_ actions: [ParsedAction]) -> some View {
-        let visible = expanded ? actions : Array(actions.prefix(previewCap))
-        let hiddenCount = actions.count - visible.count
-
-        VStack(alignment: .leading, spacing: 0) {
-            if expanded && actions.count > 6 {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
-                            previewRow(action)
-                        }
+        if actions.count > 4 {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
+                        previewRow(action)
                     }
                 }
-                .frame(height: 320)
-            } else {
-                ForEach(Array(visible.enumerated()), id: \.offset) { _, action in
+                .padding(.horizontal, 20)
+            }
+            .frame(maxHeight: 460)
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
                     previewRow(action)
                 }
-                if hiddenCount > 0 {
-                    Button {
-                        withAnimation(.spokeTransition) { expanded = true }
-                    } label: {
-                        Text("+ \(hiddenCount) more")
-                            .font(.system(size: 13.5, weight: .semibold))
-                            .foregroundStyle(coral)
-                            .padding(.vertical, 10)
-                    }
-                    .buttonStyle(.plain)
-                }
             }
+            .padding(.horizontal, 20)
         }
-        .padding(.horizontal, 20)
     }
 
     private func previewRow(_ action: ParsedAction) -> some View {
@@ -160,15 +147,28 @@ struct AssistantSheetView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(task.title)
                     .font(.system(size: 15))
+                if let description = task.description, !description.isEmpty {
+                    Text(description)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(.secondaryLabel))
+                        .lineSpacing(2)
+                        .lineLimit(8)
+                }
                 HStack(spacing: 6) {
-                    if let deadline = task.deadline {
-                        chip(deadlineLabel(deadline), tinted: true)
+                    if isEdit {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 10, weight: .semibold))
+                            Text("updating existing task")
+                                .font(.system(size: 11.5, weight: .medium))
+                        }
+                        .foregroundStyle(coral)
+                    }
+                    if task.deadline != nil {
+                        chip(deadlineLabel(task), tinted: true)
                     }
                     if let tag = task.tag {
                         chip(tag.uppercased(), tinted: false)
-                    }
-                    if isEdit {
-                        chip("UPDATES EXISTING", tinted: false)
                     }
                 }
             }
@@ -217,8 +217,18 @@ struct AssistantSheetView: View {
         .padding(.top, 12)
     }
 
-    private func deadlineLabel(_ date: Date) -> String {
+    private func deadlineLabel(_ task: ParsedTask) -> String {
+        guard let date = task.deadline else { return "" }
         let cal = Calendar.current
+        if task.deadlineIsWeek {
+            let week = cal.weekStart(for: date)
+            let thisWeek = cal.weekStart(for: .now)
+            if week == thisWeek { return "This week" }
+            if let next = cal.date(byAdding: .weekOfYear, value: 1, to: thisWeek), week == next { return "Next week" }
+            let formatter = DateFormatter()
+            formatter.dateFormat = "d MMM"
+            return "Week of " + formatter.string(from: week)
+        }
         if cal.isDateInToday(date) { return "Due today" }
         if cal.isDateInTomorrow(date) { return "Due tomorrow" }
         let formatter = DateFormatter()

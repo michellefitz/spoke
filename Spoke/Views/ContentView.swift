@@ -68,6 +68,15 @@ private enum DeadlineBucket: String, CaseIterable {
 private func deadlineBucket(for task: SpokeTask) -> DeadlineBucket {
     guard let deadline = task.deadline else { return .noDueDate }
     let cal = Calendar.current
+    if task.deadlineIsWeek {
+        // Week-bucket task: compare weeks, never days
+        let thisWeek = cal.weekStart(for: .now)
+        let week = cal.weekStart(for: deadline)
+        if week < thisWeek { return .overdue }
+        if week == thisWeek { return .thisWeek }
+        if let next = cal.date(byAdding: .weekOfYear, value: 1, to: thisWeek), week == next { return .nextWeek }
+        return .later
+    }
     if cal.isDateInToday(deadline)    { return .today }
     if cal.isDateInTomorrow(deadline) { return .tomorrow }
     if deadline < .now                { return .overdue }
@@ -106,6 +115,7 @@ struct ContentView: View {
     @State private var showPermissionAlert = false
     @State private var selectedTag: String? = nil
     @State private var showSettings = false
+    @State private var showCalendar = false
     // completedExpanded is persisted via settings.completedExpanded
     @State private var toastMessage: String?
     @State private var coachingActive = false
@@ -178,8 +188,14 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     // Wordmark + settings
                     HStack {
-                        Spacer()
-                            .frame(width: 44)
+                        Button { showCalendar = true } label: {
+                            Image(systemName: "calendar")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(coral)
+                                .frame(width: 28, height: 28)
+                                .background(Color(.tertiarySystemFill), in: Circle())
+                        }
+                        .frame(width: 44, height: 44)
 
                         HStack(spacing: 4) {
                             Text("spoke")
@@ -320,6 +336,11 @@ struct ContentView: View {
             SettingsView(tagStore: tagStore)
                 .presentationDetents([.large])
                 .presentationBackground(.background.opacity(0.92))
+        }
+        .sheet(isPresented: $showCalendar) {
+            WeekCalendarView()
+                .presentationDetents([.large])
+                .presentationBackground(Color(.systemBackground))
         }
         .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
             Button("Open Settings") {
@@ -728,7 +749,7 @@ struct ContentView: View {
         recorder.recordingState = .processing
         Task {
             let existingContext = activeTasks.map { t in
-                (title: t.title, description: t.taskDescription, deadline: t.deadline, tag: t.tag)
+                (title: t.title, description: t.taskDescription, deadline: t.deadline, tag: t.tag, deadlineIsWeek: t.deadlineIsWeek)
             }
             guard let actions = await TaskParser.resolveClarification(
                 transcript: transcript, question: question.text, answer: answer, existingTasks: existingContext
@@ -823,7 +844,7 @@ struct ContentView: View {
         }
         Task {
             let existingContext = activeTasks.map { t in
-                (title: t.title, description: t.taskDescription, deadline: t.deadline, tag: t.tag)
+                (title: t.title, description: t.taskDescription, deadline: t.deadline, tag: t.tag, deadlineIsWeek: t.deadlineIsWeek)
             }
             switch assistantSheet {
             case .clarify(let question, let originalTranscript):
@@ -905,7 +926,7 @@ struct ContentView: View {
             for action in actions {
                 switch action {
                 case .create(let parsed):
-                    let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag)
+                    let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag, deadlineIsWeek: parsed.deadlineIsWeek)
                     modelContext.insert(task)
                     createdCount += 1
 
@@ -914,11 +935,12 @@ struct ContentView: View {
                         existing.title = updates.title
                         existing.taskDescription = updates.description
                         existing.deadline = updates.deadline
+                        existing.deadlineIsWeek = updates.deadlineIsWeek
                         existing.tag = updates.tag
                         editedTitles.append(updates.title)
                     } else {
                         // Fallback: create if match not found
-                        let task = SpokeTask(title: updates.title, taskDescription: updates.description, deadline: updates.deadline, tag: updates.tag)
+                        let task = SpokeTask(title: updates.title, taskDescription: updates.description, deadline: updates.deadline, tag: updates.tag, deadlineIsWeek: updates.deadlineIsWeek)
                         modelContext.insert(task)
                         createdCount += 1
                     }
