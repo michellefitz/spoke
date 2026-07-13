@@ -20,9 +20,10 @@ read because it renders with no background over whatever is behind it. Two parts
 
 ## Voice interaction model (prototyped 2026-07-13)
 
-Three-tier interaction prototyped in an HTML mock (see Claude session):
+Three-tier interaction prototyped in an HTML mock, then implemented in-app:
 silent quick-add with toast → braindump summary in a half sheet behind the orb
-(pinned CTAs, scrollable body, preview capped at 3 rows + "+N more") → one
-clarifying question when ambiguous. Maps to SwiftUI as
-`.presentationDetents([.fraction(0.78)])` + `safeAreaInset` action row, and a
-`remarks`/`questions` field added to `parseUnified` so the model picks the tier.
+(preview capped at 3 rows + "+N more") → one clarifying question when ambiguous.
+Implemented as `AssistantSheetView` (custom overlay, orb stays live on top) and
+`TaskParser.parseAssistant`/`resolveClarification`/`refineActions`. Remaining
+from the prototype: sub-second "thinking" state on the orb, and tuning the
+remark/question thresholds against real usage.

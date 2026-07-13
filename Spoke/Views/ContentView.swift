@@ -48,6 +48,13 @@ private enum SortMode: String {
     case groupByTag = "groupByTag"
 }
 
+// MARK: - Assistant sheet state
+
+private enum AssistantSheet {
+    case summary(remark: String?, actions: [ParsedAction], transcript: String)
+    case clarify(question: AssistantQuestion, transcript: String)
+}
+
 private enum DeadlineBucket: String, CaseIterable {
     case overdue    = "Overdue"
     case today      = "Today"
@@ -103,6 +110,7 @@ struct ContentView: View {
     @State private var toastMessage: String?
     @State private var coachingActive = false
     @State private var recordingTimer: Task<Void, Never>?
+    @State private var assistantSheet: AssistantSheet? = nil
     private let tagStore = TagStore.shared
 
     private var hasTasks: Bool { !activeTasks.isEmpty || !completedTasks.isEmpty }
@@ -232,6 +240,24 @@ struct ContentView: View {
                 .background(.background)
             }
                 .safeAreaPadding(.bottom, bottomBarHeight)
+
+            if assistantSheet != nil {
+                Color.black.opacity(0.25)
+                    .ignoresSafeArea()
+                    .onTapGesture { cancelAssistantSheet() }
+                    .transition(.opacity)
+            }
+
+            if let sheetMode = assistantSheetMode {
+                AssistantSheetView(
+                    mode: sheetMode,
+                    bottomInset: bottomBarHeight,
+                    onConfirm: confirmAssistant,
+                    onAdjust: startRecordingFlow,
+                    onOption: answerClarify
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
 
             bottomVoiceBar
 
@@ -677,6 +703,58 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Assistant sheet
+
+    private var assistantSheetMode: AssistantSheetView.Mode? {
+        switch assistantSheet {
+        case .summary(let remark, let actions, _):
+            return .summary(remark: remark, actions: actions)
+        case .clarify(let question, _):
+            return .clarify(text: question.text, options: question.options)
+        case nil:
+            return nil
+        }
+    }
+
+    private func confirmAssistant() {
+        guard case .summary(_, let actions, _) = assistantSheet else { return }
+        withAnimation(.spokeTransition) { assistantSheet = nil }
+        Task { await applyActions(actions) }
+    }
+
+    private func answerClarify(_ answer: String) {
+        guard case .clarify(let question, let transcript) = assistantSheet else { return }
+        withAnimation(.spokeTransition) { assistantSheet = nil }
+        recorder.recordingState = .processing
+        Task {
+            let existingContext = activeTasks.map { t in
+                (title: t.title, description: t.taskDescription, deadline: t.deadline, tag: t.tag)
+            }
+            guard let actions = await TaskParser.resolveClarification(
+                transcript: transcript, question: question.text, answer: answer, existingTasks: existingContext
+            ) else {
+                recorder.finishProcessing()
+                showToast("Something went wrong. Give it another go.")
+                return
+            }
+            if actions.isEmpty {
+                recorder.finishProcessing()
+                showToast("Okay, left it as is")
+            } else {
+                await applyActions(actions)
+            }
+        }
+    }
+
+    private func cancelAssistantSheet() {
+        if recorder.recordingState == .recording {
+            recordingTimer?.cancel()
+            _ = recorder.stopRecording()
+        }
+        recorder.finishProcessing()
+        withAnimation(.spokeTransition) { assistantSheet = nil }
+    }
+
     // MARK: - Voice button state
 
     private var voiceButtonState: VoiceButtonState {
@@ -692,26 +770,31 @@ struct ContentView: View {
     private func handleTap() {
         switch recorder.recordingState {
         case .idle:
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            Task {
-                let granted = await recorder.requestPermissionsIfNeeded()
-                guard granted else {
-                    showPermissionAlert = true
-                    return
-                }
-                do {
-                    try recorder.startRecording()
-                    startRecordingTimer()
-                } catch {
-                    recorder.finishProcessing()
-                }
-            }
+            startRecordingFlow()
         case .recording:
             recordingTimer?.cancel()
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             stopAndProcess()
         case .processing:
             break
+        }
+    }
+
+    private func startRecordingFlow() {
+        guard recorder.recordingState == .idle else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Task {
+            let granted = await recorder.requestPermissionsIfNeeded()
+            guard granted else {
+                showPermissionAlert = true
+                return
+            }
+            do {
+                try recorder.startRecording()
+                startRecordingTimer()
+            } catch {
+                recorder.finishProcessing()
+            }
         }
     }
 
@@ -739,81 +822,141 @@ struct ContentView: View {
             return
         }
         Task {
-            // Build context of existing tasks for the unified parser
             let existingContext = activeTasks.map { t in
                 (title: t.title, description: t.taskDescription, deadline: t.deadline, tag: t.tag)
             }
-            let actions = await TaskParser.parseUnified(transcript: transcript, existingTasks: existingContext)
-            guard !actions.isEmpty else {
-                recorder.finishProcessing()
-                withAnimation(.spokeTransition) {
-                    toastMessage = "Something went wrong. Give it another go."
+            switch assistantSheet {
+            case .clarify(let question, let originalTranscript):
+                // The speech is an answer to the open question
+                withAnimation(.spokeTransition) { assistantSheet = nil }
+                guard let actions = await TaskParser.resolveClarification(
+                    transcript: originalTranscript, question: question.text, answer: transcript, existingTasks: existingContext
+                ) else {
+                    recorder.finishProcessing()
+                    showToast("Something went wrong. Give it another go.")
+                    return
                 }
-                try? await Task.sleep(for: .seconds(2.5))
-                withAnimation(.easeOut(duration: 0.18)) {
-                    if toastMessage == "Something went wrong. Give it another go." { toastMessage = nil }
+                if actions.isEmpty {
+                    recorder.finishProcessing()
+                    showToast("Okay, left it as is")
+                } else {
+                    await applyActions(actions)
                 }
-                return
+
+            case .summary(_, let pending, let originalTranscript):
+                // The speech is a follow-up on the proposed tasks
+                let outcome = await TaskParser.refineActions(
+                    transcript: originalTranscript, pending: pending, correction: transcript, existingTasks: existingContext
+                )
+                switch outcome {
+                case .approve:
+                    withAnimation(.spokeTransition) { assistantSheet = nil }
+                    await applyActions(pending)
+                case .cancel:
+                    withAnimation(.spokeTransition) { assistantSheet = nil }
+                    recorder.finishProcessing()
+                    showToast("Okay, discarded")
+                case .response(let response):
+                    await routeAssistantResponse(response, transcript: originalTranscript)
+                }
+
+            case nil:
+                let response = await TaskParser.parseAssistant(transcript: transcript, existingTasks: existingContext)
+                await routeAssistantResponse(response, transcript: transcript)
             }
+        }
+    }
 
-            var createdCount = 0
-            var editedTitles: [String] = []
+    /// Decides which tier a response lands in: clarify sheet, summary sheet,
+    /// or silent apply with a toast.
+    @MainActor
+    private func routeAssistantResponse(_ response: AssistantResponse, transcript: String) async {
+        if let question = response.question {
+            recorder.finishProcessing()
+            withAnimation(.spokeTransition) {
+                assistantSheet = .clarify(question: question, transcript: transcript)
+            }
+            return
+        }
+        guard !response.actions.isEmpty else {
+            recorder.finishProcessing()
+            withAnimation(.spokeTransition) { assistantSheet = nil }
+            showToast(response.remark ?? "Something went wrong. Give it another go.")
+            return
+        }
+        if response.actions.count == 1 {
+            // Small change: just do it. The remark, if any, becomes the toast.
+            withAnimation(.spokeTransition) { assistantSheet = nil }
+            await applyActions(response.actions, remarkToast: response.remark)
+        } else {
+            recorder.finishProcessing()
+            withAnimation(.spokeTransition) {
+                assistantSheet = .summary(remark: response.remark, actions: response.actions, transcript: transcript)
+            }
+        }
+    }
 
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                for action in actions {
-                    switch action {
-                    case .create(let parsed):
-                        let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag)
+    @MainActor
+    private func applyActions(_ actions: [ParsedAction], remarkToast: String? = nil) async {
+        var createdCount = 0
+        var editedTitles: [String] = []
+
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+            for action in actions {
+                switch action {
+                case .create(let parsed):
+                    let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag)
+                    modelContext.insert(task)
+                    createdCount += 1
+
+                case .edit(let matchTitle, let updates):
+                    if let existing = activeTasks.first(where: { $0.title == matchTitle }) {
+                        existing.title = updates.title
+                        existing.taskDescription = updates.description
+                        existing.deadline = updates.deadline
+                        existing.tag = updates.tag
+                        editedTitles.append(updates.title)
+                    } else {
+                        // Fallback: create if match not found
+                        let task = SpokeTask(title: updates.title, taskDescription: updates.description, deadline: updates.deadline, tag: updates.tag)
                         modelContext.insert(task)
                         createdCount += 1
-
-                    case .edit(let matchTitle, let updates):
-                        if let existing = activeTasks.first(where: { $0.title == matchTitle }) {
-                            existing.title = updates.title
-                            existing.taskDescription = updates.description
-                            existing.deadline = updates.deadline
-                            existing.tag = updates.tag
-                            editedTitles.append(updates.title)
-                        } else {
-                            // Fallback: create if match not found
-                            let task = SpokeTask(title: updates.title, taskDescription: updates.description, deadline: updates.deadline, tag: updates.tag)
-                            modelContext.insert(task)
-                            createdCount += 1
-                        }
                     }
                 }
             }
-            recorder.finishProcessing()
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-            try? modelContext.save()
-            WidgetCenter.shared.reloadAllTimelines()
+        }
+        recorder.finishProcessing()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        try? modelContext.save()
+        WidgetCenter.shared.reloadAllTimelines()
 
-            // Toast feedback
-            if !coachingActive {
-                let message: String?
-                if !editedTitles.isEmpty && createdCount > 0 {
-                    message = "Updated \(editedTitles.count) task\(editedTitles.count == 1 ? "" : "s"), added \(createdCount)"
-                } else if !editedTitles.isEmpty {
-                    if editedTitles.count == 1 {
-                        let short = String(editedTitles[0].prefix(30))
-                        message = "Updated \"\(short)\""
-                    } else {
-                        message = "Updated \(editedTitles.count) tasks"
-                    }
-                } else if createdCount > 1 {
-                    message = "\(createdCount) tasks added"
-                } else {
-                    message = nil
-                }
-                if let message {
-                    withAnimation(.spokeTransition) {
-                        toastMessage = message
-                    }
-                    try? await Task.sleep(for: .seconds(2.5))
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        toastMessage = nil
-                    }
-                }
+        guard !coachingActive else { return }
+        let message: String?
+        if let remarkToast {
+            message = remarkToast
+        } else if !editedTitles.isEmpty && createdCount > 0 {
+            message = "Updated \(editedTitles.count) task\(editedTitles.count == 1 ? "" : "s"), added \(createdCount)"
+        } else if !editedTitles.isEmpty {
+            if editedTitles.count == 1 {
+                let short = String(editedTitles[0].prefix(30))
+                message = "Updated \"\(short)\""
+            } else {
+                message = "Updated \(editedTitles.count) tasks"
+            }
+        } else if createdCount > 1 {
+            message = "\(createdCount) tasks added"
+        } else {
+            message = nil
+        }
+        if let message { showToast(message) }
+    }
+
+    private func showToast(_ message: String, duration: Double = 2.5) {
+        Task { @MainActor in
+            withAnimation(.spokeTransition) { toastMessage = message }
+            try? await Task.sleep(for: .seconds(duration))
+            withAnimation(.easeOut(duration: 0.18)) {
+                if toastMessage == message { toastMessage = nil }
             }
         }
     }

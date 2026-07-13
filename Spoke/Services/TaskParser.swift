@@ -12,6 +12,23 @@ enum ParsedAction {
     case edit(matchTitle: String, updates: ParsedTask)
 }
 
+struct AssistantQuestion {
+    let text: String
+    let options: [String]
+}
+
+struct AssistantResponse {
+    let actions: [ParsedAction]
+    let remark: String?
+    let question: AssistantQuestion?
+}
+
+enum RefineOutcome {
+    case response(AssistantResponse)
+    case approve
+    case cancel
+}
+
 enum TaskParser {
     private static let logger = TaskParserLogger.shared
 
@@ -92,77 +109,237 @@ enum TaskParser {
         return result
     }
 
-    static func parseUnified(transcript: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) async -> [ParsedAction] {
+    /// Main assistant entry point: parses the transcript into actions plus an optional
+    /// remark (something worth telling the user) and at most one clarifying question.
+    static func parseAssistant(transcript: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) async -> AssistantResponse {
         let start = Date()
         let wordCount = transcript.split(separator: " ").count
         if wordCount <= 3 {
             let task = ParsedTask(title: sentenceCase(transcript), description: nil, deadline: nil, tag: nil)
-            logEntry(mode: "unified", transcript: transcript, system: "(short — skipped API)", user: transcript, response: nil, tasks: [task], error: nil, start: start)
-            return [.create(task)]
+            logEntry(mode: "assistant", transcript: transcript, system: "(short — skipped API)", user: transcript, response: nil, tasks: [task], error: nil, start: start)
+            return AssistantResponse(actions: [.create(task)], remark: nil, question: nil)
         }
         let today = isoToday()
         let tagInstruction = tagPromptInstruction()
-
-        // Build existing task list for context
-        let taskList: String
-        if existingTasks.isEmpty {
-            taskList = "There are no existing tasks."
-        } else {
-            let items = existingTasks.map { t in
-                var parts = ["\"\(t.title)\""]
-                if let desc = t.description, !desc.isEmpty {
-                    let preview = String(desc.prefix(80)).replacingOccurrences(of: "\n", with: " ")
-                    parts.append("desc: \(preview)")
-                }
-                return "- " + parts.joined(separator: " | ")
-            }
-            taskList = "Existing tasks:\n" + items.joined(separator: "\n")
-        }
+        let taskList = existingTaskListBlock(existingTasks)
 
         let system = """
-            Today's date is \(today). You are a voice task assistant. Given a voice transcript, determine whether the user wants to CREATE new tasks, EDIT existing tasks, or both. \
+            Today's date is \(today). You are Spoke, a voice assistant for the user's to-do list. Given a voice transcript, decide what to change on the list and how to respond. \
             \(taskList) \
-            Rules: \
-            - Return a JSON ARRAY of action objects. Each object MUST have an "action" field: either "create" or "edit". \
-            - For "create" actions: include "title" (required), "description" (optional), "deadline" (optional), "tag" (optional). Same rules as a task parser — action-oriented title, max 50 chars, bullets for multi-item descriptions. \
-            - For "edit" actions: include "match" (the title of the existing task to edit — must closely match one from the list above) and the updated fields: "title", "description", "deadline", "tag". Merge new information with what exists — don't drop existing content. \
-            - CRITICAL: Only use "edit" when the user clearly refers to an existing task by name or obvious reference (e.g. "add milk to the grocery list", "change the dentist appointment to Thursday"). If in doubt, create a new task. \
-            - If the transcript contains multiple unrelated tasks, return multiple action objects. \
-            - If the transcript is about adding detail to an existing task (e.g. "add eggs and bread to the grocery shopping"), return one "edit" action. \
-            - Title must be action-oriented, max 50 chars. Keep specific details (times, names, locations) in the title when they fit. \
-            - NEVER silently drop information. \
-            - If a description needs 2+ items, use bullet format: "intro:\\n• Item1\\n• Item2" \
-            - Dates: resolve relative to today as YYYY-MM-DD. A deadline applies only to the task it was mentioned with. \
-            - \(tagInstruction) \
-            Return ONLY a valid JSON ARRAY, no markdown, no code fences, no commentary. \
+            Return ONLY a valid JSON OBJECT with keys: "actions" (required array), "remark" (optional string), "question" (optional object). \
+            \(actionRules(tagInstruction: tagInstruction)) \
+            Remark rules: \
+            - Include "remark" ONLY when you made a judgment worth reporting: created 2 or more tasks, set or inferred a deadline, merged into an existing task, or resolved something non-obvious. One sentence, max 140 characters, natural and direct. \
+            - For a single obvious task with nothing decided, omit "remark". \
+            Question rules: \
+            - Ask AT MOST one question, as "question": {"text": "...", "options": ["...", "..."]}. \
+            - Ask ONLY when the transcript closely duplicates an existing task (same intent) or an ambiguity genuinely changes what you would do. Otherwise never ask. \
+            - "options" is exactly 2 short tappable answers, max 4 words each. \
+            - When you include "question", return "actions": [] — final actions are decided after the user answers. \
+            Return ONLY the JSON object, no markdown, no code fences, no commentary. \
             Examples: \
-            New task: [{"action": "create", "title": "Call the dentist"}] \
-            Edit existing: [{"action": "edit", "match": "Do grocery shopping", "title": "Do grocery shopping", "description": "Things to pick up:\\n• Milk\\n• Eggs\\n• Bread"}] \
-            Mixed: [{"action": "create", "title": "Book hotel for trip"}, {"action": "edit", "match": "Pack for vacation", "description": "Don't forget:\\n• Sunscreen\\n• Charger"}]
+            Simple: {"actions": [{"action": "create", "title": "Call the dentist"}]} \
+            Braindump: {"actions": [{"action": "create", "title": "Book car in for MOT", "deadline": "YYYY-MM-DD"}, {"action": "create", "title": "Email landlord about boiler"}], "remark": "Got 2 tasks — the MOT sounded time-sensitive so I set Friday."} \
+            Duplicate: {"actions": [], "question": {"text": "You already have \\"Call the dentist\\" — same one, or a new appointment?", "options": ["Same one", "New task"]}}
             """
         let user = "Transcript: \"\(transcript)\""
         guard let text = await callClaudeRaw(system: system, user: user) else {
             lastRawResponse = nil
             let fb = fallback(transcript)
-            logEntry(mode: "unified", transcript: transcript, system: system, user: user, response: nil, tasks: [fb], error: "api_failed", start: start)
-            return [.create(fb)]
+            logEntry(mode: "assistant", transcript: transcript, system: system, user: user, response: nil, tasks: [fb], error: "api_failed", start: start)
+            return AssistantResponse(actions: [.create(fb)], remark: nil, question: nil)
         }
         lastRawResponse = text
         let json = extractJSON(from: text)
-        let actions = parseActionArray(json, existingTasks: existingTasks)
-        let allTasks = actions.map { action -> ParsedTask in
-            switch action {
-            case .create(let t): return t
-            case .edit(_, let t): return t
+        if let response = parseAssistantResponse(json, existingTasks: existingTasks) {
+            logEntry(mode: "assistant", transcript: transcript, system: system, user: user, response: text, tasks: response.actions.map(task(of:)), error: nil, start: start)
+            return response
+        }
+        let fb = fallback(transcript)
+        logEntry(mode: "assistant", transcript: transcript, system: system, user: user, response: text, tasks: [fb], error: "parse_failed", start: start)
+        return AssistantResponse(actions: [.create(fb)], remark: nil, question: nil)
+    }
+
+    /// Second turn after a clarifying question: produce the final actions for the
+    /// original transcript, honoring the user's answer. Returns nil on API/parse
+    /// failure; an empty array is a deliberate "nothing to change".
+    static func resolveClarification(transcript: String, question: String, answer: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) async -> [ParsedAction]? {
+        let start = Date()
+        let today = isoToday()
+        let tagInstruction = tagPromptInstruction()
+        let taskList = existingTaskListBlock(existingTasks)
+        let system = """
+            Today's date is \(today). You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript, you asked a clarifying question, and the user has now answered. Produce the FINAL actions for the ENTIRE original transcript, honoring the user's answer. \
+            \(taskList) \
+            \(actionRules(tagInstruction: tagInstruction)) \
+            - If the user's answer means nothing should change (e.g. it was a duplicate of an existing task), return []. \
+            Return ONLY a valid JSON ARRAY of action objects, no markdown, no code fences, no commentary.
+            """
+        let user = """
+            Original transcript: "\(transcript)"
+            Your question: "\(question)"
+            User's answer: "\(answer)"
+            """
+        guard let text = await callClaudeRaw(system: system, user: user) else {
+            lastRawResponse = nil
+            logEntry(mode: "clarify", transcript: transcript, system: system, user: user, response: nil, tasks: [], error: "api_failed", start: start)
+            return nil
+        }
+        lastRawResponse = text
+        let json = extractJSON(from: text)
+        // "[]" is valid here, so distinguish parse failure from a deliberate no-op
+        guard let data = json.data(using: .utf8),
+              let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            logEntry(mode: "clarify", transcript: transcript, system: system, user: user, response: text, tasks: [], error: "parse_failed", start: start)
+            return nil
+        }
+        let actions = parseActions(from: array, existingTasks: existingTasks)
+        logEntry(mode: "clarify", transcript: transcript, system: system, user: user, response: text, tasks: actions.map(task(of:)), error: nil, start: start)
+        return actions
+    }
+
+    /// Follow-up turn on a pending summary: the user spoke again while reviewing the
+    /// proposed tasks. The reply is an approval, a cancellation, or a replacement set.
+    static func refineActions(transcript: String, pending: [ParsedAction], correction: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) async -> RefineOutcome {
+        let start = Date()
+        let today = isoToday()
+        let tagInstruction = tagPromptInstruction()
+        let taskList = existingTaskListBlock(existingTasks)
+        let system = """
+            Today's date is \(today). You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript and you proposed tasks; the user is reviewing them and has spoken a follow-up. \
+            \(taskList) \
+            Decide what the follow-up means: \
+            - Pure approval ("yes", "yep", "looks good", "go ahead"): return {"approve": true}. \
+            - Cancellation ("no", "cancel", "forget it", "discard that"): return {"cancel": true}. \
+            - Otherwise return the full REPLACEMENT set as a JSON OBJECT: "actions" (the complete final set, incorporating the corrections AND the unchanged proposed tasks), optional "remark", optional "question" (same rules as before). \
+            \(actionRules(tagInstruction: tagInstruction)) \
+            Return ONLY valid JSON, no markdown, no code fences, no commentary.
+            """
+        let user = """
+            Original transcript: "\(transcript)"
+            Proposed tasks:
+            \(serializeActions(pending))
+            User's follow-up: "\(correction)"
+            """
+        guard let text = await callClaudeRaw(system: system, user: user) else {
+            lastRawResponse = nil
+            logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: nil, tasks: pending.map(task(of:)), error: "api_failed", start: start)
+            return .response(AssistantResponse(actions: pending, remark: nil, question: nil))
+        }
+        lastRawResponse = text
+        let json = extractJSON(from: text)
+        if let data = json.data(using: .utf8),
+           let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if obj["approve"] as? Bool == true {
+                logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: text, tasks: pending.map(task(of:)), error: nil, start: start)
+                return .approve
+            }
+            if obj["cancel"] as? Bool == true {
+                logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: text, tasks: [], error: nil, start: start)
+                return .cancel
             }
         }
-        logEntry(mode: "unified", transcript: transcript, system: system, user: user, response: text, tasks: allTasks, error: actions.isEmpty ? "empty" : nil, start: start)
-        return actions.isEmpty ? [.create(fallback(transcript))] : actions
+        if let response = parseAssistantResponse(json, existingTasks: existingTasks) {
+            logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: text, tasks: response.actions.map(task(of:)), error: nil, start: start)
+            return .response(response)
+        }
+        logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: text, tasks: pending.map(task(of:)), error: "parse_failed", start: start)
+        return .response(AssistantResponse(actions: pending, remark: nil, question: nil))
     }
 
     // MARK: - Private
 
     private static var lastRawResponse: String?
+
+    private static func actionRules(tagInstruction: String) -> String {
+        """
+        Action rules: \
+        - Each action object has an "action" field: "create" or "edit". \
+        - For "create": include "title" (required), "description" (optional), "deadline" (optional), "tag" (optional). Action-oriented title, max 50 chars. Keep specific details — times, names, locations — in the title when they fit. \
+        - For "edit": include "match" (the title of the existing task to edit — must closely match one from the list above) and the updated fields: "title", "description", "deadline", "tag". Merge new information with what exists — don't drop existing content. \
+        - Only use "edit" when the user clearly refers to an existing task by name or obvious reference (e.g. "add milk to the grocery list"). \
+        - If the transcript contains multiple unrelated tasks, return multiple action objects. \
+        - NEVER silently drop information. If a detail cannot fit the title, it must appear in the description. \
+        - If a description needs 2 or more distinct items, use bullet format with a short intro sentence, each bullet on its OWN LINE: "Things to pick up:\\n• Milk\\n• Eggs" \
+        - Dates: resolve relative to today as YYYY-MM-DD in "deadline". A deadline applies only to the task it was mentioned with. \
+        - \(tagInstruction)
+        """
+    }
+
+    private static func existingTaskListBlock(_ existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) -> String {
+        if existingTasks.isEmpty {
+            return "There are no existing tasks."
+        }
+        let items = existingTasks.map { t in
+            var parts = ["\"\(t.title)\""]
+            if let desc = t.description, !desc.isEmpty {
+                let preview = String(desc.prefix(80)).replacingOccurrences(of: "\n", with: " ")
+                parts.append("desc: \(preview)")
+            }
+            return "- " + parts.joined(separator: " | ")
+        }
+        return "Existing tasks:\n" + items.joined(separator: "\n")
+    }
+
+    private static func serializeActions(_ actions: [ParsedAction]) -> String {
+        actions.map { action in
+            switch action {
+            case .create(let t):
+                var line = "- CREATE \"\(t.title)\""
+                if let d = t.deadline { line += " due \(isoFormatter.string(from: d))" }
+                if let tag = t.tag { line += " tag:\(tag)" }
+                if let desc = t.description, !desc.isEmpty {
+                    line += " — \(String(desc.prefix(80)).replacingOccurrences(of: "\n", with: " "))"
+                }
+                return line
+            case .edit(let match, let u):
+                var line = "- EDIT \"\(match)\" → \"\(u.title)\""
+                if let d = u.deadline { line += " due \(isoFormatter.string(from: d))" }
+                if let tag = u.tag { line += " tag:\(tag)" }
+                if let desc = u.description, !desc.isEmpty {
+                    line += " — \(String(desc.prefix(80)).replacingOccurrences(of: "\n", with: " "))"
+                }
+                return line
+            }
+        }.joined(separator: "\n")
+    }
+
+    private static func task(of action: ParsedAction) -> ParsedTask {
+        switch action {
+        case .create(let t): return t
+        case .edit(_, let t): return t
+        }
+    }
+
+    /// Parses the assistant object shape {"actions": [...], "remark": ..., "question": ...}.
+    /// Tolerates a bare array (legacy shape) as actions-only.
+    private static func parseAssistantResponse(_ text: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) -> AssistantResponse? {
+        guard let data = text.data(using: .utf8) else { return nil }
+        if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let actionDicts = obj["actions"] as? [[String: Any]] ?? []
+            let actions = parseActions(from: actionDicts, existingTasks: existingTasks)
+            let remark = (obj["remark"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            var question: AssistantQuestion? = nil
+            if let q = obj["question"] as? [String: Any],
+               let qText = q["text"] as? String, !qText.isEmpty {
+                let opts = ((q["options"] as? [String]) ?? []).filter { !$0.isEmpty }
+                question = AssistantQuestion(text: qText, options: opts.count >= 2 ? Array(opts.prefix(2)) : ["Yes", "No"])
+            }
+            if actions.isEmpty && question == nil && remark == nil {
+                // Might be a single bare task object
+                if let single = parseDictionary(obj) {
+                    return AssistantResponse(actions: [.create(single)], remark: nil, question: nil)
+                }
+                return nil
+            }
+            return AssistantResponse(actions: actions, remark: remark, question: question)
+        }
+        if let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+            let actions = parseActions(from: array, existingTasks: existingTasks)
+            return actions.isEmpty ? nil : AssistantResponse(actions: actions, remark: nil, question: nil)
+        }
+        return nil
+    }
 
     private static func callClaude(system: String, user: String) async -> ParsedTask? {
         guard let text = await callClaudeRaw(system: system, user: user) else { lastRawResponse = nil; return nil }
@@ -244,17 +421,7 @@ enum TaskParser {
         return trimmed
     }
 
-    private static func parseActionArray(_ text: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) -> [ParsedAction] {
-        guard
-            let data = text.data(using: .utf8),
-            let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-        else {
-            // Try single object
-            if let single = parseJSONObject(text) {
-                return [.create(single)]
-            }
-            return []
-        }
+    private static func parseActions(from array: [[String: Any]], existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?)]) -> [ParsedAction] {
         return array.compactMap { dict -> ParsedAction? in
             let action = dict["action"] as? String ?? "create"
             guard let parsed = parseDictionary(dict) else { return nil }
