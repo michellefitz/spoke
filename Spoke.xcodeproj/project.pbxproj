@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04E7A1B29C3D5F60718A2B4C /* AssistantSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E7A1B29C3D5F60718A2B4D /* AssistantSheetView.swift */; };
 		061CB711E670940715A50834 /* TaskDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC4CAC813C3E973A8D4E2DF3 /* TaskDetailView.swift */; };
 		0FE50EA79A24F4A0E062B416 /* SpokeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5E5EBF24AADF435E693DE4 /* SpokeWidget.swift */; };
 		153D8089070586358B3806BC /* AnimationTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75AA58387684AE038DC9F198 /* AnimationTokens.swift */; };
@@ -61,6 +62,7 @@
 
 /* Begin PBXFileReference section */
 		05D7826DD8178666D5171C12 /* TaskParserLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskParserLogger.swift; sourceTree = "<group>"; };
+		14E7A1B29C3D5F60718A2B4D /* AssistantSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantSheetView.swift; sourceTree = "<group>"; };
 		06091115C946D1019E81CACF /* Spoke.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Spoke.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0AA40E6992C1BF270F39FF84 /* TagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagStore.swift; sourceTree = "<group>"; };
 		0DDFE16C15B248AE931BEDEC /* TaskParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskParser.swift; sourceTree = "<group>"; };
@@ -125,6 +127,7 @@
 			isa = PBXGroup;
 			children = (
 				75AA58387684AE038DC9F198 /* AnimationTokens.swift */,
+				14E7A1B29C3D5F60718A2B4D /* AssistantSheetView.swift */,
 				85FEDC74B870B88EF832273A /* AudioWaveformView.swift */,
 				CBF04D4396113B1353FED13C /* ContentView.swift */,
 				2B9ECBC00511873856CA81A9 /* DebugLogView.swift */,
@@ -273,6 +276,7 @@
 			files = (
 				153D8089070586358B3806BC /* AnimationTokens.swift in Sources */,
 				57466ECD1EF9863C4277C39E /* AppSettings.swift in Sources */,
+				04E7A1B29C3D5F60718A2B4C /* AssistantSheetView.swift in Sources */,
 				B79877F5D5FFEC7D83D7C154 /* AudioWaveformView.swift in Sources */,
 				9D391789B1CDC9BB717A1FF3 /* Config.swift in Sources */,
 				B202B0AAB1B65EE9011576B0 /* ContentView.swift in Sources */,
