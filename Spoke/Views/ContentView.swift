@@ -116,6 +116,7 @@ struct ContentView: View {
     @State private var selectedTag: String? = nil
     @State private var showSettings = false
     @AppStorage("calendarMode") private var calendarMode = false
+    @State private var calendarWeekOffset = 0
     // completedExpanded is persisted via settings.completedExpanded
     @State private var toastMessage: String?
     @State private var coachingActive = false
@@ -187,7 +188,7 @@ struct ContentView: View {
         ZStack(alignment: .bottom) {
             Group {
                 if calendarMode {
-                    WeekCalendarView()
+                    WeekCalendarView(weekOffset: $calendarWeekOffset)
                 } else {
                     taskListView
                 }
@@ -207,13 +208,48 @@ struct ContentView: View {
                         }
                         .frame(width: 44, height: 44)
 
-                        HStack(spacing: 4) {
-                            Text("spoke")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(.primary)
-                            Circle()
-                                .fill(coral)
-                                .frame(width: 5, height: 5)
+                        Group {
+                            if calendarMode {
+                                // Week navigation takes the wordmark's slot
+                                HStack(spacing: 2) {
+                                    Button {
+                                        withAnimation(.spokeTransition) { calendarWeekOffset -= 1 }
+                                    } label: {
+                                        Image(systemName: "chevron.left")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundStyle(coral)
+                                            .frame(width: 32, height: 32)
+                                    }
+
+                                    Button {
+                                        withAnimation(.spokeTransition) { calendarWeekOffset = 0 }
+                                    } label: {
+                                        Text(WeekCalendarView.title(forWeekOffset: calendarWeekOffset))
+                                            .font(.system(size: 17, weight: .semibold))
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(1)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    Button {
+                                        withAnimation(.spokeTransition) { calendarWeekOffset += 1 }
+                                    } label: {
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundStyle(coral)
+                                            .frame(width: 32, height: 32)
+                                    }
+                                }
+                            } else {
+                                HStack(spacing: 4) {
+                                    Text("spoke")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundStyle(.primary)
+                                    Circle()
+                                        .fill(coral)
+                                        .frame(width: 5, height: 5)
+                                }
+                            }
                         }
                         .frame(maxWidth: .infinity)
 

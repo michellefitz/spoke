@@ -21,7 +21,8 @@ struct WeekCalendarView: View {
     )
     private var allCompletedTasks: [SpokeTask]
 
-    @State private var weekOffset = 0
+    /// Owned by ContentView so the app header can drive week paging.
+    @Binding var weekOffset: Int
     @State private var selectedTask: SpokeTask?
     @State private var undatedExpanded = false
     @AppStorage("calUndatedCollapsed") private var undatedCollapsed = false
@@ -75,15 +76,19 @@ struct WeekCalendarView: View {
         }
     }
 
-    private var weekTitle: String {
-        switch weekOffset {
+    /// Title for a week offset — used by ContentView's header in calendar mode.
+    static func title(forWeekOffset offset: Int) -> String {
+        switch offset {
         case 0: return "This Week"
         case 1: return "Next Week"
         default:
+            let cal = Calendar.current
+            let base = cal.date(byAdding: .weekOfYear, value: offset, to: .now) ?? .now
+            let start = cal.weekStart(for: base)
             let formatter = DateFormatter()
             formatter.dateFormat = "d MMM"
-            let end = cal.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
-            return "\(formatter.string(from: weekStart)) – \(formatter.string(from: end))"
+            let end = cal.date(byAdding: .day, value: 6, to: start) ?? start
+            return "\(formatter.string(from: start)) – \(formatter.string(from: end))"
         }
     }
 
@@ -94,8 +99,6 @@ struct WeekCalendarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-
             if weekIsEmpty {
                 emptyState
             } else {
@@ -299,52 +302,6 @@ struct WeekCalendarView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        HStack {
-            Button {
-                withAnimation(.spokeTransition) { weekOffset -= 1 }
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(coral)
-                    .frame(width: 32, height: 32)
-                    .background(Color(.tertiarySystemFill), in: Circle())
-            }
-
-            Spacer()
-
-            VStack(spacing: 2) {
-                Text(weekTitle)
-                    .font(.system(size: 17, weight: .semibold))
-                // Always occupies its slot so the title doesn't jump when paging
-                Button("Back to this week") {
-                    withAnimation(.spokeTransition) { weekOffset = 0 }
-                }
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(coral)
-                .opacity(weekOffset == 0 ? 0 : 1)
-                .disabled(weekOffset == 0)
-            }
-
-            Spacer()
-
-            Button {
-                withAnimation(.spokeTransition) { weekOffset += 1 }
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(coral)
-                    .frame(width: 32, height: 32)
-                    .background(Color(.tertiarySystemFill), in: Circle())
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 6)
-        .padding(.bottom, 8)
-    }
-
     private var emptyState: some View {
         VStack(spacing: 10) {
             Spacer()
@@ -391,6 +348,6 @@ struct WeekCalendarView: View {
 }
 
 #Preview {
-    WeekCalendarView()
+    WeekCalendarView(weekOffset: .constant(0))
         .modelContainer(for: SpokeTask.self, inMemory: true)
 }
