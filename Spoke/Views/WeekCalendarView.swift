@@ -17,6 +17,9 @@ struct WeekCalendarView: View {
 
     @State private var weekOffset = 0
     @State private var selectedTask: SpokeTask?
+    @State private var undatedExpanded = false
+
+    private let undatedCap = 3
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let dateColumnWidth: CGFloat = 52
@@ -77,7 +80,40 @@ struct WeekCalendarView: View {
             } else {
                 List {
                     if !undatedTasks.isEmpty {
-                        scheduleRows(tasks: undatedTasks, emptyText: nil) { undatedColumn }
+                        let visible = undatedExpanded ? undatedTasks : Array(undatedTasks.prefix(undatedCap))
+                        let hiddenCount = undatedTasks.count - visible.count
+                        scheduleRows(tasks: visible, emptyText: nil) { undatedColumn }
+                        if hiddenCount > 0 {
+                            Button {
+                                withAnimation(.spokeTransition) { undatedExpanded = true }
+                            } label: {
+                                HStack(alignment: .center, spacing: 14) {
+                                    Color.clear.frame(width: dateColumnWidth, height: 1)
+                                    Text("View \(hiddenCount) more")
+                                        .font(.system(size: 13.5, weight: .semibold))
+                                        .foregroundStyle(coral)
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
+                        } else if undatedExpanded && undatedTasks.count > undatedCap {
+                            Button {
+                                withAnimation(.spokeTransition) { undatedExpanded = false }
+                            } label: {
+                                HStack(alignment: .center, spacing: 14) {
+                                    Color.clear.frame(width: dateColumnWidth, height: 1)
+                                    Text("Show fewer")
+                                        .font(.system(size: 13.5, weight: .semibold))
+                                        .foregroundStyle(coral)
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
+                        }
                         dayDivider
                     }
 
