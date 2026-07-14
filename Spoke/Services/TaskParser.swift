@@ -41,10 +41,10 @@ enum TaskParser {
             logEntry(mode: "create", transcript: transcript, system: "(short — skipped API)", user: transcript, response: nil, tasks: result, error: nil, start: start)
             return result
         }
-        let today = isoToday()
+        let today = dateContext()
         let tagInstruction = tagPromptInstruction()
         let system = """
-            Today's date is \(today). You are a task parser. Given a voice transcript, extract one or more tasks. \
+            \(today) You are a task parser. Given a voice transcript, extract one or more tasks. \
             Rules: \
             - If the transcript contains MULTIPLE UNRELATED tasks (e.g. "call the dentist, do grocery shopping, and pick up Alex"), return a JSON ARRAY of task objects. \
             - If the transcript describes a SINGLE task with details or sub-items (e.g. "do the grocery shopping — milk, eggs, and broccoli"), return a JSON ARRAY with ONE object, using bullets in the description for the sub-items. \
@@ -73,12 +73,12 @@ enum TaskParser {
     static func parseEdit(transcript: String, currentTitle: String, currentDescription: String?, currentDeadline: Date? = nil, currentTag: String? = nil, currentDeadlineIsWeek: Bool = false) async -> ParsedTask {
         let start = Date()
         let desc = currentDescription ?? "none"
-        let today = isoToday()
+        let today = dateContext()
         let tagInstruction = tagPromptInstruction()
         let deadlineStr = currentDeadline.map { deadlineToken($0, isWeek: currentDeadlineIsWeek) } ?? "none"
         let tagStr = currentTag ?? "none"
         let system = """
-            Today's date is \(today). You are a task assistant that refines tasks from voice input. \
+            \(today) You are a task assistant that refines tasks from voice input. \
             You are given an existing task and new voice input spoken by the user. \
             Synthesize the existing task and the new voice into the best, most complete version of the task. \
             Rules: \
@@ -120,12 +120,12 @@ enum TaskParser {
             logEntry(mode: "assistant", transcript: transcript, system: "(short — skipped API)", user: transcript, response: nil, tasks: [task], error: nil, start: start)
             return AssistantResponse(actions: [.create(task)], remark: nil, question: nil)
         }
-        let today = isoToday()
+        let today = dateContext()
         let tagInstruction = tagPromptInstruction()
         let taskList = existingTaskListBlock(existingTasks)
 
         let system = """
-            Today's date is \(today). You are Spoke, a voice assistant for the user's to-do list. Given a voice transcript, decide what to change on the list and how to respond. \
+            \(today) You are Spoke, a voice assistant for the user's to-do list. Given a voice transcript, decide what to change on the list and how to respond. \
             \(taskList) \
             Return ONLY a valid JSON OBJECT with keys: "actions" (required array), "remark" (optional string), "question" (optional object). \
             \(actionRules(tagInstruction: tagInstruction)) \
@@ -166,11 +166,11 @@ enum TaskParser {
     /// failure; an empty array is a deliberate "nothing to change".
     static func resolveClarification(transcript: String, question: String, answer: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) async -> [ParsedAction]? {
         let start = Date()
-        let today = isoToday()
+        let today = dateContext()
         let tagInstruction = tagPromptInstruction()
         let taskList = existingTaskListBlock(existingTasks)
         let system = """
-            Today's date is \(today). You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript, you asked a clarifying question, and the user has now answered. Produce the FINAL actions for the ENTIRE original transcript, honoring the user's answer. \
+            \(today) You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript, you asked a clarifying question, and the user has now answered. Produce the FINAL actions for the ENTIRE original transcript, honoring the user's answer. \
             \(taskList) \
             \(actionRules(tagInstruction: tagInstruction)) \
             - If the user's answer means nothing should change (e.g. it was a duplicate of an existing task), return []. \
@@ -203,11 +203,11 @@ enum TaskParser {
     /// proposed tasks. The reply is an approval, a cancellation, or a replacement set.
     static func refineActions(transcript: String, pending: [ParsedAction], correction: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) async -> RefineOutcome {
         let start = Date()
-        let today = isoToday()
+        let today = dateContext()
         let tagInstruction = tagPromptInstruction()
         let taskList = existingTaskListBlock(existingTasks)
         let system = """
-            Today's date is \(today). You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript and you proposed tasks; the user is reviewing them and has spoken a follow-up. \
+            \(today) You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript and you proposed tasks; the user is reviewing them and has spoken a follow-up. \
             \(taskList) \
             Decide what the follow-up means: \
             - Pure approval ("yes", "yep", "looks good", "go ahead"): return {"approve": true}. \
@@ -554,6 +554,23 @@ enum TaskParser {
 
     private static func isoToday() -> String {
         isoFormatter.string(from: Date())
+    }
+
+    /// Explicit weekday→date table for the prompt. Models are unreliable at
+    /// deriving weekdays from a bare ISO date, which shifted every named day
+    /// forward — so we spell out the next two weeks and forbid arithmetic.
+    private static func dateContext() -> String {
+        let weekdayFormatter = DateFormatter()
+        weekdayFormatter.dateFormat = "EEEE"
+        weekdayFormatter.locale = Locale(identifier: "en_US_POSIX")
+        let cal = Calendar.current
+        let entries = (0..<14).compactMap { offset -> String? in
+            guard let date = cal.date(byAdding: .day, value: offset, to: .now) else { return nil }
+            let label = offset == 0 ? " (today)" : (offset == 1 ? " (tomorrow)" : "")
+            return "\(weekdayFormatter.string(from: date)) = \(isoFormatter.string(from: date))\(label)"
+        }
+        let todayName = weekdayFormatter.string(from: .now)
+        return "Today is \(todayName), \(isoToday()). Resolve day names to dates using EXACTLY this table — a task due on a named day gets THAT day's date, never the day before or after: \(entries.joined(separator: "; "))."
     }
 
     private static func fallback(_ transcript: String) -> ParsedTask {
