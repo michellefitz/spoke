@@ -121,6 +121,8 @@ struct ContentView: View {
     @State private var coachingActive = false
     @State private var recordingTimer: Task<Void, Never>?
     @State private var assistantSheet: AssistantSheet? = nil
+    @State private var undoableDiscard: AssistantSheet? = nil
+    @State private var undoDiscardToken = UUID()
     private let tagStore = TagStore.shared
 
     private var hasTasks: Bool { !activeTasks.isEmpty || !completedTasks.isEmpty }
@@ -268,7 +270,7 @@ struct ContentView: View {
             if assistantSheet != nil {
                 Color.black.opacity(0.25)
                     .ignoresSafeArea()
-                    .onTapGesture { cancelAssistantSheet() }
+                    .onTapGesture { discardAssistantSheet() }
                     .transition(.opacity)
             }
 
@@ -278,7 +280,8 @@ struct ContentView: View {
                     bottomInset: bottomBarHeight,
                     onConfirm: confirmAssistant,
                     onAdjust: startRecordingFlow,
-                    onOption: answerClarify
+                    onOption: answerClarify,
+                    onClose: discardAssistantSheet
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -302,6 +305,29 @@ struct ContentView: View {
                     .padding(.bottom, bottomBarHeight + 8)
                 }
                 .allowsHitTesting(false)
+            }
+
+            // Discard toast with undo — interactive, unlike the info toasts
+            if undoableDiscard != nil {
+                VStack {
+                    Spacer()
+                    Button(action: undoDiscard) {
+                        HStack(spacing: 10) {
+                            Text("Discarded")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.white)
+                            Text("Undo")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(Color(red: 1.0, green: 0.55, blue: 0.45))
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 11)
+                        .background(Capsule().fill(Color(white: 0.15).opacity(0.95)))
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, bottomBarHeight + 8)
+                }
             }
 
             // Toast for multi-task creation
@@ -770,13 +796,35 @@ struct ContentView: View {
         }
     }
 
-    private func cancelAssistantSheet() {
+    /// Dismisses the assistant sheet without applying, keeping the pending
+    /// response recoverable via the "Discarded — Undo" toast for a few seconds.
+    private func discardAssistantSheet() {
+        guard let sheet = assistantSheet else { return }
         if recorder.recordingState == .recording {
             recordingTimer?.cancel()
             _ = recorder.stopRecording()
         }
         recorder.finishProcessing()
-        withAnimation(.spokeTransition) { assistantSheet = nil }
+        let token = UUID()
+        undoDiscardToken = token
+        withAnimation(.spokeTransition) {
+            assistantSheet = nil
+            undoableDiscard = sheet
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            guard undoDiscardToken == token else { return }
+            withAnimation(.easeOut(duration: 0.18)) { undoableDiscard = nil }
+        }
+    }
+
+    private func undoDiscard() {
+        guard let sheet = undoableDiscard else { return }
+        undoDiscardToken = UUID()
+        withAnimation(.spokeTransition) {
+            undoableDiscard = nil
+            assistantSheet = sheet
+        }
     }
 
     // MARK: - Voice button state
