@@ -38,6 +38,13 @@ struct WeekCalendarView: View {
         }
     }
 
+    /// Undated tasks are timeless, so they surface at the top of every week.
+    private var undatedTasks: [SpokeTask] {
+        activeTasks
+            .filter { $0.deadline == nil }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
     private func tasks(on day: Date) -> [SpokeTask] {
         activeTasks.filter { task in
             guard let deadline = task.deadline, !task.deadlineIsWeek else { return false }
@@ -58,7 +65,7 @@ struct WeekCalendarView: View {
     }
 
     private var weekIsEmpty: Bool {
-        poolTasks.isEmpty && days.allSatisfy { tasks(on: $0).isEmpty }
+        undatedTasks.isEmpty && poolTasks.isEmpty && days.allSatisfy { tasks(on: $0).isEmpty }
     }
 
     var body: some View {
@@ -69,6 +76,11 @@ struct WeekCalendarView: View {
                 emptyState
             } else {
                 List {
+                    if !undatedTasks.isEmpty {
+                        scheduleRows(tasks: undatedTasks, emptyText: nil) { undatedColumn }
+                        dayDivider
+                    }
+
                     if !poolTasks.isEmpty {
                         scheduleRows(tasks: poolTasks, emptyText: nil) { poolColumn }
                         dayDivider
@@ -178,6 +190,21 @@ struct WeekCalendarView: View {
                 .font(.system(size: 9, weight: .semibold))
                 .kerning(0.5)
                 .foregroundStyle(coral)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var undatedColumn: some View {
+        VStack(spacing: 3) {
+            Image(systemName: "infinity")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Color(.secondaryLabel))
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(Color(.tertiarySystemFill)))
+            Text("NO DATE")
+                .font(.system(size: 9, weight: .semibold))
+                .kerning(0.5)
+                .foregroundStyle(Color(.secondaryLabel))
         }
         .frame(maxWidth: .infinity)
     }
