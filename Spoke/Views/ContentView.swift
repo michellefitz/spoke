@@ -115,7 +115,7 @@ struct ContentView: View {
     @State private var showPermissionAlert = false
     @State private var selectedTag: String? = nil
     @State private var showSettings = false
-    @State private var showCalendar = false
+    @AppStorage("calendarMode") private var calendarMode = false
     // completedExpanded is persisted via settings.completedExpanded
     @State private var toastMessage: String?
     @State private var coachingActive = false
@@ -183,13 +183,21 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            taskListView
+            Group {
+                if calendarMode {
+                    WeekCalendarView()
+                } else {
+                    taskListView
+                }
+            }
                 .safeAreaInset(edge: .top) {
                 VStack(spacing: 0) {
                     // Wordmark + settings
                     HStack {
-                        Button { showCalendar = true } label: {
-                            Image(systemName: "calendar")
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) { calendarMode.toggle() }
+                        } label: {
+                            Image(systemName: calendarMode ? "list.bullet" : "calendar")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(coral)
                                 .frame(width: 28, height: 28)
@@ -248,7 +256,7 @@ struct ContentView: View {
                     .padding(.top, 14)
                     .padding(.bottom, 10)
 
-                    if hasTasks && settings.showTags {
+                    if hasTasks && settings.showTags && !calendarMode {
                         filterPillsView
                             .padding(.bottom, 0)
                     }
@@ -336,11 +344,6 @@ struct ContentView: View {
             SettingsView(tagStore: tagStore)
                 .presentationDetents([.large])
                 .presentationBackground(.background.opacity(0.92))
-        }
-        .sheet(isPresented: $showCalendar) {
-            WeekCalendarView()
-                .presentationDetents([.large])
-                .presentationBackground(Color(.systemBackground))
         }
         .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
             Button("Open Settings") {

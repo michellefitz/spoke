@@ -8,7 +8,6 @@ import WidgetKit
 /// sits pinned above the days.
 struct WeekCalendarView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
 
     @Query(
         filter: #Predicate<SpokeTask> { $0.isCompleted == false },
@@ -111,7 +110,7 @@ struct WeekCalendarView: View {
                     Spacer(minLength: 0)
                 }
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
             }
         } else {
             ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
@@ -128,7 +127,7 @@ struct WeekCalendarView: View {
                     )
                 }
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
             }
         }
     }
@@ -138,7 +137,7 @@ struct WeekCalendarView: View {
             .fill(Color(.separator).opacity(0.5))
             .frame(height: 0.5)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+            .listRowInsets(EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0))
     }
 
     // MARK: - Date columns
@@ -224,8 +223,8 @@ struct WeekCalendarView: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 18)
-        .padding(.bottom, 12)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
     }
 
     private var emptyState: some View {
