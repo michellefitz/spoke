@@ -42,6 +42,22 @@ struct SettingsView: View {
                         Text("Expand subtasks in list")
                     }
                     .tint(coral)
+
+                    Toggle(isOn: Binding(
+                        get: { settings.showUndatedInCalendar },
+                        set: { settings.showUndatedInCalendar = $0 }
+                    )) {
+                        Text("Show undated tasks in calendar view")
+                    }
+                    .tint(coral)
+
+                    Toggle(isOn: Binding(
+                        get: { settings.showCompletedInCalendar },
+                        set: { settings.showCompletedInCalendar = $0 }
+                    )) {
+                        Text("Show completed tasks in calendar view")
+                    }
+                    .tint(coral)
                 } header: {
                     sectionHeader("Display")
                 }
