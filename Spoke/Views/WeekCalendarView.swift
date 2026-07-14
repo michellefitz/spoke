@@ -17,6 +17,9 @@ struct WeekCalendarView: View {
 
     @State private var weekOffset = 0
     @State private var selectedTask: SpokeTask?
+    @State private var undatedExpanded = false
+
+    private let undatedCap = 3
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let dateColumnWidth: CGFloat = 52
@@ -36,6 +39,13 @@ struct WeekCalendarView: View {
             guard let deadline = task.deadline, task.deadlineIsWeek else { return false }
             return cal.weekStart(for: deadline) == weekStart
         }
+    }
+
+    /// Undated tasks are timeless, so they surface at the top of every week.
+    private var undatedTasks: [SpokeTask] {
+        activeTasks
+            .filter { $0.deadline == nil }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     private func tasks(on day: Date) -> [SpokeTask] {
@@ -58,7 +68,7 @@ struct WeekCalendarView: View {
     }
 
     private var weekIsEmpty: Bool {
-        poolTasks.isEmpty && days.allSatisfy { tasks(on: $0).isEmpty }
+        undatedTasks.isEmpty && poolTasks.isEmpty && days.allSatisfy { tasks(on: $0).isEmpty }
     }
 
     var body: some View {
@@ -69,6 +79,44 @@ struct WeekCalendarView: View {
                 emptyState
             } else {
                 List {
+                    if !undatedTasks.isEmpty {
+                        let visible = undatedExpanded ? undatedTasks : Array(undatedTasks.prefix(undatedCap))
+                        let hiddenCount = undatedTasks.count - visible.count
+                        scheduleRows(tasks: visible, emptyText: nil) { undatedColumn }
+                        if hiddenCount > 0 {
+                            Button {
+                                withAnimation(.spokeTransition) { undatedExpanded = true }
+                            } label: {
+                                HStack(alignment: .center, spacing: 14) {
+                                    Color.clear.frame(width: dateColumnWidth, height: 1)
+                                    Text("View \(hiddenCount) more")
+                                        .font(.system(size: 13.5, weight: .semibold))
+                                        .foregroundStyle(coral)
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
+                        } else if undatedExpanded && undatedTasks.count > undatedCap {
+                            Button {
+                                withAnimation(.spokeTransition) { undatedExpanded = false }
+                            } label: {
+                                HStack(alignment: .center, spacing: 14) {
+                                    Color.clear.frame(width: dateColumnWidth, height: 1)
+                                    Text("Show fewer")
+                                        .font(.system(size: 13.5, weight: .semibold))
+                                        .foregroundStyle(coral)
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
+                        }
+                        dayDivider
+                    }
+
                     if !poolTasks.isEmpty {
                         scheduleRows(tasks: poolTasks, emptyText: nil) { poolColumn }
                         dayDivider
@@ -178,6 +226,21 @@ struct WeekCalendarView: View {
                 .font(.system(size: 9, weight: .semibold))
                 .kerning(0.5)
                 .foregroundStyle(coral)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var undatedColumn: some View {
+        VStack(spacing: 3) {
+            Image(systemName: "infinity")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Color(.secondaryLabel))
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(Color(.tertiarySystemFill)))
+            Text("NO DATE")
+                .font(.system(size: 9, weight: .semibold))
+                .kerning(0.5)
+                .foregroundStyle(Color(.secondaryLabel))
         }
         .frame(maxWidth: .infinity)
     }
