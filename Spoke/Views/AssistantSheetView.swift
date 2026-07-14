@@ -63,7 +63,8 @@ struct AssistantSheetView: View {
                 .font(.system(size: 16))
                 .lineSpacing(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
+                .padding(.leading, 20)
+                .padding(.trailing, 52) // clear the ✕ button
 
             previewList(actions)
                 .padding(.top, 10)
@@ -95,7 +96,8 @@ struct AssistantSheetView: View {
                 .font(.system(size: 16))
                 .lineSpacing(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
+                .padding(.leading, 20)
+                .padding(.trailing, 52) // clear the ✕ button
 
             HStack(spacing: 10) {
                 ForEach(Array(options.enumerated()), id: \.offset) { index, option in

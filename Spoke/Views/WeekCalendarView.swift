@@ -201,13 +201,14 @@ struct WeekCalendarView: View {
             VStack(spacing: 2) {
                 Text(weekTitle)
                     .font(.system(size: 17, weight: .semibold))
-                if weekOffset != 0 {
-                    Button("Back to this week") {
-                        withAnimation(.spokeTransition) { weekOffset = 0 }
-                    }
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(coral)
+                // Always occupies its slot so the title doesn't jump when paging
+                Button("Back to this week") {
+                    withAnimation(.spokeTransition) { weekOffset = 0 }
                 }
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(coral)
+                .opacity(weekOffset == 0 ? 0 : 1)
+                .disabled(weekOffset == 0)
             }
 
             Spacer()
