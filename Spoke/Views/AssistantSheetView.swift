@@ -14,6 +14,7 @@ struct AssistantSheetView: View {
     let onConfirm: () -> Void
     let onAdjust: () -> Void
     let onOption: (String) -> Void
+    let onClose: () -> Void
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
 
@@ -39,6 +40,17 @@ struct AssistantSheetView: View {
                 .fill(Color(.systemBackground))
                 .shadow(color: .black.opacity(0.18), radius: 24, y: -6)
                 .ignoresSafeArea(edges: .bottom)
+        }
+        .overlay(alignment: .topTrailing) {
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color(.secondaryLabel))
+                    .frame(width: 26, height: 26)
+                    .background(Color(.tertiarySystemFill), in: Circle())
+            }
+            .padding(.top, 10)
+            .padding(.trailing, 14)
         }
     }
 
