@@ -69,12 +69,11 @@ days, and honest "this week"s for the things that don't have a day. If it's
 not sure, it asks. Unlike to-do apps with a mic bolted on, the whole thing is
 built around how you actually think: out loud.
 
-**Working taglines** (in order of preference):
-1. "Say it, we'll sort it." *(already in onboarding — keep, it's the truest)*
-2. "The to-do list you talk to."
-3. "Get it out of your head."
+**Tagline (decided):** "The to-do list you talk to." Simple, literal, not
+trying to be catchy — that's the point.
 
-*("Your day, dictated." is polished but reads like adland — demote or drop.)*
+*Retired: "Say it, we'll sort it" (cheesy) and "Your day, dictated." (adland).
+"Get it out of your head" survives as a message line, not the tagline.*
 
 ## Tone of voice
 
@@ -107,7 +106,31 @@ another app's listing unchanged.
   yourself, if you ever got a minute."
 - ~~"Just talk. Spoke turns your words into organized tasks."~~ → "Just talk.
   It sorts out what you said into a proper list."
-- Keep: "Say it, we'll sort it."
+- ~~"Say it, we'll sort it."~~ → retired; replace in onboarding with plain
+  description in Michelle's voice.
+
+## Brand personality
+
+The product design is clean and polished but reads generic — the pulsing mic
+could be any of the commodity-tier apps. The personality comes from a
+**character**: a little line-drawn assistant, single-ink-line cartoon in the
+Far Side / Dilbert tradition. Deadpan, competent, slightly long-suffering —
+your personal EA in your pocket.
+
+**The signature scene** (onboarding / hero / empty states): a clean page.
+Speech bubbles drift down from the sky — fragments of a real braindump
+("dentist tuesday", "MILK", "book the MOT"). The little assistant walks in,
+notepad out, jots them down as the bubbles pop, sets a tidy ruled list down
+on a small table, and walks off. That's the whole product in one panel.
+
+Rules:
+- Ink line + paper ground + the coral accent. Nothing else.
+- Deadpan, never wacky. He doesn't mug or celebrate; he just handles it.
+- Single-panel cartoon energy: the character does the joke, captions stay dry.
+- Never: pulsing mics, waveform orbs as brand, gradient AI glow, emoji as
+  design elements.
+- ADHD note (reaffirmed): the character serves everyone; we never brand as
+  "an ADHD app" or borrow medical framing.
 
 ## Monetization (parked, on purpose)
 
