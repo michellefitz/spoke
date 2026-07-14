@@ -304,7 +304,7 @@ struct TaskDetailView: View {
                                     HStack(spacing: 5) {
                                         Image(systemName: "plus")
                                             .font(.system(size: 11, weight: .semibold))
-                                        Text("Add a step")
+                                        Text("Add a subtask")
                                             .font(.system(size: 14))
                                     }
                                     .foregroundStyle(coral.opacity(0.75))

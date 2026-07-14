@@ -218,29 +218,32 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity)
 
                         Menu {
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dateAdded }
-                            } label: {
-                                Label("Sort by date added", systemImage: sortMode == .dateAdded ? "checkmark" : "")
-                            }
-
-                            if settings.showDueDates {
+                            // Sort options only apply to the list view
+                            if !calendarMode {
                                 Button {
-                                    withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dueDate }
+                                    withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dateAdded }
                                 } label: {
-                                    Label("Sort by due date", systemImage: sortMode == .dueDate ? "checkmark" : "")
+                                    Label("Sort by date added", systemImage: sortMode == .dateAdded ? "checkmark" : "")
                                 }
-                            }
 
-                            if settings.showTags {
-                                Button {
-                                    withAnimation(.easeInOut(duration: 0.2)) { sortMode = .groupByTag }
-                                } label: {
-                                    Label("Group by tag", systemImage: sortMode == .groupByTag ? "checkmark" : "")
+                                if settings.showDueDates {
+                                    Button {
+                                        withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dueDate }
+                                    } label: {
+                                        Label("Sort by due date", systemImage: sortMode == .dueDate ? "checkmark" : "")
+                                    }
                                 }
-                            }
 
-                            Divider()
+                                if settings.showTags {
+                                    Button {
+                                        withAnimation(.easeInOut(duration: 0.2)) { sortMode = .groupByTag }
+                                    } label: {
+                                        Label("Group by tag", systemImage: sortMode == .groupByTag ? "checkmark" : "")
+                                    }
+                                }
+
+                                Divider()
+                            }
 
                             Button { showSettings = true } label: {
                                 Label("Settings", systemImage: "gearshape")
