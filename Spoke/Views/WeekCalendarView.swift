@@ -15,11 +15,20 @@ struct WeekCalendarView: View {
     )
     private var activeTasks: [SpokeTask]
 
+    @Query(
+        filter: #Predicate<SpokeTask> { $0.isCompleted == true },
+        sort: [SortDescriptor(\SpokeTask.completedAt, order: .reverse)]
+    )
+    private var allCompletedTasks: [SpokeTask]
+
     @State private var weekOffset = 0
     @State private var selectedTask: SpokeTask?
     @State private var undatedExpanded = false
+    @AppStorage("calUndatedCollapsed") private var undatedCollapsed = false
+    @AppStorage("calPoolCollapsed") private var poolCollapsed = false
 
     private let undatedCap = 3
+    private let settings = AppSettings.shared
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let dateColumnWidth: CGFloat = 52
@@ -43,7 +52,8 @@ struct WeekCalendarView: View {
 
     /// Undated tasks are timeless, so they surface at the top of every week.
     private var undatedTasks: [SpokeTask] {
-        activeTasks
+        guard settings.showUndatedInCalendar else { return [] }
+        return activeTasks
             .filter { $0.deadline == nil }
             .sorted { $0.createdAt > $1.createdAt }
     }
@@ -52,6 +62,16 @@ struct WeekCalendarView: View {
         activeTasks.filter { task in
             guard let deadline = task.deadline, !task.deadlineIsWeek else { return false }
             return cal.isDate(deadline, inSameDayAs: day)
+        }
+    }
+
+    /// Tasks completed on this day — shown after the active ones so the day
+    /// reads as "still to do, then what got done".
+    private func completedTasks(on day: Date) -> [SpokeTask] {
+        guard settings.showCompletedInCalendar else { return [] }
+        return allCompletedTasks.filter { task in
+            guard let completedAt = task.completedAt else { return false }
+            return cal.isDate(completedAt, inSameDayAs: day)
         }
     }
 
@@ -68,7 +88,8 @@ struct WeekCalendarView: View {
     }
 
     private var weekIsEmpty: Bool {
-        undatedTasks.isEmpty && poolTasks.isEmpty && days.allSatisfy { tasks(on: $0).isEmpty }
+        undatedTasks.isEmpty && poolTasks.isEmpty
+            && days.allSatisfy { tasks(on: $0).isEmpty && completedTasks(on: $0).isEmpty }
     }
 
     var body: some View {
@@ -80,50 +101,50 @@ struct WeekCalendarView: View {
             } else {
                 List {
                     if !undatedTasks.isEmpty {
-                        let visible = undatedExpanded ? undatedTasks : Array(undatedTasks.prefix(undatedCap))
-                        let hiddenCount = undatedTasks.count - visible.count
-                        scheduleRows(tasks: visible, emptyText: nil) { undatedColumn }
-                        if hiddenCount > 0 {
-                            Button {
-                                withAnimation(.spokeTransition) { undatedExpanded = true }
-                            } label: {
-                                HStack(alignment: .center, spacing: 14) {
-                                    Color.clear.frame(width: dateColumnWidth, height: 1)
-                                    Text("View \(hiddenCount) more")
-                                        .font(.system(size: 13.5, weight: .semibold))
-                                        .foregroundStyle(coral)
-                                    Spacer(minLength: 0)
+                        if undatedCollapsed {
+                            collapsedSectionRow(count: undatedTasks.count, label: { undatedColumn }) {
+                                withAnimation(.spokeTransition) { undatedCollapsed = false }
+                            }
+                        } else {
+                            let visible = undatedExpanded ? undatedTasks : Array(undatedTasks.prefix(undatedCap))
+                            let hiddenCount = undatedTasks.count - visible.count
+                            scheduleRows(tasks: visible, emptyText: nil) {
+                                Button {
+                                    withAnimation(.spokeTransition) { undatedCollapsed = true }
+                                } label: { undatedColumn }
+                                    .buttonStyle(.plain)
+                            }
+                            if hiddenCount > 0 {
+                                previewToggleRow("View \(hiddenCount) more") {
+                                    withAnimation(.spokeTransition) { undatedExpanded = true }
+                                }
+                            } else if undatedExpanded && undatedTasks.count > undatedCap {
+                                previewToggleRow("Show fewer") {
+                                    withAnimation(.spokeTransition) { undatedExpanded = false }
                                 }
                             }
-                            .buttonStyle(.plain)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
-                        } else if undatedExpanded && undatedTasks.count > undatedCap {
-                            Button {
-                                withAnimation(.spokeTransition) { undatedExpanded = false }
-                            } label: {
-                                HStack(alignment: .center, spacing: 14) {
-                                    Color.clear.frame(width: dateColumnWidth, height: 1)
-                                    Text("Show fewer")
-                                        .font(.system(size: 13.5, weight: .semibold))
-                                        .foregroundStyle(coral)
-                                    Spacer(minLength: 0)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
                         }
                         dayDivider
                     }
 
                     if !poolTasks.isEmpty {
-                        scheduleRows(tasks: poolTasks, emptyText: nil) { poolColumn }
+                        if poolCollapsed {
+                            collapsedSectionRow(count: poolTasks.count, label: { poolColumn }) {
+                                withAnimation(.spokeTransition) { poolCollapsed = false }
+                            }
+                        } else {
+                            scheduleRows(tasks: poolTasks, emptyText: nil) {
+                                Button {
+                                    withAnimation(.spokeTransition) { poolCollapsed = true }
+                                } label: { poolColumn }
+                                    .buttonStyle(.plain)
+                            }
+                        }
                         dayDivider
                     }
 
                     ForEach(Array(days.enumerated()), id: \.element.timeIntervalSinceReferenceDate) { index, day in
-                        scheduleRows(tasks: tasks(on: day), emptyText: "Nothing planned") { dateColumn(day) }
+                        scheduleRows(tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned") { dateColumn(day) }
                         if index < days.count - 1 {
                             dayDivider
                         }
@@ -166,6 +187,7 @@ struct WeekCalendarView: View {
                     label()
                         .frame(width: dateColumnWidth)
                         .opacity(index == 0 ? 1 : 0)
+                        .allowsHitTesting(index == 0)
                     TaskRowView(
                         task: task,
                         onToggleComplete: { toggleComplete(task) },
@@ -178,6 +200,38 @@ struct WeekCalendarView: View {
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
             }
         }
+    }
+
+    /// Collapsed section: just the badge and a light count, tap to expand.
+    private func collapsedSectionRow<Label: View>(count: Int, @ViewBuilder label: () -> Label, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 14) {
+                label()
+                    .frame(width: dateColumnWidth)
+                Text("\(count) task\(count == 1 ? "" : "s") hidden")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color(.tertiaryLabel))
+                Spacer(minLength: 0)
+            }
+        }
+        .buttonStyle(.plain)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+    }
+
+    private func previewToggleRow(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 14) {
+                Color.clear.frame(width: dateColumnWidth, height: 1)
+                Text(title)
+                    .font(.system(size: 13.5, weight: .semibold))
+                    .foregroundStyle(coral)
+                Spacer(minLength: 0)
+            }
+        }
+        .buttonStyle(.plain)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
     }
 
     private var dayDivider: some View {
