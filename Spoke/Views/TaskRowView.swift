@@ -7,6 +7,8 @@ struct TaskRowView: View {
     let onTap: () -> Void
     /// Set in contexts where the date is already visible (e.g. the calendar view).
     var hideDeadlineChip: Bool = false
+    /// Set in contexts that keep rows to a single line (e.g. the calendar view).
+    var hideTagChip: Bool = false
 
     @State private var strikeProgress: CGFloat = 0
     @State private var isAnimating = false
@@ -108,7 +110,7 @@ struct TaskRowView: View {
                 }
 
                 let showDeadline = task.deadline != nil && settings.showDueDates && !hideDeadlineChip
-                let showTag = task.tag != nil && settings.showTags
+                let showTag = task.tag != nil && settings.showTags && !hideTagChip
                 if showDeadline || showTag {
                     HStack(spacing: 4) {
                         if showDeadline, let deadline = task.deadline {

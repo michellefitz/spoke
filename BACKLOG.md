@@ -25,6 +25,17 @@ the header. Remaining ideas:
 - Widget treatment of week-bucket tasks (they surface on the last day of
   the week as "due today", which is defensible but unconsidered).
 
+## Tag pills as filters in calendar view
+
+Tag chips are hidden on calendar rows (single-line rows keep the week scannable),
+so tags currently have no presence in calendar view at all. Idea: bring the
+filter pills from the list view across the top of the calendar, acting as
+category filters — tap "work" and the week shows only work stuff, appointments
+included or not (TBD). Low urgency: the solo/personal test case gets little
+value from tags, but separating work/personal becomes real once work resumes.
+Design question to settle first: do the pills filter tasks only, or events too
+(events have no tags — maybe match by calendar)?
+
 ## Calendar integration — SHIPPED v1, remaining ideas
 
 Read-only device-calendar (EventKit) appointments now show in the week view:
