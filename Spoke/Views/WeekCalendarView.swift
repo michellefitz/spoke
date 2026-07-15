@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import WidgetKit
+import EventKit
 
 /// Weekly planning view styled like a calendar schedule: a prominent date
 /// column on the left, tasks indented to the right, a hairline between days,
@@ -25,11 +26,13 @@ struct WeekCalendarView: View {
     @Binding var weekOffset: Int
     @State private var selectedTask: SpokeTask?
     @State private var undatedExpanded = false
+    @State private var weekEvents: [DayEvent] = []
     @AppStorage("calUndatedCollapsed") private var undatedCollapsed = false
     @AppStorage("calPoolCollapsed") private var poolCollapsed = false
 
     private let undatedCap = 3
     private let settings = AppSettings.shared
+    private let calendarService = CalendarService.shared
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let dateColumnWidth: CGFloat = 52
@@ -66,6 +69,33 @@ struct WeekCalendarView: View {
         }
     }
 
+    /// Calendar appointments overlapping this day: all-day first, then by
+    /// start time. Multi-day events appear on every day they touch.
+    private func events(on day: Date) -> [DayEvent] {
+        guard settings.showCalendarEvents else { return [] }
+        let dayStart = cal.startOfDay(for: day)
+        return weekEvents
+            .filter { $0.start >= dayStart ? cal.isDate($0.start, inSameDayAs: day) : $0.end > dayStart }
+            .sorted { a, b in
+                if a.isAllDay != b.isAllDay { return a.isAllDay }
+                if a.start != b.start { return a.start < b.start }
+                return a.title < b.title
+            }
+    }
+
+    private func loadEvents() {
+        guard calendarService.isConnected else {
+            weekEvents = []
+            return
+        }
+        let end = cal.date(byAdding: .day, value: 7, to: weekStart) ?? weekStart
+        weekEvents = calendarService.events(from: weekStart, to: end)
+    }
+
+    private var showConnectCard: Bool {
+        calendarService.canRequestAccess && !settings.calendarPromptDismissed
+    }
+
     /// Tasks completed on this day — shown after the active ones so the day
     /// reads as "still to do, then what got done".
     private func completedTasks(on day: Date) -> [SpokeTask] {
@@ -94,15 +124,26 @@ struct WeekCalendarView: View {
 
     private var weekIsEmpty: Bool {
         undatedTasks.isEmpty && poolTasks.isEmpty
-            && days.allSatisfy { tasks(on: $0).isEmpty && completedTasks(on: $0).isEmpty }
+            && days.allSatisfy { tasks(on: $0).isEmpty && completedTasks(on: $0).isEmpty && events(on: $0).isEmpty }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             if weekIsEmpty {
+                if showConnectCard {
+                    connectCard
+                        .padding(.horizontal, 16)
+                        .padding(.top, 10)
+                }
                 emptyState
             } else {
                 List {
+                    if showConnectCard {
+                        connectCard
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 8, trailing: 16))
+                    }
+
                     if !undatedTasks.isEmpty {
                         if undatedCollapsed {
                             collapsedSectionRow(count: undatedTasks.count, label: { undatedColumn }) {
@@ -147,7 +188,7 @@ struct WeekCalendarView: View {
                     }
 
                     ForEach(Array(days.enumerated()), id: \.element.timeIntervalSinceReferenceDate) { index, day in
-                        scheduleRows(tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned") { dateColumn(day) }
+                        scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned") { dateColumn(day) }
                         if index < days.count - 1 {
                             dayDivider
                         }
@@ -157,6 +198,9 @@ struct WeekCalendarView: View {
                 .environment(\.defaultMinListRowHeight, 10)
             }
         }
+        .task(id: weekOffset) { loadEvents() }
+        .onChange(of: calendarService.isConnected) { loadEvents() }
+        .onReceive(NotificationCenter.default.publisher(for: .EKEventStoreChanged)) { _ in loadEvents() }
         .sheet(item: $selectedTask) { task in
             TaskDetailView(task: task, showCoachingToast: false)
                 .presentationDetents([.fraction(0.7), .large])
@@ -168,9 +212,10 @@ struct WeekCalendarView: View {
 
     /// Renders one day (or the pool) as schedule rows: the label column is
     /// visible on the first row only, so tasks stack beside a single date.
+    /// Calendar appointments render first, then tasks.
     @ViewBuilder
-    private func scheduleRows<Label: View>(tasks: [SpokeTask], emptyText: String?, @ViewBuilder label: @escaping () -> Label) -> some View {
-        if tasks.isEmpty {
+    private func scheduleRows<Label: View>(events: [DayEvent] = [], eventsDay: Date = .distantPast, tasks: [SpokeTask], emptyText: String?, @ViewBuilder label: @escaping () -> Label) -> some View {
+        if events.isEmpty && tasks.isEmpty {
             if let emptyText {
                 HStack(alignment: .center, spacing: 14) {
                     label()
@@ -185,12 +230,23 @@ struct WeekCalendarView: View {
                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
             }
         } else {
-            ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
+            ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
                 HStack(alignment: .top, spacing: 14) {
                     label()
                         .frame(width: dateColumnWidth)
                         .opacity(index == 0 ? 1 : 0)
                         .allowsHitTesting(index == 0)
+                    eventRow(event, on: eventsDay)
+                }
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            }
+            ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
+                HStack(alignment: .top, spacing: 14) {
+                    label()
+                        .frame(width: dateColumnWidth)
+                        .opacity(events.isEmpty && index == 0 ? 1 : 0)
+                        .allowsHitTesting(events.isEmpty && index == 0)
                     TaskRowView(
                         task: task,
                         onToggleComplete: { toggleComplete(task) },
@@ -203,6 +259,86 @@ struct WeekCalendarView: View {
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
             }
         }
+    }
+
+    /// A calendar appointment: tinted block with the calendar's colour as a
+    /// spine, time underneath — deliberately un-task-like (no checkbox).
+    private func eventRow(_ event: DayEvent, on day: Date) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(event.color)
+                .frame(width: 3)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(event.title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color(.label))
+                    .lineLimit(1)
+                Text(timeLabel(for: event, on: day))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color(.secondaryLabel))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(RoundedRectangle(cornerRadius: 10).fill(event.color.opacity(0.09)))
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    private func timeLabel(for event: DayEvent, on day: Date) -> String {
+        if event.isAllDay { return "All day" }
+        let end = Self.timeFormatter.string(from: event.end)
+        guard cal.isDate(event.start, inSameDayAs: day) else { return "Until \(end)" }
+        return "\(Self.timeFormatter.string(from: event.start)) – \(end)"
+    }
+
+    /// One-time prompt to link the device calendar, shown until connected or
+    /// dismissed.
+    private var connectCard: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "calendar.badge.plus")
+                .font(.system(size: 22))
+                .foregroundStyle(coral)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("See your appointments here")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Connect your calendar and the week shows what's booked next to what needs doing.")
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(Color(.secondaryLabel))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 10) {
+                Button {
+                    withAnimation(.spokeTransition) { settings.calendarPromptDismissed = true }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color(.tertiaryLabel))
+                }
+                .buttonStyle(.plain)
+                Button {
+                    Task {
+                        if await calendarService.requestAccess() { loadEvents() }
+                    }
+                } label: {
+                    Text("Connect")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Capsule().fill(coral))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color(.secondarySystemBackground)))
     }
 
     /// Collapsed section: just the badge and a light count, tap to expand.

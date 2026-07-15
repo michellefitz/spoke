@@ -21,6 +21,7 @@
 		48555FC09AE0AC6841A3E3FB /* SharedContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B69C6FAEAACE698F418D7AF7 /* SharedContainer.swift */; };
 		4C5C0DD66B67E7013348476E /* spoke-hero.html in Resources */ = {isa = PBXBuildFile; fileRef = 11A184B9D21BFAA8AD32CEF0 /* spoke-hero.html */; };
 		57466ECD1EF9863C4277C39E /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3957279987778F6EFA75D6 /* AppSettings.swift */; };
+		8E2D4F60A1B3C5D7E9F01234 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F3E5A71B2C4D6E8FA012345 /* CalendarService.swift */; };
 		932C11CBE014FE25FBFF7A15 /* TagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA40E6992C1BF270F39FF84 /* TagStore.swift */; };
 		9D391789B1CDC9BB717A1FF3 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = A08F2B6B5A0014D582AAA8EA /* Config.swift */; };
 		A4B5E6F388165CFB19E77426 /* SharedContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B69C6FAEAACE698F418D7AF7 /* SharedContainer.swift */; };
@@ -79,6 +80,7 @@
 		75AA58387684AE038DC9F198 /* AnimationTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationTokens.swift; sourceTree = "<group>"; };
 		85FEDC74B870B88EF832273A /* AudioWaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioWaveformView.swift; sourceTree = "<group>"; };
 		8B96425A91D679AC36BA7C73 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9F3E5A71B2C4D6E8FA012345 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
 		A08F2B6B5A0014D582AAA8EA /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		B2E6DB242EB2EEC112530FBF /* TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRowView.swift; sourceTree = "<group>"; };
 		B69C6FAEAACE698F418D7AF7 /* SharedContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedContainer.swift; sourceTree = "<group>"; };
@@ -108,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				1B3957279987778F6EFA75D6 /* AppSettings.swift */,
+				9F3E5A71B2C4D6E8FA012345 /* CalendarService.swift */,
 				0AA40E6992C1BF270F39FF84 /* TagStore.swift */,
 				0DDFE16C15B248AE931BEDEC /* TaskParser.swift */,
 				05D7826DD8178666D5171C12 /* TaskParserLogger.swift */,
@@ -281,6 +284,7 @@
 				57466ECD1EF9863C4277C39E /* AppSettings.swift in Sources */,
 				04E7A1B29C3D5F60718A2B4C /* AssistantSheetView.swift in Sources */,
 				B79877F5D5FFEC7D83D7C154 /* AudioWaveformView.swift in Sources */,
+				8E2D4F60A1B3C5D7E9F01234 /* CalendarService.swift in Sources */,
 				9D391789B1CDC9BB717A1FF3 /* Config.swift in Sources */,
 				B202B0AAB1B65EE9011576B0 /* ContentView.swift in Sources */,
 				FAE4743EEBCB5239FD220CCD /* DebugLogView.swift in Sources */,

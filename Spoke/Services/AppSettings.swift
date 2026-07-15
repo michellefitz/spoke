@@ -27,6 +27,14 @@ final class AppSettings {
         didSet { defaults.set(showCompletedInCalendar, forKey: "showCompletedInCalendar") }
     }
 
+    var showCalendarEvents: Bool {
+        didSet { defaults.set(showCalendarEvents, forKey: "showCalendarEvents") }
+    }
+
+    var calendarPromptDismissed: Bool {
+        didSet { defaults.set(calendarPromptDismissed, forKey: "calendarPromptDismissed") }
+    }
+
     var hasCompletedOnboarding: Bool {
         didSet { defaults.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
@@ -49,6 +57,8 @@ final class AppSettings {
         self.expandSubtasks        = defaults.object(forKey: "expandSubtasks")        as? Bool ?? false
         self.showUndatedInCalendar = defaults.object(forKey: "showUndatedInCalendar") as? Bool ?? true
         self.showCompletedInCalendar = defaults.object(forKey: "showCompletedInCalendar") as? Bool ?? false
+        self.showCalendarEvents    = defaults.object(forKey: "showCalendarEvents")    as? Bool ?? true
+        self.calendarPromptDismissed = defaults.bool(forKey: "calendarPromptDismissed")
         self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         self.autoDeleteCompleted   = defaults.object(forKey: "autoDeleteCompleted")   as? Bool ?? true
         self.hasSeenCoaching       = defaults.bool(forKey: "hasSeenCoaching")
