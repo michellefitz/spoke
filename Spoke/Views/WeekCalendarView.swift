@@ -227,7 +227,7 @@ struct WeekCalendarView: View {
                     Spacer(minLength: 0)
                 }
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
             }
         } else {
             ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
@@ -239,7 +239,7 @@ struct WeekCalendarView: View {
                     eventRow(event, on: eventsDay)
                 }
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
             }
             ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
                 HStack(alignment: .top, spacing: 14) {
@@ -252,11 +252,12 @@ struct WeekCalendarView: View {
                         onToggleComplete: { toggleComplete(task) },
                         onDelete: { deleteTask(task) },
                         onTap: { selectedTask = task },
-                        hideDeadlineChip: true
+                        hideDeadlineChip: true,
+                        hideTagChip: true
                     )
                 }
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
             }
         }
     }
@@ -355,7 +356,7 @@ struct WeekCalendarView: View {
         }
         .buttonStyle(.plain)
         .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+        .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
     }
 
     private func previewToggleRow(_ title: String, action: @escaping () -> Void) -> some View {
@@ -390,11 +391,11 @@ struct WeekCalendarView: View {
         weekdayFormatter.dateFormat = "EEE"
         let weekday = weekdayFormatter.string(from: day).uppercased()
 
-        return VStack(spacing: 3) {
+        return VStack(spacing: 2) {
             Text(dayNumber)
-                .font(.system(size: 19, weight: .semibold))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(isToday ? .white : Color(.label))
-                .frame(width: 34, height: 34)
+                .frame(width: 30, height: 30)
                 .background {
                     if isToday {
                         Circle().fill(coral)
@@ -409,11 +410,11 @@ struct WeekCalendarView: View {
     }
 
     private var poolColumn: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 2) {
             Image(systemName: "tray")
-                .font(.system(size: 16, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(coral)
-                .frame(width: 34, height: 34)
+                .frame(width: 30, height: 30)
                 .background(Circle().fill(coral.opacity(0.12)))
             Text("ANY DAY")
                 .font(.system(size: 9, weight: .semibold))
@@ -424,11 +425,11 @@ struct WeekCalendarView: View {
     }
 
     private var undatedColumn: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 2) {
             Image(systemName: "infinity")
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Color(.secondaryLabel))
-                .frame(width: 34, height: 34)
+                .frame(width: 30, height: 30)
                 .background(Circle().fill(Color(.tertiarySystemFill)))
             Text("NO DATE")
                 .font(.system(size: 9, weight: .semibold))
