@@ -48,9 +48,14 @@ Remaining ideas:
 - Feed the day's appointments into the parser context so voice can answer
   "what does Thursday look like?" and place tasks around real commitments.
 - Show today's appointments in the list view header or the Today section.
-- Calendar picker (choose which calendars appear) if all-calendars is noisy.
 - Create events by voice ("dentist Tuesday at 3" is an appointment, not a
   task) — needs write access and a task-vs-event judgment call in the parser.
+- Event tap currently deep-links to the Calendar app (`calshow:` at the
+  event's time). If landing on the day rather than the event itself proves
+  annoying, EKEventViewController can show full event details in-app instead.
+
+(Calendar picker shipped: Settings lists every device calendar with account
+labels; unticked ones are excluded from the week view.)
 
 ## Live transcript legibility & self-correction
 

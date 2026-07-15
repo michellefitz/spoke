@@ -24,6 +24,7 @@ struct WeekCalendarView: View {
 
     /// Owned by ContentView so the app header can drive week paging.
     @Binding var weekOffset: Int
+    @Environment(\.openURL) private var openURL
     @State private var selectedTask: SpokeTask?
     @State private var undatedExpanded = false
     @State private var weekEvents: [DayEvent] = []
@@ -200,6 +201,7 @@ struct WeekCalendarView: View {
         }
         .task(id: weekOffset) { loadEvents() }
         .onChange(of: calendarService.isConnected) { loadEvents() }
+        .onChange(of: settings.hiddenCalendarIDs) { loadEvents() }
         .onReceive(NotificationCenter.default.publisher(for: .EKEventStoreChanged)) { _ in loadEvents() }
         .sheet(item: $selectedTask) { task in
             TaskDetailView(task: task, showCoachingToast: false)
@@ -232,10 +234,13 @@ struct WeekCalendarView: View {
         } else {
             ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
                 HStack(alignment: .top, spacing: 14) {
-                    label()
-                        .frame(width: dateColumnWidth)
-                        .opacity(index == 0 ? 1 : 0)
-                        .allowsHitTesting(index == 0)
+                    // The invisible label must not reserve its height on
+                    // later rows, or every row inflates to date-column size.
+                    if index == 0 {
+                        label().frame(width: dateColumnWidth)
+                    } else {
+                        Color.clear.frame(width: dateColumnWidth, height: 1)
+                    }
                     eventRow(event, on: eventsDay)
                 }
                 .listRowSeparator(.hidden)
@@ -243,10 +248,11 @@ struct WeekCalendarView: View {
             }
             ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
                 HStack(alignment: .top, spacing: 14) {
-                    label()
-                        .frame(width: dateColumnWidth)
-                        .opacity(events.isEmpty && index == 0 ? 1 : 0)
-                        .allowsHitTesting(events.isEmpty && index == 0)
+                    if events.isEmpty && index == 0 {
+                        label().frame(width: dateColumnWidth)
+                    } else {
+                        Color.clear.frame(width: dateColumnWidth, height: 1)
+                    }
                     TaskRowView(
                         task: task,
                         onToggleComplete: { toggleComplete(task) },
@@ -264,6 +270,7 @@ struct WeekCalendarView: View {
 
     /// A calendar appointment: tinted block with the calendar's colour as a
     /// spine, time underneath — deliberately un-task-like (no checkbox).
+    /// Tapping opens the Calendar app at the event's time.
     private func eventRow(_ event: DayEvent, on day: Date) -> some View {
         HStack(alignment: .center, spacing: 10) {
             RoundedRectangle(cornerRadius: 1.5)
@@ -283,6 +290,12 @@ struct WeekCalendarView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .background(RoundedRectangle(cornerRadius: 10).fill(event.color.opacity(0.09)))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if let url = URL(string: "calshow:\(Int(event.start.timeIntervalSinceReferenceDate))") {
+                openURL(url)
+            }
+        }
     }
 
     private static let timeFormatter: DateFormatter = {

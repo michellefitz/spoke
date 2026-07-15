@@ -13,6 +13,15 @@ struct DayEvent: Identifiable {
     let color: Color
 }
 
+/// One device calendar, for the Settings picker. The source (account) name
+/// disambiguates same-named calendars that arrive via two routes.
+struct CalendarInfo: Identifiable {
+    let id: String
+    let title: String
+    let source: String
+    let color: Color
+}
+
 /// Read-only bridge to the device calendar via EventKit. Google, iCloud and
 /// work calendars all arrive through the same store once their accounts are
 /// on the phone — no OAuth of our own.
@@ -39,11 +48,30 @@ final class CalendarService {
         return granted
     }
 
+    /// All event calendars on the device, sorted by account then name.
+    func availableCalendars() -> [CalendarInfo] {
+        guard isConnected else { return [] }
+        return store.calendars(for: .event)
+            .map { calendar in
+                CalendarInfo(
+                    id: calendar.calendarIdentifier,
+                    title: calendar.title,
+                    source: calendar.source?.title ?? "Other",
+                    color: calendar.cgColor.map { Color(cgColor: $0) } ?? Color(red: 1.0, green: 0.38, blue: 0.28)
+                )
+            }
+            .sorted { ($0.source, $0.title) < ($1.source, $1.title) }
+    }
+
     /// Events overlapping [start, end), with recurring events expanded to one
-    /// entry per occurrence.
+    /// entry per occurrence. Calendars hidden in Settings are excluded.
     func events(from start: Date, to end: Date) -> [DayEvent] {
         guard isConnected else { return [] }
-        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
+        let hidden = AppSettings.shared.hiddenCalendarIDs
+        let visibleCalendars = store.calendars(for: .event)
+            .filter { !hidden.contains($0.calendarIdentifier) }
+        guard !visibleCalendars.isEmpty else { return [] }
+        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: visibleCalendars)
         return store.events(matching: predicate).compactMap { event in
             guard let startDate = event.startDate, let endDate = event.endDate else { return nil }
             let color: Color

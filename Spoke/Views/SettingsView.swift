@@ -81,6 +81,43 @@ struct SettingsView: View {
                     }
                 }
 
+                // MARK: Calendars
+                if settings.showCalendarEvents && CalendarService.shared.isConnected {
+                    Section {
+                        ForEach(CalendarService.shared.availableCalendars()) { calendar in
+                            Toggle(isOn: Binding(
+                                get: { !settings.hiddenCalendarIDs.contains(calendar.id) },
+                                set: { visible in
+                                    if visible {
+                                        settings.hiddenCalendarIDs.remove(calendar.id)
+                                    } else {
+                                        settings.hiddenCalendarIDs.insert(calendar.id)
+                                    }
+                                }
+                            )) {
+                                HStack(spacing: 10) {
+                                    Circle()
+                                        .fill(calendar.color)
+                                        .frame(width: 10, height: 10)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(calendar.title)
+                                        Text(calendar.source)
+                                            .font(.footnote)
+                                            .foregroundStyle(Color(.secondaryLabel))
+                                    }
+                                }
+                            }
+                            .tint(coral)
+                        }
+                    } header: {
+                        sectionHeader("Calendars")
+                    } footer: {
+                        Text("Appointments from unticked calendars stay out of the week view. If everything shows up twice, the same calendar is probably syncing through two accounts — untick one.")
+                            .font(.footnote)
+                            .foregroundStyle(Color(.secondaryLabel))
+                    }
+                }
+
                 // MARK: Tags
                 Section {
                     ForEach(tagStore.tags, id: \.self) { tag in
