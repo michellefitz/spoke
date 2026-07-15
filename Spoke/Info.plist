@@ -20,6 +20,8 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Spoke shows your calendar appointments alongside your tasks in the week view.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Spoke uses the microphone to capture your voice tasks.</string>
 	<key>UIApplicationSceneManifest</key>

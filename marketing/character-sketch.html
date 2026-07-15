@@ -1,48 +1,44 @@
-<title>Spoke — character sketch</title>
+<title>Spoke — character storyboard animation</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  :root {
-    --paper: #faf7f0;
-    --ink: #22201c;
-    --ink2: rgba(34,32,28,.55);
-    --coral: #FF6147;
-    --bg: #efebe2;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #191713; --paper: #f5f1e8; }
-  }
-  :root[data-theme="dark"] { --bg: #191713; --paper: #f5f1e8; }
-  :root[data-theme="light"] { --bg: #efebe2; --paper: #faf7f0; }
+  :root { --paper:#faf7f0; --ink:#22201c; --coral:#e8542f; --bg:#efebe2; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#191713; } }
+  :root[data-theme="dark"] { --bg:#191713; }
+  :root[data-theme="light"] { --bg:#efebe2; }
 
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
     min-height:100vh; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:18px;
-    background:var(--bg); padding:24px 14px;
+    align-items:center; justify-content:center; gap:16px;
+    background:var(--bg); padding:22px 12px;
     font-family: Georgia, "Times New Roman", serif;
   }
-  .panel-wrap { width:100%; max-width:720px; }
+  .panel-wrap { width:100%; max-width:760px; }
   svg { width:100%; height:auto; display:block; }
 
-  .stroke { stroke:var(--ink); stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .stroke { stroke:var(--ink); stroke-width:2.1; fill:none; stroke-linecap:round; stroke-linejoin:round; }
   .fill-paper { fill:var(--paper); }
-  .bubble-text {
+  .fill-ink { fill:var(--ink); }
+  .coral { stroke:var(--coral); }
+  .bubble-text, .list-text {
     font-family:"Chalkboard SE","Comic Sans MS","Segoe Print",cursive;
-    font-size:15px; fill:var(--ink);
+    fill:var(--ink);
   }
+  .bubble-text { font-size:14px; }
+  .list-text { font-size:13px; }
 
   .caption {
     text-align:center; font-style:italic; font-size:17px; color:var(--ink);
-    opacity:0; transform:translateY(6px); transition:opacity .8s, transform .8s;
+    opacity:0; transition:opacity .8s;
   }
-  .caption.show { opacity:1; transform:none; }
+  @media (prefers-color-scheme: dark) { .caption { color:#f5f1e8; } }
+  .caption.show { opacity:1; }
   .caption .wordmark {
-    display:block; margin-top:10px; font-style:normal;
+    display:block; margin-top:9px; font-style:normal;
     font-family:-apple-system, BlinkMacSystemFont, sans-serif;
-    font-size:14px; font-weight:600; letter-spacing:-0.2px; color:var(--ink);
+    font-size:14px; font-weight:600; color:inherit;
   }
   .caption .dot { color:var(--coral); }
-
   .replay {
     font-family:-apple-system, BlinkMacSystemFont, sans-serif;
     font-size:13px; font-weight:600; color:var(--coral);
@@ -50,149 +46,142 @@
     padding:8px 16px; cursor:pointer; opacity:0; transition:opacity .5s;
   }
   .replay.show { opacity:1; }
-
-  /* bubbles */
-  .bubble { opacity:0; }
-  .bubble.in { animation: fallIn .9s cubic-bezier(.25,1.2,.4,1) forwards, sway 3.4s ease-in-out 1s infinite; }
-  @keyframes fallIn { from { opacity:0; transform:translateY(-140px) rotate(-3deg); } to { opacity:1; transform:translateY(0) rotate(0deg); } }
-  @keyframes sway { 0%,100% { transform:translateY(0) rotate(0deg);} 50% { transform:translateY(-5px) rotate(1.2deg);} }
-  .bubble.pop { animation: pop .35s ease-in forwards; }
-  @keyframes pop { 40% { transform:scale(1.08); opacity:1; } 100% { transform:scale(0); opacity:0; } }
-
-  /* walker */
-  #walker { }
-  #walker .pose { visibility:hidden; }
-  #walker .pose.on { visibility:visible; }
-  #scribble { opacity:0; }
-  .writing #scribble { opacity:1; }
-  .writing #scribArm { animation: wiggle .22s ease-in-out infinite; transform-origin: 6px -70px; }
-  @keyframes wiggle { 0%,100% { transform:rotate(0deg);} 50% { transform:rotate(-7deg);} }
-
-  #listGroup, #tableGroup { opacity:0; }
-  #listGroup.show { animation: dropIn .5s cubic-bezier(.3,1.4,.5,1) forwards; }
-  #tableGroup.show { opacity:1; transition:opacity .3s; }
-  @keyframes dropIn { from { opacity:0; transform:translateY(-26px);} to { opacity:1; transform:translateY(0);} }
-  #listGroup .row { opacity:0; transition:opacity .25s; }
-  #listGroup .row.show { opacity:1; }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation:none !important; transition:none !important; }
-  }
 </style>
 
 <div class="panel-wrap">
-<svg viewBox="0 0 900 560" aria-label="A small line-drawn assistant walks in, writes down falling speech bubbles, leaves a tidy list on a table, and walks off.">
+<svg viewBox="0 0 900 560" aria-label="Stop-motion sketch: a small assistant sorts falling thought bubbles into stacks, writes them up as a tidy checklist, and walks off.">
   <defs>
-    <filter id="ink" x="-5%" y="-5%" width="110%" height="110%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"/>
-      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6"/>
+    <filter id="ink0" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.032" numOctaves="2" seed="3" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.7"/>
     </filter>
+    <filter id="ink1" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.032" numOctaves="2" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.7"/>
+    </filter>
+    <filter id="ink2" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.032" numOctaves="2" seed="27" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.7"/>
+    </filter>
+
+    <!-- ===== character parts (origin: between feet at 0,0; faces right) ===== -->
+    <g id="headG">
+      <circle cx="4" cy="-79" r="19" class="stroke fill-paper"/>
+      <path d="M-3 -97 q0 -6 2 -8 M3 -98 q1 -6 3 -8 M9 -97 q2 -5 4 -6" class="stroke" stroke-width="1.5"/>
+      <circle cx="1" cy="-79" r="4.4" class="stroke" stroke-width="1.6"/>
+      <circle cx="13" cy="-79" r="4.4" class="stroke" stroke-width="1.6"/>
+      <path d="M5.4 -79 h3.2 M-3.4 -79 h-6" class="stroke" stroke-width="1.4"/>
+      <circle cx="2" cy="-78.4" r="1.2" class="fill-ink"/>
+      <circle cx="14" cy="-78.4" r="1.2" class="fill-ink"/>
+      <path d="M9 -68 q3 2 6 0" class="stroke" stroke-width="1.5"/>
+      <path d="M-13 -88 l-9 -3" class="stroke coral" stroke-width="2.6"/>
+      <path d="M-22 -91 l-2.6 -0.9" class="stroke" stroke-width="2.4"/>
+    </g>
+    <g id="torsoG">
+      <path d="M-11 -60 Q-15 -39 -11 -20 L11 -20 Q15 -40 12 -60 Q2 -64 -11 -60 Z" class="stroke fill-paper"/>
+      <path d="M-5 -60 l5 4 l6 -5" class="stroke" stroke-width="1.6"/>
+      <path d="M0 -55 l3 8 l-3 9 l-3 -9 z" class="stroke" stroke-width="1.5"/>
+    </g>
+    <g id="legsStand">
+      <path d="M-4 -20 L-5 -3 M4 -20 L5 -3" class="stroke"/>
+      <ellipse cx="-7" cy="-2" rx="6" ry="2.8" class="fill-ink"/>
+      <ellipse cx="8" cy="-2" rx="6" ry="2.8" class="fill-ink"/>
+    </g>
+    <g id="legsWalkA">
+      <path d="M-3 -20 L-15 -8 L-16 -3 M4 -20 L11 -9 L12 -3" class="stroke"/>
+      <ellipse cx="-13" cy="-2" rx="5.6" ry="2.8" class="fill-ink"/>
+      <ellipse cx="15" cy="-2" rx="5.6" ry="2.8" class="fill-ink"/>
+    </g>
+    <g id="legsWalkB">
+      <path d="M-3 -20 L-5 -10 L-4 -3 M4 -20 L5 -10 L4 -3" class="stroke"/>
+      <ellipse cx="-1" cy="-2" rx="5.6" ry="2.8" class="fill-ink"/>
+      <ellipse cx="7" cy="-2" rx="5.6" ry="2.8" class="fill-ink"/>
+    </g>
+    <g id="clipG">
+      <rect x="-8" y="-12" width="17" height="24" rx="2" class="stroke fill-paper" stroke-width="1.7"/>
+      <path d="M-3 -12 h7 v-2.4 h-7 z" class="stroke" stroke-width="1.3"/>
+      <path d="M-4 -5 h9 M-4 0 h7 M-4 5 h9" class="stroke" stroke-width="1.1" opacity="0.7"/>
+    </g>
+
+    <!-- ===== poses ===== -->
+    <g id="poseWalkA">
+      <use href="#legsWalkA"/><use href="#torsoG"/><use href="#headG"/>
+      <path d="M8 -52 Q14 -44 15 -36" class="stroke"/>
+      <use href="#clipG" transform="translate(18 -34) rotate(6)"/>
+      <path d="M-8 -52 Q-13 -44 -10 -36" class="stroke"/>
+    </g>
+    <g id="poseWalkB">
+      <use href="#legsWalkB"/><use href="#torsoG"/><use href="#headG"/>
+      <path d="M8 -52 Q14 -45 14 -37" class="stroke"/>
+      <use href="#clipG" transform="translate(17 -35) rotate(3)"/>
+      <path d="M-8 -52 Q-11 -45 -12 -38" class="stroke"/>
+    </g>
+    <g id="poseThink">
+      <use href="#legsStand"/><use href="#torsoG"/><use href="#headG"/>
+      <path d="M9 -52 Q17 -56 15 -63" class="stroke"/>
+      <circle cx="15" cy="-65" r="2.6" class="stroke" stroke-width="1.5"/>
+      <path d="M-8 -52 Q-12 -44 -9 -37" class="stroke"/>
+      <use href="#clipG" transform="translate(-11 -33) rotate(-8)"/>
+    </g>
+    <g id="poseReach">
+      <use href="#legsStand"/><use href="#torsoG"/><use href="#headG"/>
+      <path d="M9 -55 Q16 -75 14 -92" class="stroke"/>
+      <circle cx="14" cy="-94" r="2.6" class="stroke" stroke-width="1.5"/>
+      <path d="M-8 -52 Q-12 -44 -9 -37" class="stroke"/>
+      <use href="#clipG" transform="translate(-11 -33) rotate(-8)"/>
+    </g>
+    <g id="posePush">
+      <g transform="rotate(8 0 -20)">
+        <use href="#legsWalkA"/><use href="#torsoG"/><use href="#headG"/>
+      </g>
+      <path d="M10 -52 Q22 -50 30 -46 M8 -44 Q20 -42 30 -40" class="stroke"/>
+      <circle cx="31" cy="-47" r="2.4" class="stroke" stroke-width="1.5"/>
+      <circle cx="31" cy="-41" r="2.4" class="stroke" stroke-width="1.5"/>
+    </g>
+    <g id="poseWrite">
+      <g transform="translate(0 16)">
+        <path d="M-14 -18 h16 M-12 -18 l-2 16 M-4 -18 l0 16" class="stroke"/>
+        <use href="#torsoG" transform="rotate(6 0 -20)"/>
+        <use href="#headG" transform="translate(3 4) rotate(4 4 -79)"/>
+        <path d="M10 -50 Q20 -46 26 -40" class="stroke"/>
+        <path d="M26 -40 l6 -6" class="stroke coral" stroke-width="2.2"/>
+        <path d="M-8 -50 Q-12 -43 -9 -37" class="stroke"/>
+      </g>
+    </g>
+    <g id="poseProud">
+      <use href="#legsStand"/><use href="#torsoG"/><use href="#headG"/>
+      <path d="M-9 -52 Q-18 -45 -9 -38 M10 -52 Q19 -45 10 -38" class="stroke"/>
+    </g>
+    <g id="poseWaveA">
+      <use href="#legsWalkA"/><use href="#torsoG"/><use href="#headG"/>
+      <path d="M8 -55 Q15 -72 12 -86" class="stroke"/>
+      <circle cx="12" cy="-88" r="2.6" class="stroke" stroke-width="1.5"/>
+      <path d="M-8 -52 Q-13 -44 -10 -36" class="stroke"/>
+      <use href="#clipG" transform="translate(-13 -34) rotate(-6)"/>
+    </g>
+    <g id="poseWaveB">
+      <use href="#legsWalkB"/><use href="#torsoG"/><use href="#headG"/>
+      <path d="M8 -55 Q17 -70 16 -84" class="stroke"/>
+      <circle cx="16" cy="-86" r="2.6" class="stroke" stroke-width="1.5"/>
+      <path d="M-8 -52 Q-13 -44 -10 -36" class="stroke"/>
+      <use href="#clipG" transform="translate(-13 -34) rotate(-6)"/>
+    </g>
   </defs>
 
-  <!-- panel background + border -->
+  <!-- ===== scene ===== -->
   <rect x="6" y="6" width="888" height="548" class="fill-paper"/>
-  <g filter="url(#ink)">
+  <g id="scene" filter="url(#ink0)">
     <rect x="14" y="14" width="872" height="532" class="stroke"/>
-    <!-- ground line -->
-    <path d="M40 470 L860 470" class="stroke" stroke-width="1.6" opacity="0.5"/>
-  </g>
+    <path d="M40 470 L860 470" class="stroke" stroke-width="1.5" opacity="0.5"/>
 
-  <!-- speech bubbles -->
-  <g id="bubbles">
-    <g class="bubble" data-b="1" transform-origin="280 130">
-      <g filter="url(#ink)">
-        <ellipse cx="280" cy="130" rx="86" ry="30" class="stroke fill-paper"/>
-        <path d="M290 100 q4 -14 12 -22" class="stroke"/>
-      </g>
-      <text x="280" y="136" text-anchor="middle" class="bubble-text">dentist tuesday</text>
-    </g>
-    <g class="bubble" data-b="2" transform-origin="475 92">
-      <g filter="url(#ink)">
-        <ellipse cx="475" cy="92" rx="46" ry="26" class="stroke fill-paper"/>
-        <path d="M482 66 q3 -12 10 -18" class="stroke"/>
-      </g>
-      <text x="475" y="98" text-anchor="middle" class="bubble-text">MILK!</text>
-    </g>
-    <g class="bubble" data-b="3" transform-origin="650 150">
-      <g filter="url(#ink)">
-        <ellipse cx="650" cy="150" rx="82" ry="30" class="stroke fill-paper"/>
-        <path d="M660 120 q4 -14 12 -22" class="stroke"/>
-      </g>
-      <text x="650" y="156" text-anchor="middle" class="bubble-text">book the MOT</text>
-    </g>
-    <g class="bubble" data-b="4" transform-origin="420 205">
-      <g filter="url(#ink)">
-        <ellipse cx="420" cy="205" rx="78" ry="29" class="stroke fill-paper"/>
-        <path d="M430 176 q4 -13 11 -20" class="stroke"/>
-      </g>
-      <text x="420" y="211" text-anchor="middle" class="bubble-text">sam's party??</text>
-    </g>
-  </g>
+    <g id="bubbleLayer"></g>
 
-  <!-- table + list -->
-  <g id="tableGroup" filter="url(#ink)">
-    <path d="M392 400 L508 400" class="stroke" stroke-width="2.6"/>
-    <path d="M404 400 L398 470 M496 400 L502 470" class="stroke"/>
-  </g>
-  <g id="listGroup">
-    <g filter="url(#ink)" transform="rotate(-2 450 340)">
-      <rect x="405" y="285" width="90" height="112" rx="3" class="stroke fill-paper"/>
-      <path d="M415 300 q20 -3 34 0" class="stroke" stroke-width="1.8"/>
+    <g id="listBoard" opacity="0">
+      <rect x="565" y="215" width="185" height="250" rx="4" class="stroke fill-paper" stroke-width="2.4"/>
     </g>
-    <g class="row" transform="rotate(-2 450 340)">
-      <rect x="415" y="312" width="8" height="8" class="stroke" stroke-width="1.6"/>
-      <path d="M416 316 l3 4 l5 -8" fill="none" stroke="var(--coral)" stroke-width="2.2" stroke-linecap="round"/>
-      <path d="M430 317 h50" class="stroke" stroke-width="1.6"/>
-    </g>
-    <g class="row" transform="rotate(-2 450 340)">
-      <rect x="415" y="330" width="8" height="8" class="stroke" stroke-width="1.6"/>
-      <path d="M430 335 h44" class="stroke" stroke-width="1.6"/>
-    </g>
-    <g class="row" transform="rotate(-2 450 340)">
-      <rect x="415" y="348" width="8" height="8" class="stroke" stroke-width="1.6"/>
-      <path d="M430 353 h52" class="stroke" stroke-width="1.6"/>
-    </g>
-    <g class="row" transform="rotate(-2 450 340)">
-      <rect x="415" y="366" width="8" height="8" class="stroke" stroke-width="1.6"/>
-      <path d="M430 371 h38" class="stroke" stroke-width="1.6"/>
-    </g>
-  </g>
+    <g id="listRows"></g>
 
-  <!-- walker -->
-  <g id="walker" transform="translate(-80 470)">
-    <g id="figure" filter="url(#ink)">
-      <!-- legs: three poses -->
-      <g class="pose" id="poseStand">
-        <path d="M-3 -38 L-5 -1 M-5 -1 l10 1 M3 -38 L5 -1 M5 -1 l10 1" class="stroke"/>
-      </g>
-      <g class="pose" id="poseA">
-        <path d="M-2 -38 L-16 -14 L-14 -1 M-14 -1 l10 1 M2 -38 L12 -16 L15 -1 M15 -1 l10 1" class="stroke"/>
-      </g>
-      <g class="pose" id="poseB">
-        <path d="M-2 -38 L-7 -14 L-6 -1 M-6 -1 l10 1 M2 -38 L3 -14 L2 -1 M2 -1 l10 1" class="stroke"/>
-      </g>
-      <!-- body -->
-      <path d="M-9 -82 Q-14 -58 -9 -38 L9 -38 Q14 -58 9 -82 Z" class="stroke fill-paper"/>
-      <!-- tie? no — one small pocket line -->
-      <path d="M-2 -76 l6 1" class="stroke" stroke-width="1.4" opacity="0.7"/>
-      <!-- head -->
-      <ellipse cx="2" cy="-97" rx="15" ry="14" class="stroke fill-paper"/>
-      <circle cx="9" cy="-99" r="1.7" fill="var(--ink)"/>
-      <path d="M15 -96 q4 2 1 6" class="stroke" stroke-width="1.6"/>
-      <path d="M-8 -108 q4 -4 9 -4" class="stroke" stroke-width="1.4"/>
-      <!-- arm + notepad -->
-      <path d="M8 -72 Q20 -68 26 -61" class="stroke"/>
-      <g transform="translate(32 -62) rotate(9)">
-        <rect x="-9" y="-13" width="19" height="26" rx="2" class="stroke fill-paper" stroke-width="1.8"/>
-        <path d="M-5 -6 h11 M-5 0 h9 M-5 6 h11" class="stroke" stroke-width="1.2" opacity="0.75"/>
-      </g>
-      <!-- scribbling arm + pencil -->
-      <g id="scribArm">
-        <path d="M6 -70 Q16 -60 24 -55" class="stroke"/>
-        <path d="M24 -55 l7 -5" class="stroke" stroke-width="1.8"/>
-      </g>
-      <path id="scribble" d="M28 -50 q3 3 6 0 q3 -3 6 0" class="stroke" stroke-width="1.3" opacity="0.8"/>
-    </g>
+    <g id="actor" transform="translate(-70 470)"></g>
   </g>
 </svg>
 </div>
@@ -205,98 +194,179 @@
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
-  const walker = $('walker'), figure = $('figure');
-  const bubbles = Array.from(document.querySelectorAll('.bubble'));
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const scene = $('scene'), actor = $('actor');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  let walkTimer = null, bob = false;
+  const FRAME_MS = 135;
+  const POSES = ['poseWalkA','poseWalkB','poseThink','poseReach','posePush','poseWrite','poseProud','poseWaveA','poseWaveB'];
 
+  // ---- stop-motion ticker: everything changes only on ticks; ink boils each frame
+  let frame = 0;
+  const tickWaiters = [];
+  setInterval(() => {
+    frame++;
+    scene.setAttribute('filter', `url(#ink${frame % 3})`);
+    while (tickWaiters.length) tickWaiters.shift()();
+  }, FRAME_MS);
+  const tick = () => new Promise(r => tickWaiters.push(r));
+  const ticks = async (n) => { for (let i = 0; i < n; i++) await tick(); };
+
+  // ---- actor
+  let actorX = -70, actorPose = null;
   function setPose(name) {
-    ['poseStand', 'poseA', 'poseB'].forEach(p => $(p).classList.toggle('on', p === name));
+    if (actorPose === name) return;
+    actorPose = name;
+    actor.innerHTML = '';
+    const u = document.createElementNS(svgNS, 'use');
+    u.setAttribute('href', '#' + name);
+    actor.appendChild(u);
+  }
+  function setX(x) {
+    actorX = x;
+    actor.setAttribute('transform', `translate(${Math.round(x)} 470)`);
+  }
+  async function walk(toX, opts = {}) {
+    const [a, b] = opts.wave ? ['poseWaveA', 'poseWaveB'] : ['poseWalkA', 'poseWalkB'];
+    const step = 16 * Math.sign(toX - actorX);
+    let flip = false;
+    while (Math.abs(toX - actorX) > 12) {
+      setPose(flip ? a : b); flip = !flip;
+      setX(actorX + step);
+      await tick();
+    }
+    setX(toX);
   }
 
-  function startWalking() {
-    let a = true;
-    setPose('poseA');
-    walkTimer = setInterval(() => {
-      a = !a;
-      setPose(a ? 'poseA' : 'poseB');
-      bob = !bob;
-      figure.setAttribute('transform', bob ? 'translate(0 -2)' : '');
-    }, 150);
+  // ---- bubbles
+  const BUBBLES = [
+    { text: 'Dentist Tuesday', rx: 62, sky: [200, 105], stack: 0 },
+    { text: 'MILK!',           rx: 42, sky: [420, 88],  stack: 1 },
+    { text: 'Remember… Call Ben', rx: 70, sky: [640, 100], stack: 2 },
+    { text: 'Pick up dry cleaning', rx: 72, sky: [180, 215], stack: 2 },
+    { text: "Sam's birthday??", rx: 62, sky: [430, 195], stack: 1 },
+    { text: 'MOT',             rx: 36, sky: [620, 205], stack: 0 },
+    { text: 'Passport expires…', rx: 66, sky: [740, 300], stack: 1 },
+  ];
+  const STACK_X = [150, 400, 700];
+  const stackCounts = [0, 0, 0];
+  const bubbleLayer = $('bubbleLayer');
+
+  function makeBubble(b) {
+    const g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('opacity', '0');
+    const e = document.createElementNS(svgNS, 'ellipse');
+    e.setAttribute('rx', b.rx); e.setAttribute('ry', 26);
+    e.setAttribute('class', 'stroke fill-paper');
+    const t = document.createElementNS(svgNS, 'text');
+    t.setAttribute('text-anchor', 'middle'); t.setAttribute('y', 5);
+    t.setAttribute('class', 'bubble-text');
+    t.textContent = b.text;
+    const d = document.createElementNS(svgNS, 'path');
+    d.setAttribute('class', 'stroke'); d.setAttribute('stroke-width', '1.3');
+    d.setAttribute('opacity', '0.7');
+    d.setAttribute('d', `M${-b.rx - 9} -12 l-4 -3 M${-b.rx - 7} 2 l-5 0 M${b.rx + 9} -12 l4 -3 M${b.rx + 7} 2 l5 0`);
+    g.append(e, d, t);
+    bubbleLayer.appendChild(g);
+    b.el = g; b.ellipse = e; b.dashes = d;
+    return g;
   }
-  function stopWalking() {
-    clearInterval(walkTimer);
-    setPose('poseStand');
-    figure.setAttribute('transform', '');
+  function placeBubble(b, x, y, squash) {
+    b.el.setAttribute('transform', `translate(${Math.round(x)} ${Math.round(y)})${squash ? ' scale(1.06 0.72)' : ''}`);
+    b.x = x; b.y = y;
+  }
+  function ghostBubble(b) {
+    b.ellipse.setAttribute('stroke-dasharray', '5 6');
+    b.el.setAttribute('opacity', '0.38');
+    b.dashes.setAttribute('opacity', '0');
   }
 
-  function moveWalker(fromX, toX, ms) {
-    return new Promise(resolve => {
-      const anim = walker.animate(
-        [{ transform: `translate(${fromX}px, 470px)` }, { transform: `translate(${toX}px, 470px)` }],
-        { duration: ms, easing: 'linear', fill: 'forwards' }
-      );
-      anim.onfinish = resolve;
-    });
+  // ---- list
+  const LIST = ['Dentist Tuesday', 'MOT', 'MILK', 'Call Ben', 'Pick up dry cleaning', "Sam's birthday", 'Passport expires'];
+  function addListRow(i) {
+    const y = 245 + i * 31;
+    const g = document.createElementNS(svgNS, 'g');
+    const box = document.createElementNS(svgNS, 'rect');
+    box.setAttribute('x', 580); box.setAttribute('y', y - 10);
+    box.setAttribute('width', 11); box.setAttribute('height', 11);
+    box.setAttribute('class', 'stroke coral'); box.setAttribute('stroke-width', '1.7');
+    const chk = document.createElementNS(svgNS, 'path');
+    chk.setAttribute('d', `M${582} ${y - 5} l3 4 l6 -9`);
+    chk.setAttribute('class', 'stroke coral'); chk.setAttribute('stroke-width', '2.2');
+    const t = document.createElementNS(svgNS, 'text');
+    t.setAttribute('x', 600); t.setAttribute('y', y);
+    t.setAttribute('class', 'list-text');
+    t.textContent = LIST[i];
+    g.append(box, chk, t);
+    $('listRows').appendChild(g);
   }
 
   function finalScene() {
-    $('tableGroup').style.opacity = 1;
-    $('listGroup').style.opacity = 1;
-    document.querySelectorAll('#listGroup .row').forEach(r => r.classList.add('show'));
+    BUBBLES.forEach(makeBubble);
+    $('listBoard').setAttribute('opacity', '1');
+    LIST.forEach((_, i) => addListRow(i));
+    setPose('poseProud'); setX(505);
     $('caption').classList.add('show');
     $('replay').classList.add('show');
-    walker.setAttribute('transform', 'translate(-80 470)');
   }
 
   async function play() {
     if (reduced) { finalScene(); return; }
+    BUBBLES.forEach(makeBubble);
 
-    setPose('poseStand');
-    await sleep(500);
+    // Panel 1 — walks in
+    await ticks(4);
+    await walk(320);
+    setPose('poseThink');
 
-    // bubbles fall from the sky
-    for (const b of bubbles) {
-      b.classList.add('in');
-      await sleep(340);
+    // Panel 2 — bubbles pop into the sky, he considers them
+    for (const b of BUBBLES) {
+      placeBubble(b, b.sky[0], b.sky[1], false);
+      b.el.setAttribute('opacity', '1');
+      await ticks(2);
     }
-    await sleep(500);
+    await ticks(6);
 
-    // assistant walks in
-    startWalking();
-    await moveWalker(-80, 330, 2700);
-    stopWalking();
+    // Panel 3 — reaches up and grabs the first one
+    setPose('poseReach');
+    await ticks(3);
 
-    // takes notes; bubbles pop one by one
-    walker.classList.add('writing');
-    await sleep(500);
-    for (const b of bubbles) {
-      b.classList.remove('in');
-      b.classList.add('pop');
-      await sleep(680);
+    // Panel 4 — sorts bubbles into stacks (each hops down in 3 frames)
+    for (const b of BUBBLES) {
+      const sx = STACK_X[b.stack];
+      const sy = 445 - stackCounts[b.stack] * 40;
+      stackCounts[b.stack]++;
+      // hop toward stack in discrete jumps
+      const midX = (b.x + sx) / 2;
+      placeBubble(b, midX, b.y - 26, false); await tick();
+      placeBubble(b, sx, (b.y + sy) / 2, false); await tick();
+      placeBubble(b, sx, sy, true);
+      // he shoves it into place
+      setPose('posePush');
+      setX(sx - 95 > 60 ? sx - 95 : sx + 95);
+      await ticks(2);
+      setPose('poseThink');
+      await tick();
     }
-    await sleep(300);
-    walker.classList.remove('writing');
+    await ticks(4);
 
-    // leaves the list on the table
-    $('tableGroup').classList.add('show');
-    await sleep(250);
-    $('listGroup').classList.add('show');
-    await sleep(450);
-    for (const r of document.querySelectorAll('#listGroup .row')) {
-      r.classList.add('show');
-      await sleep(190);
+    // Panel 5 — stacks ghost out; he writes up the board
+    BUBBLES.forEach(ghostBubble);
+    $('listBoard').setAttribute('opacity', '1');
+    setPose('poseWrite'); setX(505);
+    await ticks(3);
+    for (let i = 0; i < LIST.length; i++) {
+      addListRow(i);
+      await ticks(3);
     }
-    await sleep(400);
+    await ticks(2);
+    BUBBLES.forEach(b => b.el.setAttribute('opacity', '0'));
 
-    // walks off
-    startWalking();
-    await moveWalker(330, 980, 2500);
-    stopWalking();
+    // Panel 6 — stands proud, then waves off
+    setPose('poseProud');
+    await ticks(8);
+    await walk(960, { wave: true });
 
-    // tagline
     $('caption').classList.add('show');
     $('replay').classList.add('show');
   }

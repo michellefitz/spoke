@@ -25,6 +25,22 @@ the header. Remaining ideas:
 - Widget treatment of week-bucket tasks (they surface on the last day of
   the week as "due today", which is defensible but unconsidered).
 
+## Calendar integration — SHIPPED v1, remaining ideas
+
+Read-only device-calendar (EventKit) appointments now show in the week view:
+`CalendarService` wraps EKEventStore, event blocks render above tasks in each
+day section (calendar-colour spine + time, no checkbox), connect card in the
+calendar view, Display toggle in Settings. Google/iCloud/work calendars all
+arrive via the phone's calendar accounts — deliberately no Google OAuth (weekly
+re-auth while unverified + Google review before App Store made it a bad trade).
+Remaining ideas:
+- Feed the day's appointments into the parser context so voice can answer
+  "what does Thursday look like?" and place tasks around real commitments.
+- Show today's appointments in the list view header or the Today section.
+- Calendar picker (choose which calendars appear) if all-calendars is noisy.
+- Create events by voice ("dentist Tuesday at 3" is an appointment, not a
+  task) — needs write access and a task-vs-event judgment call in the parser.
+
 ## Live transcript legibility & self-correction
 
 The live speech-to-text caption (shown above the mic while recording) is hard to

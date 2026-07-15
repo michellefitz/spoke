@@ -58,8 +58,27 @@ struct SettingsView: View {
                         Text("Show completed tasks in calendar view")
                     }
                     .tint(coral)
+
+                    Toggle(isOn: Binding(
+                        get: { settings.showCalendarEvents },
+                        set: { newValue in
+                            settings.showCalendarEvents = newValue
+                            if newValue && CalendarService.shared.canRequestAccess {
+                                Task { await CalendarService.shared.requestAccess() }
+                            }
+                        }
+                    )) {
+                        Text("Show calendar events in calendar view")
+                    }
+                    .tint(coral)
                 } header: {
                     sectionHeader("Display")
+                } footer: {
+                    if settings.showCalendarEvents && CalendarService.shared.isDenied {
+                        Text("Calendar access is turned off for Spoke. Allow it in iOS Settings → Privacy & Security → Calendars.")
+                            .font(.footnote)
+                            .foregroundStyle(Color(.secondaryLabel))
+                    }
                 }
 
                 // MARK: Tags
