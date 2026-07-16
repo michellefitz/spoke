@@ -97,6 +97,19 @@ struct WeekCalendarView: View {
         calendarService.canRequestAccess && !settings.calendarPromptDismissed
     }
 
+    private func isPast(_ day: Date) -> Bool {
+        day < cal.startOfDay(for: .now) && !cal.isDateInToday(day)
+    }
+
+    /// In the current week, land with today at the top — past days stay one
+    /// scroll up, faded. Other weeks (and Mondays) open from the top.
+    private func scrollToToday(_ proxy: ScrollViewProxy) {
+        guard weekOffset == 0,
+              let index = days.firstIndex(where: { cal.isDateInToday($0) }),
+              index > 0 else { return }
+        proxy.scrollTo("day-\(index)", anchor: .top)
+    }
+
     /// Tasks completed on this day — shown after the active ones so the day
     /// reads as "still to do, then what got done".
     private func completedTasks(on day: Date) -> [SpokeTask] {
@@ -138,6 +151,7 @@ struct WeekCalendarView: View {
                 }
                 emptyState
             } else {
+                ScrollViewReader { proxy in
                 List {
                     if showConnectCard {
                         connectCard
@@ -188,15 +202,23 @@ struct WeekCalendarView: View {
                         dayDivider
                     }
 
+                    // Divider above each day (not after) so it can carry the
+                    // day's scroll anchor for the open-at-today jump.
                     ForEach(Array(days.enumerated()), id: \.element.timeIntervalSinceReferenceDate) { index, day in
-                        scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned") { dateColumn(day) }
-                        if index < days.count - 1 {
-                            dayDivider
+                        if index > 0 {
+                            dayDivider.id("day-\(index)")
                         }
+                        scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", dimmed: isPast(day)) { dateColumn(day) }
                     }
                 }
                 .listStyle(.plain)
                 .environment(\.defaultMinListRowHeight, 10)
+                .task(id: weekOffset) {
+                    // Let the rows lay out before jumping.
+                    try? await Task.sleep(for: .milliseconds(80))
+                    scrollToToday(proxy)
+                }
+                }
             }
         }
         .task(id: weekOffset) { loadEvents() }
@@ -216,7 +238,7 @@ struct WeekCalendarView: View {
     /// visible on the first row only, so tasks stack beside a single date.
     /// Calendar appointments render first, then tasks.
     @ViewBuilder
-    private func scheduleRows<Label: View>(events: [DayEvent] = [], eventsDay: Date = .distantPast, tasks: [SpokeTask], emptyText: String?, @ViewBuilder label: @escaping () -> Label) -> some View {
+    private func scheduleRows<Label: View>(events: [DayEvent] = [], eventsDay: Date = .distantPast, tasks: [SpokeTask], emptyText: String?, dimmed: Bool = false, @ViewBuilder label: @escaping () -> Label) -> some View {
         if events.isEmpty && tasks.isEmpty {
             if let emptyText {
                 HStack(alignment: .center, spacing: 14) {
@@ -228,6 +250,7 @@ struct WeekCalendarView: View {
                         .foregroundStyle(Color(.quaternaryLabel))
                     Spacer(minLength: 0)
                 }
+                .opacity(dimmed ? 0.45 : 1)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
             }
@@ -243,6 +266,7 @@ struct WeekCalendarView: View {
                     }
                     eventRow(event, on: eventsDay)
                 }
+                .opacity(dimmed ? 0.45 : 1)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
             }
@@ -261,6 +285,7 @@ struct WeekCalendarView: View {
                         calendarStyle: true
                     )
                 }
+                .opacity(dimmed ? 0.45 : 1)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
             }
