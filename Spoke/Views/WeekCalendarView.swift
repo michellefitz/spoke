@@ -258,8 +258,7 @@ struct WeekCalendarView: View {
                         onToggleComplete: { toggleComplete(task) },
                         onDelete: { deleteTask(task) },
                         onTap: { selectedTask = task },
-                        hideDeadlineChip: true,
-                        hideTagChip: true
+                        calendarStyle: true
                     )
                 }
                 .listRowSeparator(.hidden)

@@ -5,10 +5,10 @@ struct TaskRowView: View {
     let onToggleComplete: () -> Void
     let onDelete: () -> Void
     let onTap: () -> Void
-    /// Set in contexts where the date is already visible (e.g. the calendar view).
-    var hideDeadlineChip: Bool = false
-    /// Set in contexts that keep rows to a single line (e.g. the calendar view).
-    var hideTagChip: Bool = false
+    /// Set inside the week calendar: chips hidden (date is already visible,
+    /// rows stay single-line) and type metrics matched to the event blocks —
+    /// 15pt title, 15pt checkbox, tighter gutter so text edges line up.
+    var calendarStyle: Bool = false
 
     @State private var strikeProgress: CGFloat = 0
     @State private var isAnimating = false
@@ -17,6 +17,8 @@ struct TaskRowView: View {
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let settings = AppSettings.shared
+
+    private var titleSize: CGFloat { calendarStyle ? 15 : 16 }
 
     private var subtaskCounts: (done: Int, total: Int)? {
         guard let desc = task.taskDescription else { return nil }
@@ -49,11 +51,11 @@ struct TaskRowView: View {
     }()
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: calendarStyle ? 8 : 10) {
             Button(action: handleCompleteToggle) {
                 let filled = task.isCompleted || pendingComplete
                 Image(systemName: filled ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 16))
+                    .font(.system(size: calendarStyle ? 15 : 16))
                     .foregroundStyle(filled ? coral : Color(.tertiaryLabel))
                     .animation(.easeInOut(duration: 0.15), value: filled)
             }
@@ -63,13 +65,13 @@ struct TaskRowView: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 0) {
                     Text(task.title)
-                        .font(.system(size: 16))
+                        .font(.system(size: titleSize))
                         .strikethrough(task.isCompleted)
                         .opacity(task.isCompleted ? 0.45 : 1.0)
                         .overlay {
                             // Animated strikethrough that draws left → right
                             Text(task.title)
-                                .font(.system(size: 16))
+                                .font(.system(size: titleSize))
                                 .foregroundStyle(.clear)
                                 .strikethrough(true, color: Color.primary.opacity(0.45))
                                 .mask(
@@ -109,8 +111,8 @@ struct TaskRowView: View {
                         .padding(.leading, 2)
                 }
 
-                let showDeadline = task.deadline != nil && settings.showDueDates && !hideDeadlineChip
-                let showTag = task.tag != nil && settings.showTags && !hideTagChip
+                let showDeadline = task.deadline != nil && settings.showDueDates && !calendarStyle
+                let showTag = task.tag != nil && settings.showTags && !calendarStyle
                 if showDeadline || showTag {
                     HStack(spacing: 4) {
                         if showDeadline, let deadline = task.deadline {
