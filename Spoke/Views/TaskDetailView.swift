@@ -15,6 +15,7 @@ struct TaskDetailView: View {
     @State private var errorToast: String?
     @State private var showDatePicker = false
     @State private var pickerDate: Date = .now
+    @State private var showDeleteConfirmation = false
 
     // Local editing state — source of truth for the UI, synced to task.taskDescription
     @State private var editingNotes = ""
@@ -98,28 +99,49 @@ struct TaskDetailView: View {
 
                 Spacer()
 
-                Button("Close") {
-                    try? modelContext.save()
-                    WidgetCenter.shared.reloadAllTimelines()
-                    dismiss()
+                HStack(spacing: 20) {
+                    Button {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color(.secondaryLabel))
+                    }
+
+                    Button("Close") {
+                        try? modelContext.save()
+                        WidgetCenter.shared.reloadAllTimelines()
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundStyle(coral)
                 }
-                .fontWeight(.semibold)
-                .foregroundStyle(coral)
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
             .padding(.bottom, 4)
 
             // MARK: Title
-            TextField("What needs doing?", text: $task.title, axis: .vertical)
-                .font(.title2)
-                .fontWeight(.semibold)
-                .focused($focusedField, equals: .title)
-                .submitLabel(.next)
-                .onSubmit { focusedField = .notes }
-                .disabled(task.isCompleted)
-                .padding(.top, 10)
-                .padding(.horizontal, 24)
+            HStack(alignment: .top, spacing: 12) {
+                Button(action: toggleComplete) {
+                    Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22))
+                        .foregroundStyle(task.isCompleted ? coral : Color(.tertiaryLabel))
+                        .animation(.easeInOut(duration: 0.2), value: task.isCompleted)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 3)
+
+                TextField("What needs doing?", text: $task.title, axis: .vertical)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .focused($focusedField, equals: .title)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .notes }
+                    .disabled(task.isCompleted)
+            }
+            .padding(.top, 10)
+            .padding(.horizontal, 24)
 
             // MARK: Pills row
             HStack(spacing: 6) {
@@ -402,6 +424,12 @@ struct TaskDetailView: View {
             .presentationDetents([.height(420)])
             .presentationDragIndicator(.visible)
         }
+        .confirmationDialog("Delete this task?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) { deleteTask() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This can't be undone.")
+        }
         .alert("Microphone Access Required", isPresented: $showPermissionAlert) {
             Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -411,6 +439,44 @@ struct TaskDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Spoke needs microphone and speech recognition access. Please enable them in Settings.")
+        }
+    }
+
+    // MARK: - Complete & delete
+
+    /// Completing from the card saves and dismisses after the checkmark
+    /// animates — read it, tick it, done. Un-completing keeps the card open
+    /// so the fields re-enable for editing.
+    private func toggleComplete() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if task.isCompleted {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                task.isCompleted = false
+                task.completedAt = nil
+            }
+        } else {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                task.isCompleted = true
+                task.completedAt = .now
+            }
+            try? modelContext.save()
+            WidgetCenter.shared.reloadAllTimelines()
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(450))
+                dismiss()
+            }
+        }
+    }
+
+    /// Dismiss before deleting — the card holds a @Bindable to this task, so
+    /// the model must outlive the sheet's teardown.
+    private func deleteTask() {
+        dismiss()
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            modelContext.delete(task)
+            try? modelContext.save()
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
 

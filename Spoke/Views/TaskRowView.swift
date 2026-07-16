@@ -148,12 +148,16 @@ struct TaskRowView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
-        // Swipe right → delete (requires tap, no accidental full-swipe)
+        // Swipe right → delete (requires tap, no accidental full-swipe).
+        // Calendar rows are too short for swipe buttons — complete lives on
+        // the checkbox, delete on the detail card.
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                showDeleteConfirmation = true
-            } label: {
-                Label("Delete", systemImage: "trash")
+            if !calendarStyle {
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
             }
         }
         .confirmationDialog("Delete this task?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
@@ -164,14 +168,16 @@ struct TaskRowView: View {
         }
         // Swipe left → complete / uncomplete
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(action: onToggleComplete) {
-                if task.isCompleted {
-                    Label("Undo", systemImage: "arrow.uturn.backward")
-                } else {
-                    Label("Done", systemImage: "checkmark")
+            if !calendarStyle {
+                Button(action: onToggleComplete) {
+                    if task.isCompleted {
+                        Label("Undo", systemImage: "arrow.uturn.backward")
+                    } else {
+                        Label("Done", systemImage: "checkmark")
+                    }
                 }
+                .tint(task.isCompleted ? .orange : .green)
             }
-            .tint(task.isCompleted ? .orange : .green)
         }
     }
 
