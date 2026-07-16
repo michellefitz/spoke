@@ -22,6 +22,12 @@ doesn't fit this, rewrite the copy — or argue with this doc and update it.
    and then have nowhere to put it — bullet points in a chat, or a clumsy
    handoff to Reminders.
 
+*July 2026 update: two more tiers emerged after the calendar integration
+shipped — premium calendar-planners (Sunsama/Motion/Amie/Structured) and
+mental-load apps for mums (AlphaMa, Ohai, Milo). Market map v2, positioning
+v2, and the full launch plan live in MARKETING-PLAN.md; the voice rules and
+brand personality in this doc still govern everything.*
+
 ## What only Spoke can say
 
 - **The whole app is the conversation.** Voice isn't a mic button bolted onto
