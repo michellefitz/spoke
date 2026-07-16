@@ -221,6 +221,19 @@ struct WeekCalendarView: View {
                 }
             }
         }
+        // Swipe left/right anywhere in the view to page between weeks. Only
+        // clearly-horizontal drags count, so list scrolling stays untouched.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 25)
+                .onEnded { value in
+                    let dx = value.translation.width
+                    let dy = value.translation.height
+                    guard abs(dx) > abs(dy) * 1.5, abs(dx) > 50 else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        weekOffset += dx < 0 ? 1 : -1
+                    }
+                }
+        )
         .task(id: weekOffset) { loadEvents() }
         .onChange(of: calendarService.isConnected) { loadEvents() }
         .onChange(of: settings.hiddenCalendarIDs) { loadEvents() }
