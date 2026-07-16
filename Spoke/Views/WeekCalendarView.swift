@@ -411,7 +411,9 @@ struct WeekCalendarView: View {
             .fill(Color(.separator).opacity(0.5))
             .frame(height: 0.5)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0))
+            // Generous breathing room so each day reads as its own chunk,
+            // while rows within a day stay tight.
+            .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
     }
 
     // MARK: - Date columns
