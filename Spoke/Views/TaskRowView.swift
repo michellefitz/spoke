@@ -51,7 +51,7 @@ struct TaskRowView: View {
     }()
 
     var body: some View {
-        HStack(alignment: .top, spacing: calendarStyle ? 8 : 10) {
+        HStack(alignment: .top, spacing: calendarStyle ? 3 : 10) {
             Button(action: handleCompleteToggle) {
                 let filled = task.isCompleted || pendingComplete
                 Image(systemName: filled ? "checkmark.circle.fill" : "circle")
@@ -61,6 +61,8 @@ struct TaskRowView: View {
             }
             .buttonStyle(.plain)
             .padding(.top, 1) // optical alignment with title baseline
+            // Centre the circle on the event blocks' colour spine.
+            .padding(.leading, calendarStyle ? 4 : 0)
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 0) {
