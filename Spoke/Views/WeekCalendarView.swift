@@ -101,15 +101,6 @@ struct WeekCalendarView: View {
         day < cal.startOfDay(for: .now) && !cal.isDateInToday(day)
     }
 
-    /// In the current week, land with today at the top — past days stay one
-    /// scroll up, faded. Other weeks (and Mondays) open from the top.
-    private func scrollToToday(_ proxy: ScrollViewProxy) {
-        guard weekOffset == 0,
-              let index = days.firstIndex(where: { cal.isDateInToday($0) }),
-              index > 0 else { return }
-        proxy.scrollTo("day-\(index)", anchor: .top)
-    }
-
     /// Tasks completed on this day — shown after the active ones so the day
     /// reads as "still to do, then what got done".
     private func completedTasks(on day: Date) -> [SpokeTask] {
@@ -151,7 +142,6 @@ struct WeekCalendarView: View {
                 }
                 emptyState
             } else {
-                ScrollViewReader { proxy in
                 List {
                     if showConnectCard {
                         connectCard
@@ -202,23 +192,15 @@ struct WeekCalendarView: View {
                         dayDivider
                     }
 
-                    // Divider above each day (not after) so it can carry the
-                    // day's scroll anchor for the open-at-today jump.
                     ForEach(Array(days.enumerated()), id: \.element.timeIntervalSinceReferenceDate) { index, day in
                         if index > 0 {
-                            dayDivider.id("day-\(index)")
+                            dayDivider
                         }
                         scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", dimmed: isPast(day)) { dateColumn(day) }
                     }
                 }
                 .listStyle(.plain)
                 .environment(\.defaultMinListRowHeight, 10)
-                .task(id: weekOffset) {
-                    // Let the rows lay out before jumping.
-                    try? await Task.sleep(for: .milliseconds(80))
-                    scrollToToday(proxy)
-                }
-                }
             }
         }
         // Swipe left/right anywhere in the view to page between weeks. Only
