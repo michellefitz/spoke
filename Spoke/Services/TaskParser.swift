@@ -376,20 +376,32 @@ enum TaskParser {
     }
 
     private static func callClaudeRaw(system: String, user: String) async -> String? {
-        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else { return nil }
+        let useProxy = !Config.proxyBaseURL.isEmpty
+        let endpoint = useProxy
+            ? Config.proxyBaseURL + "/v1/parse"
+            : "https://api.anthropic.com/v1/messages"
+        guard let url = URL(string: endpoint) else { return nil }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue(Config.anthropicAPIKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.setValue("application/json", forHTTPHeaderField: "content-type")
 
-        let body: [String: Any] = [
-            "model": "claude-haiku-4-5-20251001",
-            "max_tokens": 800,
-            "system": system,
-            "messages": [["role": "user", "content": user]]
-        ]
+        let body: [String: Any]
+        if useProxy {
+            // The worker pins model + max_tokens and returns the same
+            // response shape the direct call does.
+            request.setValue(Config.proxySecret, forHTTPHeaderField: "x-spoke-key")
+            body = ["system": system, "user": user]
+        } else {
+            request.setValue(Config.anthropicAPIKey, forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            body = [
+                "model": "claude-haiku-4-5-20251001",
+                "max_tokens": 800,
+                "system": system,
+                "messages": [["role": "user", "content": user]]
+            ]
+        }
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)

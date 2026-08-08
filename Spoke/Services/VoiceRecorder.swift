@@ -18,6 +18,12 @@ final class VoiceRecorder {
     private var audioEngine = AVAudioEngine()
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
+    private var connectTask: Task<Void, Never>?
+
+    // Frames captured before the websocket is up (proxy-token fetch takes a
+    // few hundred ms) are buffered and flushed on connect.
+    private var pendingFrames: [Data] = []
+    private static let maxPendingFrames = 400
 
     // Transcript accumulation
     private var finalSegments: [String] = []
@@ -43,7 +49,7 @@ final class VoiceRecorder {
         try audioSession.setCategory(.record, mode: .default, options: .duckOthers)
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
 
-        connectWebSocket()
+        connectTask = Task { await self.connectWebSocket() }
         try startAudioCapture()
         startPingTask()
     }
@@ -118,7 +124,7 @@ final class VoiceRecorder {
 
             Task { @MainActor [weak self] in
                 self?.audioLevel = normalizedLevel
-                self?.webSocketTask?.send(.data(audioData)) { _ in }
+                self?.sendFrame(audioData)
             }
         }
 
@@ -128,7 +134,7 @@ final class VoiceRecorder {
 
     // MARK: - WebSocket
 
-    private func connectWebSocket() {
+    private func connectWebSocket() async {
         var comps = URLComponents(string: "wss://api.deepgram.com/v1/listen")!
         comps.queryItems = [
             URLQueryItem(name: "model",           value: "nova-3"),
@@ -144,16 +150,61 @@ final class VoiceRecorder {
         guard let url = comps.url else { return }
 
         var request = URLRequest(url: url)
-        request.setValue("Token \(Config.deepgramAPIKey)", forHTTPHeaderField: "Authorization")
+        if Config.proxyBaseURL.isEmpty {
+            // Dev fallback: direct key on the device.
+            request.setValue("Token \(Config.deepgramAPIKey)", forHTTPHeaderField: "Authorization")
+        } else {
+            guard let token = await fetchDeepgramToken() else {
+                print("[VoiceRecorder] Could not mint Deepgram token")
+                return
+            }
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        // The user may have stopped recording while the token was minting.
+        guard recordingState == .recording else { return }
 
         let session = URLSession(configuration: .default)
         urlSession = session
         webSocketTask = session.webSocketTask(with: request)
         webSocketTask?.resume()
         receiveMessages()
+        flushPendingFrames()
+    }
+
+    private func fetchDeepgramToken() async -> String? {
+        guard let url = URL(string: Config.proxyBaseURL + "/v1/deepgram-token") else { return nil }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(Config.proxySecret, forHTTPHeaderField: "x-spoke-key")
+        guard
+            let (data, response) = try? await URLSession.shared.data(for: request),
+            (response as? HTTPURLResponse)?.statusCode == 200,
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let token = json["access_token"] as? String
+        else { return nil }
+        return token
+    }
+
+    private func sendFrame(_ data: Data) {
+        if let ws = webSocketTask {
+            ws.send(.data(data)) { _ in }
+        } else if pendingFrames.count < Self.maxPendingFrames {
+            pendingFrames.append(data)
+        }
+    }
+
+    private func flushPendingFrames() {
+        for frame in pendingFrames {
+            webSocketTask?.send(.data(frame)) { _ in }
+        }
+        pendingFrames.removeAll()
     }
 
     private func disconnectWebSocket() {
+        connectTask?.cancel()
+        connectTask = nil
+        pendingFrames.removeAll()
         if let data = #"{"type":"CloseStream"}"#.data(using: .utf8) {
             webSocketTask?.send(.data(data)) { _ in }
         }

@@ -1,5 +1,10 @@
 enum Config {
-    // Add your API keys here (do not commit real keys)
+    // Release mode: the spoke-proxy worker (see proxy/README.md).
+    // Keys stay server-side; the app only holds the proxy's shared secret.
+    static let proxyBaseURL = ""   // e.g. "https://spoke-proxy.<you>.workers.dev"
+    static let proxySecret  = ""   // the worker's APP_SECRET
+
+    // Dev fallback: used only while proxyBaseURL is empty (do not commit real keys).
     static let anthropicAPIKey = "YOUR_ANTHROPIC_API_KEY"
     static let deepgramAPIKey  = "YOUR_DEEPGRAM_API_KEY"
 }

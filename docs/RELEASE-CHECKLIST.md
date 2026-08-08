@@ -41,7 +41,8 @@ order of operations.
 
 ## Before the App Store submission (the real gates)
 
-- [ ] **API keys moved out of the app binary** — proxy in place (see chat;
+- [ ] **API keys moved out of the app binary** — deploy `proxy/` and set
+      `proxyBaseURL`/`proxySecret` in Config.swift (see proxy/README.md;
       blocker for public release, fine for TestFlight)
 - [ ] Privacy policy page live (must mention: voice audio sent to Deepgram
       for transcription and Anthropic for parsing; calendar data never

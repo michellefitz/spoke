@@ -1,0 +1,17 @@
+name = "spoke-proxy"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+
+# Per-IP rate limit: 30 requests per 60s. Optional — if `wrangler deploy`
+# complains about this block on your plan, delete it and add a WAF
+# rate-limiting rule in the Cloudflare dashboard instead.
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
+
+# Secrets (never in this file) — set each with `wrangler secret put <NAME>`:
+#   APP_SECRET          shared secret the app sends as x-spoke-key
+#   DEEPGRAM_API_KEY    from console.deepgram.com
+#   ANTHROPIC_API_KEY   from console.anthropic.com
