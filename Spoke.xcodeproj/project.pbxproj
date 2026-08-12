@@ -33,7 +33,7 @@
 		C1777BE632FCEE5796F0D217 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B14AEDED788DDEE5A8A5056 /* Task.swift */; };
 		CE1ADD384352B92C57C1792F /* TaskParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DDFE16C15B248AE931BEDEC /* TaskParser.swift */; };
 		F293693B0CF0C2F0D1882F5D /* SpokeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61697DD7E73DC52F3DBF8513 /* SpokeApp.swift */; };
-		FAE4743EEBCB5239FD220CCD /* DebugLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B9ECBC00511873856CA81A9 /* DebugLogView.swift */; };
+		FAE4743EEBCB5239FD220CCD /* RecordingLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B9ECBC00511873856CA81A9 /* RecordingLogView.swift */; };
 		FC4DC001032608AD6A238863 /* TaskParserLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D7826DD8178666D5171C12 /* TaskParserLogger.swift */; };
 		FD49F038E5FF3E6C0C3D8707 /* Config.swift.example in Resources */ = {isa = PBXBuildFile; fileRef = 5AE9B43530324EA0A2EA007D /* Config.swift.example */; };
 /* End PBXBuildFile section */
@@ -72,7 +72,7 @@
 		11A184B9D21BFAA8AD32CEF0 /* spoke-hero.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "spoke-hero.html"; sourceTree = "<group>"; };
 		1B3957279987778F6EFA75D6 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		1F45466236E0D0B9CC126A7D /* VoiceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceRecorder.swift; sourceTree = "<group>"; };
-		2B9ECBC00511873856CA81A9 /* DebugLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogView.swift; sourceTree = "<group>"; };
+		2B9ECBC00511873856CA81A9 /* RecordingLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingLogView.swift; sourceTree = "<group>"; };
 		5AE9B43530324EA0A2EA007D /* Config.swift.example */ = {isa = PBXFileReference; path = Config.swift.example; sourceTree = "<group>"; };
 		5B14AEDED788DDEE5A8A5056 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
 		5E5E5EBF24AADF435E693DE4 /* SpokeWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpokeWidget.swift; sourceTree = "<group>"; };
@@ -135,7 +135,7 @@
 				14E7A1B29C3D5F60718A2B4D /* AssistantSheetView.swift */,
 				85FEDC74B870B88EF832273A /* AudioWaveformView.swift */,
 				CBF04D4396113B1353FED13C /* ContentView.swift */,
-				2B9ECBC00511873856CA81A9 /* DebugLogView.swift */,
+				2B9ECBC00511873856CA81A9 /* RecordingLogView.swift */,
 				EB7B10918EC2A66BC67979EB /* index.html */,
 				E808A3AF60E6265518225A16 /* OnboardingView.swift */,
 				FEFBB8C0205D73D658774579 /* SettingsView.swift */,
@@ -287,7 +287,7 @@
 				8E2D4F60A1B3C5D7E9F01234 /* CalendarService.swift in Sources */,
 				9D391789B1CDC9BB717A1FF3 /* Config.swift in Sources */,
 				B202B0AAB1B65EE9011576B0 /* ContentView.swift in Sources */,
-				FAE4743EEBCB5239FD220CCD /* DebugLogView.swift in Sources */,
+				FAE4743EEBCB5239FD220CCD /* RecordingLogView.swift in Sources */,
 				1FA6B1BBDA6BCEABA70CB41E /* OnboardingView.swift in Sources */,
 				21FFF80255053FE7525AD8D2 /* SettingsView.swift in Sources */,
 				A4B5E6F388165CFB19E77426 /* SharedContainer.swift in Sources */,

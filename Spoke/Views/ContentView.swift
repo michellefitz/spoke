@@ -111,6 +111,7 @@ struct ContentView: View {
     private let network = NetworkMonitor.shared
 
     @State private var recorder = VoiceRecorder()
+    @State private var backgroundStoppedRecording = false
     @State private var selectedTask: SpokeTask?
     @State private var showPermissionAlert = false
     @State private var selectedTag: String? = nil
@@ -460,6 +461,23 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { pruneCompletedTasks() }
+            if phase != .active, recorder.recordingState == .recording {
+                // iOS cuts the microphone the moment we leave the
+                // foreground. Wrap up and keep what was heard rather than
+                // leaving a recording that looks live but is deaf.
+                recorder.noteBackgrounded()
+                recordingTimer?.cancel()
+                backgroundStoppedRecording = true
+                stopAndProcess()
+            }
+            if phase == .active, backgroundStoppedRecording {
+                backgroundStoppedRecording = false
+                // If something was heard the assistant sheet already
+                // explains itself; this is for when it caught nothing.
+                if assistantSheet == nil {
+                    showToast("Recording stopped when you left Spoke")
+                }
+            }
             if phase == .background {
                 try? modelContext.save()
                 WidgetCenter.shared.reloadAllTimelines()

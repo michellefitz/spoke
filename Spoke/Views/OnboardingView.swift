@@ -374,6 +374,13 @@ private struct FirstTaskRecordingView: View {
                 withAnimation { micDenied = false }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            // Leaving the app cuts the microphone — don't leave the mic
+            // animating over a recording that can no longer hear anything.
+            guard recorder.recordingState == .recording else { return }
+            recorder.noteBackgrounded()
+            stopAndProcess()
+        }
     }
 
     private var sampleCard: some View {

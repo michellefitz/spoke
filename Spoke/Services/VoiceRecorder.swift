@@ -25,6 +25,14 @@ final class VoiceRecorder {
     private var pendingFrames: [Data] = []
     private static let maxPendingFrames = 400
 
+    // Diagnostics for the recording log.
+    private var startedAt: Date?
+    private var diagnostics = RecordingDiagnostics()
+    private var interruptionObserver: NSObjectProtocol?
+
+    /// Diagnostics for the most recent recording — nil until one finishes.
+    private(set) var lastDiagnostics: RecordingDiagnostics?
+
     // Transcript accumulation
     private var finalSegments: [String] = []
     private var currentInterim: String = ""
@@ -44,6 +52,9 @@ final class VoiceRecorder {
         currentInterim = ""
         liveTranscript = ""
         recordingState = .recording
+        startedAt = Date()
+        diagnostics = RecordingDiagnostics()
+        observeInterruptions()
 
         let audioSession = AVAudioSession.sharedInstance()
         try audioSession.setCategory(.record, mode: .default, options: .duckOthers)
@@ -60,6 +71,7 @@ final class VoiceRecorder {
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         disconnectWebSocket()
+        stopObservingInterruptions()
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
 
         recordingState = .processing
@@ -68,7 +80,29 @@ final class VoiceRecorder {
         // Return accumulated finals + any trailing interim
         var parts = finalSegments
         if !currentInterim.isEmpty { parts.append(currentInterim) }
-        return parts.joined(separator: " ")
+        let transcript = parts.joined(separator: " ")
+
+        diagnostics.durationMs = Int((Date().timeIntervalSince(startedAt ?? Date())) * 1000)
+        diagnostics.finalSegments = finalSegments.count
+        lastDiagnostics = diagnostics
+        if transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Nothing to parse, so nothing would otherwise be logged — but a
+            // recording that heard nothing is exactly what's worth seeing.
+            TaskParserLogger.shared.logSilentRecording(diagnostics)
+        } else {
+            TaskParserLogger.shared.pendingDiagnostics = diagnostics
+        }
+        startedAt = nil
+
+        return transcript
+    }
+
+    /// Called when the app leaves the foreground while recording. iOS stops
+    /// delivering microphone audio, so the recording is over whether we like
+    /// it or not — mark it so the log can explain the short transcript.
+    func noteBackgrounded() {
+        guard recordingState == .recording else { return }
+        diagnostics.backgrounded = true
     }
 
     func finishProcessing() {
@@ -156,6 +190,7 @@ final class VoiceRecorder {
         } else {
             guard let token = await fetchDeepgramToken() else {
                 print("[VoiceRecorder] Could not mint Deepgram token")
+                diagnostics.connectionError = "Couldn't reach the transcription service."
                 return
             }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -217,14 +252,50 @@ final class VoiceRecorder {
         webSocketTask?.receive { [weak self] result in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                if case .success(let msg) = result {
+                switch result {
+                case .success(let msg):
                     self.handleMessage(msg)
                     if self.recordingState == .recording {
                         self.receiveMessages()
                     }
+                case .failure(let error):
+                    // Previously this branch did nothing: the receive loop
+                    // simply stopped, audio kept streaming into a dead
+                    // socket, and every word after the drop was lost with
+                    // no sign anything had gone wrong.
+                    guard self.recordingState == .recording else { return }
+                    self.diagnostics.connectionError = error.localizedDescription
+                    print("[VoiceRecorder] Transcription socket failed: \(error.localizedDescription)")
                 }
             }
         }
+    }
+
+    // MARK: - Interruptions
+
+    private func observeInterruptions() {
+        guard interruptionObserver == nil else { return }
+        interruptionObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] note in
+            guard
+                let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                AVAudioSession.InterruptionType(rawValue: raw) == .began
+            else { return }
+            Task { @MainActor [weak self] in
+                guard let self, self.recordingState == .recording else { return }
+                self.diagnostics.interrupted = true
+            }
+        }
+    }
+
+    private func stopObservingInterruptions() {
+        if let interruptionObserver {
+            NotificationCenter.default.removeObserver(interruptionObserver)
+        }
+        interruptionObserver = nil
     }
 
     private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
