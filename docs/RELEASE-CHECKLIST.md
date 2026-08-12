@@ -8,9 +8,25 @@ order of operations.
 - [ ] appstoreconnect.apple.com signs in and shows your account (membership active)
 - [ ] App Store Connect → Business: accept any pending agreements (free apps
       only need the standard one)
-- [ ] Xcode → Settings → Accounts → add your Apple ID → your team appears
+- [ ] Xcode → Settings → Accounts → add your Apple ID → your team appears.
+      A live paid membership shows as `Michelle Fitzpatrick (Individual)`.
+      If the only entry says **(Personal Team)**, the paid membership isn't
+      visible to Xcode yet — see the troubleshooting note below.
 - [ ] Spoke target → Signing & Capabilities → "Automatically manage signing"
-      on, team selected (do the same for SpokeWidgetExtension)
+      on, team set to the **Individual** team — NOT the Personal Team.
+      Repeat for SpokeWidgetExtension; it has its own team setting and its
+      own bundle ID + app group to register.
+
+> **"Team … (Personal Team) is not enrolled in the Apple Developer Program"**
+> when distributing means the archive was signed by the free team. Ladder:
+> 1. developer.apple.com/account — is there a Membership section with a
+>    10-character Team ID? If it still says enrolling/pending, Apple hasn't
+>    activated it (payment taken ≠ membership live; allow 24–48h).
+> 2. Is the Apple ID there the same one Xcode is signed in with?
+> 3. Both fine? Xcode has a stale cache: sign out of the account, quit Xcode
+>    completely, reopen, sign back in.
+> 4. Switch the team on both targets, then **re-archive** — an existing
+>    archive can't be re-teamed from the Distribute wizard.
 - [ ] App Store Connect → Apps → **＋ New App**:
       - Name: try `Spoke` — if taken (likely), use `Spoke: To-Do List You Talk To`
       - Bundle ID: `com.michellefitzpatrick.Spoke` (register it when prompted)
