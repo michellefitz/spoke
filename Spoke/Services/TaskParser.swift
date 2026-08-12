@@ -22,6 +22,10 @@ struct AssistantResponse {
     let actions: [ParsedAction]
     let remark: String?
     let question: AssistantQuestion?
+    /// True when the model asked for changes that couldn't be carried out.
+    /// Its remark will happily claim the change was made, so it must not be
+    /// repeated back to the user.
+    var droppedActions: Bool = false
 }
 
 enum RefineOutcome {
@@ -343,7 +347,12 @@ enum TaskParser {
                 }
                 return nil
             }
-            return AssistantResponse(actions: actions, remark: remark, question: question)
+            return AssistantResponse(
+                actions: actions,
+                remark: remark,
+                question: question,
+                droppedActions: actions.count < actionDicts.count
+            )
         }
         if let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
             let actions = parseActions(from: array, existingTasks: existingTasks)
@@ -446,8 +455,8 @@ enum TaskParser {
 
     private static func parseActions(from array: [[String: Any]], existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) -> [ParsedAction] {
         return array.compactMap { dict -> ParsedAction? in
+            var dict = dict
             let action = dict["action"] as? String ?? "create"
-            guard let parsed = parseDictionary(dict) else { return nil }
 
             if action == "edit", let matchTitle = dict["match"] as? String {
                 // Find best matching existing task (case-insensitive, prefix-tolerant)
@@ -456,6 +465,16 @@ enum TaskParser {
                     ?? existingTasks.first { matchTitle.lowercased().contains($0.title.lowercased()) }
 
                 if let match {
+                    // An edit only carries the fields that change, so the title
+                    // is routinely absent — "set that to today" needs no new
+                    // title. parseDictionary requires one, so borrow the title
+                    // of the task being edited. Without this the whole action
+                    // was dropped and only the remark survived, so Spoke said
+                    // it had made the change and then didn't.
+                    if (dict["title"] as? String).map(\.isEmpty) ?? true {
+                        dict["title"] = match.title
+                    }
+                    guard let parsed = parseDictionary(dict) else { return nil }
                     // Merge: keep existing values where the edit doesn't provide new ones
                     let mergedDesc = mergeDescription(existing: match.description, new: parsed.description)
                     let mergedDeadline = parsed.deadline ?? match.deadline
@@ -471,9 +490,11 @@ enum TaskParser {
                     return .edit(matchTitle: match.title, updates: merged)
                 } else {
                     // No match found — treat as create
+                    guard let parsed = parseDictionary(dict) else { return nil }
                     return .create(parsed)
                 }
             }
+            guard let parsed = parseDictionary(dict) else { return nil }
             return .create(parsed)
         }
     }

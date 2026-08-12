@@ -1010,7 +1010,10 @@ struct ContentView: View {
         guard !response.actions.isEmpty else {
             recorder.finishProcessing()
             withAnimation(.spokeTransition) { assistantSheet = nil }
-            showToast(response.remark ?? "Something went wrong. Give it another go.")
+            // Never echo a remark describing a change that didn't happen.
+            showToast(response.droppedActions
+                      ? "Couldn't make that change. Give it another go."
+                      : (response.remark ?? "Something went wrong. Give it another go."))
             return
         }
         if response.actions.count == 1 {
