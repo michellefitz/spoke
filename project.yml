@@ -36,6 +36,11 @@ targets:
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
         ITSAppUsesNonExemptEncryption: false
+        # Keeps recording when you glance at another app mid-braindump,
+        # the way voice notes do. Without this iOS suspends Spoke and the
+        # microphone goes dead with no warning.
+        UIBackgroundModes:
+          - audio
         NSMicrophoneUsageDescription: "Spoke uses the microphone to capture your voice tasks."
         NSCalendarsFullAccessUsageDescription: "Spoke shows your calendar appointments alongside your tasks in the week view."
         UISupportedInterfaceOrientations:

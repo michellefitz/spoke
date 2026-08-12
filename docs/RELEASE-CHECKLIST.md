@@ -73,7 +73,10 @@ order of operations.
 - [ ] Age rating questionnaire (comes out 4+)
 - [ ] Category: Productivity · Price: Free
 - [ ] Review notes: no login needed; mic permission required for core flow;
-      calendar access optional
+      calendar access optional; **the `audio` background mode is there so a
+      recording survives the user glancing at another app mid-sentence, the
+      way voice notes do** — reviewers query undeclared background modes, so
+      say it up front
 - [ ] Featuring nomination submitted (App Store Connect → Growth & Marketing)
 
 ## Submit

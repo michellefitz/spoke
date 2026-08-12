@@ -97,9 +97,9 @@ final class VoiceRecorder {
         return transcript
     }
 
-    /// Called when the app leaves the foreground while recording. iOS stops
-    /// delivering microphone audio, so the recording is over whether we like
-    /// it or not — mark it so the log can explain the short transcript.
+    /// Called when the app leaves the foreground mid-recording. Spoke keeps
+    /// recording (the audio background mode allows it); this is noted only so
+    /// the log can show it happened.
     func noteBackgrounded() {
         guard recordingState == .recording else { return }
         diagnostics.backgrounded = true

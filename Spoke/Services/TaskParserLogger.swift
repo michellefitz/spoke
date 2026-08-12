@@ -11,17 +11,16 @@ struct RecordingDiagnostics: Codable, Equatable {
     var backgrounded: Bool = false  // app left the foreground mid-recording
     var connectionError: String?    // websocket or token failure
 
+    /// Backgrounding isn't a fault — Spoke keeps recording through it — so
+    /// it doesn't count here.
     var endedEarly: Bool {
-        interrupted || backgrounded || connectionError != nil
+        interrupted || connectionError != nil
     }
 
     /// Plain-language explanation for the log UI, or nil if all was well.
     var explanation: String? {
         if let connectionError {
             return "The connection to the transcription service dropped, so anything said after that wasn't heard. (\(connectionError))"
-        }
-        if backgrounded {
-            return "You switched away from Spoke while recording. iOS stops the microphone, so anything said after that wasn't heard."
         }
         if interrupted {
             return "Something else took over the microphone — a call, Siri or an alarm — so anything said after that wasn't heard."

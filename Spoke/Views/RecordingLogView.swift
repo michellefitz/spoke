@@ -205,6 +205,9 @@ private struct RecordingDetailView: View {
                     LabeledContent("Length", value: String(format: "%.1fs", Double(rec.durationMs) / 1000))
                     LabeledContent("Phrases heard", value: "\(rec.finalSegments)")
                     LabeledContent("Finished", value: rec.endedEarly ? "Cut short" : "Normally")
+                    if rec.backgrounded {
+                        LabeledContent("Other apps", value: "Kept recording")
+                    }
                 }
             }
 

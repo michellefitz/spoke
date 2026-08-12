@@ -442,12 +442,9 @@ struct TaskDetailView: View {
             Text("Spoke needs microphone and speech recognition access. Please enable them in Settings.")
         }
         .onChange(of: scenePhase) { _, phase in
-            // Leaving the app cuts the microphone, so finish up rather than
-            // leaving the mic animating over a dead recording.
+            // Recording continues in the background; noted only for the log.
             if phase != .active, recorder.recordingState == .recording {
                 recorder.noteBackgrounded()
-                recordingTimer?.cancel()
-                stopAndProcess()
             }
         }
     }

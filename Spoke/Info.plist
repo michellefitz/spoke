@@ -26,6 +26,10 @@
 	<string>Spoke shows your calendar appointments alongside your tasks in the week view.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Spoke uses the microphone to capture your voice tasks.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
