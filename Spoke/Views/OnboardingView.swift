@@ -374,6 +374,11 @@ private struct FirstTaskRecordingView: View {
                 withAnimation { micDenied = false }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            // Recording continues in the background; noted only for the log.
+            guard recorder.recordingState == .recording else { return }
+            recorder.noteBackgrounded()
+        }
     }
 
     private var sampleCard: some View {

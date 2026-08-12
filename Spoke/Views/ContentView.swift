@@ -460,6 +460,12 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { pruneCompletedTasks() }
+            if phase != .active, recorder.recordingState == .recording {
+                // The audio background mode keeps the microphone live, so
+                // glancing at another app mid-braindump no longer loses
+                // what comes after it. Just note it for the log.
+                recorder.noteBackgrounded()
+            }
             if phase == .background {
                 try? modelContext.save()
                 WidgetCenter.shared.reloadAllTimelines()
@@ -992,7 +998,10 @@ struct ContentView: View {
         guard !response.actions.isEmpty else {
             recorder.finishProcessing()
             withAnimation(.spokeTransition) { assistantSheet = nil }
-            showToast(response.remark ?? "Something went wrong. Give it another go.")
+            // Never echo a remark describing a change that didn't happen.
+            showToast(response.droppedActions
+                      ? "Couldn't make that change. Give it another go."
+                      : (response.remark ?? "Something went wrong. Give it another go."))
             return
         }
         if response.actions.count == 1 {

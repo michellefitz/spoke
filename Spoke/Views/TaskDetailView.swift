@@ -5,6 +5,7 @@ import WidgetKit
 struct TaskDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @Bindable var task: SpokeTask
     var showCoachingToast: Bool = false
 
@@ -439,6 +440,12 @@ struct TaskDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Spoke needs microphone and speech recognition access. Please enable them in Settings.")
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Recording continues in the background; noted only for the log.
+            if phase != .active, recorder.recordingState == .recording {
+                recorder.noteBackgrounded()
+            }
         }
     }
 

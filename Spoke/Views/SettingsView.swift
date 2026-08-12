@@ -8,8 +8,7 @@ struct SettingsView: View {
 
     @State private var isAddingTag = false
     @State private var newTagName = ""
-    @State private var debugTapCount = 0
-    @State private var showDebugLog = false
+    @State private var showRecordingLog = false
     @FocusState private var isNewTagFieldFocused: Bool
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
@@ -194,31 +193,42 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundStyle(Color(.secondaryLabel))
                 }
+
+                // MARK: Recordings
+                Section {
+                    Button {
+                        showRecordingLog = true
+                    } label: {
+                        HStack {
+                            Text("Recording history")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color(.tertiaryLabel))
+                        }
+                    }
+                } header: {
+                    sectionHeader("Recordings")
+                } footer: {
+                    Text("Everything you've said to Spoke and what it made of it. Useful when something didn't come out the way you expected.")
+                        .font(.footnote)
+                        .foregroundStyle(Color(.secondaryLabel))
+                }
             }
             .listStyle(.insetGrouped)
             .environment(\.editMode, .constant(.active))
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        debugTapCount += 1
-                        if debugTapCount >= 5 {
-                            debugTapCount = 0
-                            showDebugLog = true
-                        }
-                    } label: {
-                        Text("  ")
-                    }
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .fontWeight(.semibold)
                         .foregroundStyle(coral)
                 }
             }
-            .sheet(isPresented: $showDebugLog) {
-                DebugLogView()
+            .sheet(isPresented: $showRecordingLog) {
+                RecordingLogView()
             }
         }
     }
