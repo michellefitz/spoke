@@ -80,6 +80,7 @@ private final class Engine {
                 // failing outright on, say, en_IE.
                 let supported = await SpeechTranscriber.supportedLocale(equivalentTo: locale)
                     ?? Locale(identifier: "en_US")
+                NSLog("[OnDeviceTranscriber] locale %@ -> %@", locale.identifier, supported.identifier)
 
                 let transcriber = SpeechTranscriber(
                     locale: supported,
@@ -89,18 +90,28 @@ private final class Engine {
                 )
                 self.transcriber = transcriber
 
-                // The language model is a download on first use.
-                if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
-                    try await request.downloadAndInstall()
+                // The language model is a download on first use, and the
+                // locale must be reserved first or the install request is
+                // rejected ("not subscribed to transcription.en").
+                let installed = await SpeechTranscriber.installedLocales
+                if !installed.contains(where: { $0.identifier(.bcp47) == supported.identifier(.bcp47) }) {
+                    try await AssetInventory.reserve(locale: supported)
+                    if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
+                        NSLog("[OnDeviceTranscriber] downloading speech model")
+                        try await request.downloadAndInstall()
+                        NSLog("[OnDeviceTranscriber] model installed")
+                    }
                 }
 
                 let analyzer = SpeechAnalyzer(modules: [transcriber])
                 self.analyzer = analyzer
                 self.analyzerFormat = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber])
+                NSLog("[OnDeviceTranscriber] analyzer format: %@", self.analyzerFormat?.description ?? "nil")
 
                 let (stream, continuation) = AsyncStream<AnalyzerInput>.makeStream()
                 self.continuation = continuation
                 try await analyzer.start(inputSequence: stream)
+                NSLog("[OnDeviceTranscriber] analyzer running")
 
                 self.collectTask = Task { [weak self] in
                     guard let self else { return }
@@ -114,6 +125,7 @@ private final class Engine {
                     }
                 }
             } catch {
+                NSLog("[OnDeviceTranscriber] start failed: %@", String(describing: error))
                 onError(error.localizedDescription)
             }
         }
@@ -134,6 +146,7 @@ private final class Engine {
         analyzer = nil
         transcriber = nil
         let result = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        NSLog("[OnDeviceTranscriber] finish: %@", result.isEmpty ? "no transcript" : "\(result.count) chars")
         return result.isEmpty ? nil : result
     }
 
