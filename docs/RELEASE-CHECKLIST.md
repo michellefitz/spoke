@@ -3,6 +3,31 @@
 Tick things off as you go. The chat walkthrough has the detail; this is the
 order of operations.
 
+## The one rule: never archive from a tree that isn't on GitHub
+
+Local, GitHub and TestFlight don't sync themselves. The failure mode is
+quiet — you build straight from your Mac, the work reaches testers, and
+GitHub never sees it, so it exists in exactly one place and nothing can be
+built on top of it.
+
+Run this before every archive. It refuses to pass if the build wouldn't be
+reproducible from a commit:
+
+```sh
+./scripts/preflight.sh
+```
+
+It checks the working tree is clean, that nothing is unpushed or unpulled,
+that `Config.swift` exists with the keys the app needs, and prints the
+version and commit the archive will carry.
+
+Day to day that comes down to three habits:
+
+- **Pull before you start** — in either Claude session or Xcode.
+- **Push when you stop** — especially the terminal session; unpushed work is
+  invisible to everyone else and backed up nowhere.
+- **Archive last** — after preflight passes, not before.
+
 ## One-time setup (~30 min, all in the browser + Xcode)
 
 - [ ] appstoreconnect.apple.com signs in and shows your account (membership active)
