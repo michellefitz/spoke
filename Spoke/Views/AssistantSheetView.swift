@@ -59,7 +59,7 @@ struct AssistantSheetView: View {
     @ViewBuilder
     private func summaryBody(remark: String?, actions: [ParsedAction]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(remark ?? "Got \(actions.count) task\(actions.count == 1 ? "" : "s").")
+            Text(remark ?? defaultSummaryLine(actions))
                 .font(.system(size: 16))
                 .lineSpacing(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -85,6 +85,27 @@ struct AssistantSheetView: View {
 
             voiceHint("…or just say \u{201C}yep\u{201D}")
         }
+    }
+
+    private func defaultSummaryLine(_ actions: [ParsedAction]) -> String {
+        let newEvents = actions.filter { if case .createEvent = $0 { return true }; return false }.count
+        let editedEvents = actions.filter { if case .editEvent = $0 { return true }; return false }.count
+        let events = newEvents + editedEvents
+        let tasks = actions.count - events
+
+        // Events only: lead with what confirming will do to the calendar
+        if tasks == 0 {
+            if editedEvents == 0 {
+                return newEvents == 1 ? "Add this to your calendar?" : "Add these \(newEvents) events to your calendar?"
+            }
+            if newEvents == 0 {
+                return editedEvents == 1 ? "Update this calendar event?" : "Update these \(editedEvents) calendar events?"
+            }
+            return "Make these \(events) calendar changes?"
+        }
+        let taskPart = "\(tasks) task\(tasks == 1 ? "" : "s")"
+        guard events > 0 else { return "Got \(taskPart)." }
+        return "Got \(taskPart), plus \(events) calendar change\(events == 1 ? "" : "s") to confirm."
     }
 
     // MARK: - Clarify mode
@@ -124,10 +145,12 @@ struct AssistantSheetView: View {
     /// keep the sheet short; larger ones grow it toward full screen and scroll inside.
     @ViewBuilder
     private func previewList(_ actions: [ParsedAction]) -> some View {
-        if actions.count > 4 {
+        // Calendar items first, then tasks — same order as the week view
+        let ordered = actions.filter(\.isEvent) + actions.filter { !$0.isEvent }
+        if ordered.count > 4 {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
+                    ForEach(Array(ordered.enumerated()), id: \.offset) { _, action in
                         previewRow(action)
                     }
                 }
@@ -136,7 +159,7 @@ struct AssistantSheetView: View {
             .frame(maxHeight: 460)
         } else {
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
+                ForEach(Array(ordered.enumerated()), id: \.offset) { _, action in
                     previewRow(action)
                 }
             }
@@ -144,15 +167,62 @@ struct AssistantSheetView: View {
         }
     }
 
+    @ViewBuilder
     private func previewRow(_ action: ParsedAction) -> some View {
-        let task: ParsedTask
-        let isEdit: Bool
         switch action {
-        case .create(let t): task = t; isEdit = false
-        case .edit(_, let updates): task = updates; isEdit = true
+        case .create(let t): taskRow(t, isEdit: false)
+        case .edit(_, let updates): taskRow(updates, isEdit: true)
+        case .createEvent(let event): eventRow(event, isEdit: false)
+        case .editEvent(_, let updates): eventRow(updates, isEdit: true)
         }
+    }
 
-        return HStack(alignment: .top, spacing: 12) {
+    /// A proposed calendar event, styled like the week view's appointment
+    /// blocks (colored spine, tinted background, time underneath) so it reads
+    /// as "this goes on your calendar" at a glance.
+    private func eventRow(_ event: ParsedEvent, isEdit: Bool) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(coral)
+                .frame(width: 3)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(event.title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color(.label))
+                    .lineLimit(1)
+                Text(eventTimeLabel(event))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color(.secondaryLabel))
+                if let location = event.location, !location.isEmpty {
+                    Text(location)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(.secondaryLabel))
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: 4) {
+                Image(systemName: isEdit ? "calendar.badge.clock" : "calendar.badge.plus")
+                    .font(.system(size: 10, weight: .semibold))
+                Text(isEdit ? "UPDATE" : "NEW")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundStyle(coral)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(coral.opacity(0.14), in: Capsule())
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        // The spine has no height of its own — without this it stretches the
+        // row to fill the sheet.
+        .fixedSize(horizontal: false, vertical: true)
+        .background(RoundedRectangle(cornerRadius: 10).fill(coral.opacity(0.09)))
+        .padding(.vertical, 4)
+    }
+
+    private func taskRow(_ task: ParsedTask, isEdit: Bool) -> some View {
+        HStack(alignment: .top, spacing: 12) {
             Circle()
                 .strokeBorder(Color(.systemGray4), lineWidth: 1.8)
                 .frame(width: 20, height: 20)
@@ -229,6 +299,20 @@ struct AssistantSheetView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 12)
+    }
+
+    private func eventTimeLabel(_ event: ParsedEvent) -> String {
+        let cal = Calendar.current
+        let dayFormatter = DateFormatter()
+        dayFormatter.dateFormat = "EEE d MMM"
+        let day: String
+        if cal.isDateInToday(event.start) { day = "Today" }
+        else if cal.isDateInTomorrow(event.start) { day = "Tomorrow" }
+        else { day = dayFormatter.string(from: event.start) }
+        if event.isAllDay { return day }
+        let timeFormatter = DateFormatter()
+        timeFormatter.timeStyle = .short
+        return "\(day), \(timeFormatter.string(from: event.start)) – \(timeFormatter.string(from: event.end))"
     }
 
     private func deadlineLabel(_ task: ParsedTask) -> String {

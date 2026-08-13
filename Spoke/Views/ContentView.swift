@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import Network
 import WidgetKit
+import EventKit
 
 // MARK: - Network monitor
 
@@ -42,10 +43,11 @@ private func bucket(for task: SpokeTask) -> TaskBucket {
 
 // MARK: - Sort mode
 
+// Users who had the removed "group by tag" mode stored fall back to the
+// AppStorage default (date added) automatically.
 private enum SortMode: String {
     case dateAdded  = "dateAdded"
     case dueDate    = "dueDate"
-    case groupByTag = "groupByTag"
 }
 
 // MARK: - Assistant sheet state
@@ -112,6 +114,8 @@ struct ContentView: View {
 
     @State private var recorder = VoiceRecorder()
     @State private var selectedTask: SpokeTask?
+    @State private var selectedEvent: DayEvent?
+    @State private var listEvents: [DayEvent] = []
     @State private var showPermissionAlert = false
     @State private var selectedTag: String? = nil
     @State private var showSettings = false
@@ -152,36 +156,46 @@ struct ContentView: View {
         }
     }
 
-    // Group active tasks by deadline bucket, sorted by deadline within each bucket
-    private var deadlineGroupedActiveTasks: [(DeadlineBucket, [SpokeTask])] {
-        DeadlineBucket.allCases.compactMap { b in
+    // Group active tasks by deadline bucket, sorted by deadline within each
+    // bucket. Calendar events slot into the same buckets ahead of the tasks —
+    // matching the week view's events-first ordering — but only in the
+    // unfiltered list, since events carry no tags.
+    private var deadlineGroupedActiveTasks: [(DeadlineBucket, [DayEvent], [SpokeTask])] {
+        let events = selectedTag == nil ? listEvents : []
+        return DeadlineBucket.allCases.compactMap { b in
+            let bucketEvents = events.filter { eventDeadlineBucket($0) == b }
             let tasks = filteredActiveTasks
                 .filter { deadlineBucket(for: $0) == b }
                 .sorted { ($0.deadline ?? .distantFuture) < ($1.deadline ?? .distantFuture) }
-            return tasks.isEmpty ? nil : (b, tasks)
+            return (bucketEvents.isEmpty && tasks.isEmpty) ? nil : (b, bucketEvents, tasks)
         }
     }
 
-    // Group active tasks by tag (Settings order), sub-sorted by due date; untagged at bottom
-    private var tagGroupedActiveTasks: [(String, [SpokeTask])] {
-        let tasks = filteredActiveTasks
-        let orderedTags = tagStore.tags
-        let byDeadline: (SpokeTask, SpokeTask) -> Bool = { lhs, rhs in
-            switch (lhs.deadline, rhs.deadline) {
-            case let (l?, r?): return l < r
-            case (_?, nil):    return true
-            default:           return false
-            }
+    /// The list only looks forward: events that already ended are dropped,
+    /// everything else buckets by start day like a task's deadline.
+    private func eventDeadlineBucket(_ event: DayEvent) -> DeadlineBucket? {
+        guard event.end > .now else { return nil }
+        let cal = Calendar.current
+        let start = max(event.start, cal.startOfDay(for: .now))
+        if cal.isDateInToday(start)    { return .today }
+        if cal.isDateInTomorrow(start) { return .tomorrow }
+        if cal.isDate(start, equalTo: .now, toGranularity: .weekOfYear) { return .thisWeek }
+        if let nextWeek = cal.date(byAdding: .weekOfYear, value: 1, to: .now),
+           cal.isDate(start, equalTo: nextWeek, toGranularity: .weekOfYear) {
+            return .nextWeek
         }
-        var groups: [(String, [SpokeTask])] = orderedTags.compactMap { tag in
-            let tagTasks = tasks.filter { $0.tag == tag }.sorted(by: byDeadline)
-            return tagTasks.isEmpty ? nil : (tag, tagTasks)
+        return .later
+    }
+
+    private func loadListEvents() {
+        guard settings.showCalendarEvents, CalendarService.shared.isConnected else {
+            listEvents = []
+            return
         }
-        let untagged = tasks
-            .filter { $0.tag == nil || !orderedTags.contains($0.tag!) }
-            .sorted(by: byDeadline)
-        if !untagged.isEmpty { groups.append(("", untagged)) }
-        return groups
+        let cal = Calendar.current
+        let from = cal.startOfDay(for: .now)
+        guard let to = cal.date(byAdding: .day, value: 60, to: from) else { return }
+        listEvents = CalendarService.shared.events(from: from, to: to).sorted { $0.start < $1.start }
     }
 
     var body: some View {
@@ -267,14 +281,6 @@ struct ContentView: View {
                                         withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dueDate }
                                     } label: {
                                         Label("Sort by due date", systemImage: sortMode == .dueDate ? "checkmark" : "")
-                                    }
-                                }
-
-                                if settings.showTags {
-                                    Button {
-                                        withAnimation(.easeInOut(duration: 0.2)) { sortMode = .groupByTag }
-                                    } label: {
-                                        Label("Group by tag", systemImage: sortMode == .groupByTag ? "checkmark" : "")
                                     }
                                 }
 
@@ -405,6 +411,11 @@ struct ContentView: View {
                 .presentationDetents([.fraction(0.7), .large])
                 .presentationBackground(Color(.systemBackground))
         }
+        .sheet(item: $selectedEvent) { event in
+            EventDetailView(event: event)
+                .presentationDetents([.fraction(0.7), .large])
+                .presentationBackground(Color(.systemBackground))
+        }
         .sheet(isPresented: $showSettings) {
             SettingsView(tagStore: tagStore)
                 .presentationDetents([.large])
@@ -421,6 +432,10 @@ struct ContentView: View {
             Text("Spoke needs microphone and speech recognition access to create voice tasks. Please enable them in Settings.")
         }
         .task { pruneCompletedTasks() }
+        .task(id: sortMode) { loadListEvents() }
+        .onReceive(NotificationCenter.default.publisher(for: .EKEventStoreChanged)) { _ in loadListEvents() }
+        .onChange(of: settings.showCalendarEvents) { loadListEvents() }
+        .onChange(of: settings.hiddenCalendarIDs) { loadListEvents() }
         .task {
             // Coaching: show first toast once after onboarding
             guard !settings.hasSeenCoaching && !activeTasks.isEmpty else { return }
@@ -441,9 +456,6 @@ struct ContentView: View {
         }
         .onChange(of: settings.showDueDates) { _, show in
             if !show && sortMode == .dueDate { sortMode = .dateAdded }
-        }
-        .onChange(of: settings.showTags) { _, show in
-            if !show && sortMode == .groupByTag { sortMode = .dateAdded }
         }
         .onChange(of: availableTags) { _, tags in
             if let selected = selectedTag, !tags.contains(selected) {
@@ -499,8 +511,11 @@ struct ContentView: View {
                             }
                         }
                     } else if sortMode == .dueDate {
-                        ForEach(deadlineGroupedActiveTasks, id: \.0.rawValue) { (b, tasks) in
+                        ForEach(deadlineGroupedActiveTasks, id: \.0.rawValue) { (b, events, tasks) in
                             Section {
+                                ForEach(events) { event in
+                                    listEventRow(event)
+                                }
                                 ForEach(Array(tasks.enumerated()), id: \.element.id) { _, task in
                                     TaskRowView(
                                         task: task,
@@ -511,21 +526,6 @@ struct ContentView: View {
                                 }
                             } header: {
                                 sectionHeader(sectionLabel(b))
-                            }
-                        }
-                    } else {
-                        ForEach(tagGroupedActiveTasks, id: \.0) { (tag, tasks) in
-                            Section {
-                                ForEach(tasks) { task in
-                                    TaskRowView(
-                                        task: task,
-                                        onToggleComplete: { toggleComplete(task) },
-                                        onDelete: { deleteTask(task) },
-                                        onTap: { selectedTask = task }
-                                    )
-                                }
-                            } header: {
-                                sectionHeader(tag.isEmpty ? "No category" : tag.capitalized)
                             }
                         }
                     }
@@ -769,6 +769,57 @@ struct ContentView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - List event row
+
+    /// A calendar appointment in the day-sorted list, styled like the week
+    /// view's blocks: colored spine, tinted background, no checkbox.
+    private func listEventRow(_ event: DayEvent) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(event.color)
+                .frame(width: 3)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(event.title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color(.label))
+                    .lineLimit(1)
+                Text(listEventTimeLabel(event))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color(.secondaryLabel))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .fixedSize(horizontal: false, vertical: true)
+        .background(RoundedRectangle(cornerRadius: 10).fill(event.color.opacity(0.09)))
+        .contentShape(Rectangle())
+        .onTapGesture { selectedEvent = event }
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
+    }
+
+    private static let eventTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    private func listEventTimeLabel(_ event: DayEvent) -> String {
+        let cal = Calendar.current
+        let dayPrefix: String
+        if cal.isDateInToday(event.start) || cal.isDateInTomorrow(event.start) {
+            dayPrefix = ""
+        } else {
+            let df = DateFormatter()
+            df.dateFormat = "EEE d MMM"
+            dayPrefix = df.string(from: event.start) + ", "
+        }
+        if event.isAllDay { return dayPrefix.isEmpty ? "All day" : dayPrefix + "all day" }
+        let times = "\(Self.eventTimeFormatter.string(from: event.start)) – \(Self.eventTimeFormatter.string(from: event.end))"
+        return dayPrefix + times
+    }
+
     // MARK: - Section header
 
     private func sectionHeader(_ title: String) -> some View {
@@ -813,6 +864,10 @@ struct ContentView: View {
 
     private func confirmAssistant() {
         guard case .summary(_, let actions, _) = assistantSheet else { return }
+        // The mic may still be live (the orb stays on while the sheet is up);
+        // tear the recording down properly or its tap outlives the sheet.
+        recordingTimer?.cancel()
+        recorder.cancelRecording()
         withAnimation(.spokeTransition) { assistantSheet = nil }
         Task { await applyActions(actions) }
     }
@@ -820,7 +875,8 @@ struct ContentView: View {
     private func answerClarify(_ answer: String) {
         guard case .clarify(let question, let transcript) = assistantSheet else { return }
         withAnimation(.spokeTransition) { assistantSheet = nil }
-        recorder.recordingState = .processing
+        recordingTimer?.cancel()
+        recorder.cancelRecording()
         Task {
             let existingContext = activeTasks.map { t in
                 (title: t.title, description: t.taskDescription, deadline: t.deadline, tag: t.tag, deadlineIsWeek: t.deadlineIsWeek)
@@ -845,10 +901,8 @@ struct ContentView: View {
     /// response recoverable via the "Discarded — Undo" toast for a few seconds.
     private func discardAssistantSheet() {
         guard let sheet = assistantSheet else { return }
-        if recorder.recordingState == .recording {
-            recordingTimer?.cancel()
-            _ = recorder.stopRecording()
-        }
+        recordingTimer?.cancel()
+        recorder.cancelRecording()
         recorder.finishProcessing()
         let token = UUID()
         undoDiscardToken = token
@@ -942,12 +996,13 @@ struct ContentView: View {
             let existingContext = activeTasks.map { t in
                 (title: t.title, description: t.taskDescription, deadline: t.deadline, tag: t.tag, deadlineIsWeek: t.deadlineIsWeek)
             }
+            let eventContext = upcomingEventContext()
             switch assistantSheet {
             case .clarify(let question, let originalTranscript):
                 // The speech is an answer to the open question
                 withAnimation(.spokeTransition) { assistantSheet = nil }
                 guard let actions = await TaskParser.resolveClarification(
-                    transcript: originalTranscript, question: question.text, answer: transcript, existingTasks: existingContext
+                    transcript: originalTranscript, question: question.text, answer: transcript, existingTasks: existingContext, existingEvents: eventContext
                 ) else {
                     recorder.finishProcessing()
                     showToast("Something went wrong. Give it another go.")
@@ -956,6 +1011,12 @@ struct ContentView: View {
                 if actions.isEmpty {
                     recorder.finishProcessing()
                     showToast("Okay, left it as is")
+                } else if actions.contains(where: \.isEvent) {
+                    // Calendar events always get a confirmation pass
+                    recorder.finishProcessing()
+                    withAnimation(.spokeTransition) {
+                        assistantSheet = .summary(remark: nil, actions: actions, transcript: originalTranscript)
+                    }
                 } else {
                     await applyActions(actions)
                 }
@@ -963,7 +1024,7 @@ struct ContentView: View {
             case .summary(_, let pending, let originalTranscript):
                 // The speech is a follow-up on the proposed tasks
                 let outcome = await TaskParser.refineActions(
-                    transcript: originalTranscript, pending: pending, correction: transcript, existingTasks: existingContext
+                    transcript: originalTranscript, pending: pending, correction: transcript, existingTasks: existingContext, existingEvents: eventContext
                 )
                 switch outcome {
                 case .approve:
@@ -978,10 +1039,21 @@ struct ContentView: View {
                 }
 
             case nil:
-                let response = await TaskParser.parseAssistant(transcript: transcript, existingTasks: existingContext)
+                let response = await TaskParser.parseAssistant(transcript: transcript, existingTasks: existingContext, existingEvents: eventContext)
                 await routeAssistantResponse(response, transcript: transcript)
             }
         }
+    }
+
+    /// The next few weeks of calendar events, so the parser can tell "move my
+    /// hair appointment" refers to a calendar event rather than a task.
+    private func upcomingEventContext() -> [DayEvent] {
+        let service = CalendarService.shared
+        guard service.isConnected else { return [] }
+        let cal = Calendar.current
+        let from = cal.startOfDay(for: .now)
+        guard let to = cal.date(byAdding: .day, value: 60, to: from) else { return [] }
+        return Array(service.events(from: from, to: to).sorted { $0.start < $1.start }.prefix(40))
     }
 
     /// Decides which tier a response lands in: clarify sheet, summary sheet,
@@ -1004,8 +1076,10 @@ struct ContentView: View {
                       : (response.remark ?? "Something went wrong. Give it another go."))
             return
         }
-        if response.actions.count == 1 {
+        if response.actions.count == 1 && !response.actions.contains(where: \.isEvent) {
             // Small change: just do it. The remark, if any, becomes the toast.
+            // Calendar events never take this path — writing to the user's
+            // calendar always needs explicit confirmation.
             withAnimation(.spokeTransition) { assistantSheet = nil }
             await applyActions(response.actions, remarkToast: response.remark)
         } else {
@@ -1020,6 +1094,50 @@ struct ContentView: View {
     private func applyActions(_ actions: [ParsedAction], remarkToast: String? = nil) async {
         var createdCount = 0
         var editedTitles: [String] = []
+        var eventCount = 0
+        var eventEditCount = 0
+        var eventEditsFailed = false
+        var eventsFellBackToTasks = false
+
+        // Events need calendar access, which may involve an async permission
+        // prompt — sort that out before the synchronous animation block.
+        let eventActions = actions.compactMap { action -> ParsedEvent? in
+            if case .createEvent(let event) = action { return event }
+            return nil
+        }
+        var failedEvents: [ParsedEvent] = []
+        if !eventActions.isEmpty {
+            let calendarService = CalendarService.shared
+            if calendarService.canRequestAccess {
+                await calendarService.requestAccess()
+            }
+            if calendarService.isConnected {
+                for event in eventActions {
+                    if calendarService.createEvent(event) {
+                        eventCount += 1
+                    } else {
+                        failedEvents.append(event)
+                    }
+                }
+            } else {
+                failedEvents = eventActions
+            }
+            eventsFellBackToTasks = !failedEvents.isEmpty
+        }
+        for action in actions {
+            if case .editEvent(let original, let updates) = action {
+                let saved = CalendarService.shared.updateEvent(
+                    original,
+                    title: updates.title,
+                    start: updates.start,
+                    end: updates.end,
+                    isAllDay: updates.isAllDay,
+                    location: updates.location,
+                    notes: original.notes
+                )
+                if saved { eventEditCount += 1 } else { eventEditsFailed = true }
+            }
+        }
 
         withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
             for action in actions {
@@ -1043,7 +1161,17 @@ struct ContentView: View {
                         modelContext.insert(task)
                         createdCount += 1
                     }
+
+                case .createEvent, .editEvent:
+                    break // handled above
                 }
+            }
+            // Anything that couldn't reach the calendar lands as a dated task
+            // instead of vanishing.
+            for event in failedEvents {
+                let task = SpokeTask(title: event.title, taskDescription: event.location, deadline: event.start)
+                modelContext.insert(task)
+                createdCount += 1
             }
         }
         recorder.finishProcessing()
@@ -1053,7 +1181,17 @@ struct ContentView: View {
 
         guard !coachingActive else { return }
         let message: String?
-        if let remarkToast {
+        if eventsFellBackToTasks {
+            message = "No calendar access — added as a task instead"
+        } else if eventEditsFailed {
+            message = "Couldn't update the calendar event. Give it another go."
+        } else if eventEditCount > 0 && eventCount == 0 && createdCount == 0 && editedTitles.isEmpty {
+            message = eventEditCount == 1 ? "Calendar event updated" : "\(eventEditCount) calendar events updated"
+        } else if eventCount > 0 && createdCount == 0 && editedTitles.isEmpty && eventEditCount == 0 {
+            message = eventCount == 1 ? "Added to your calendar" : "\(eventCount) events added to your calendar"
+        } else if eventCount > 0 || eventEditCount > 0 {
+            message = "Done — including \(eventCount + eventEditCount) calendar change\(eventCount + eventEditCount == 1 ? "" : "s")"
+        } else if let remarkToast {
             message = remarkToast
         } else if !editedTitles.isEmpty && createdCount > 0 {
             message = "Updated \(editedTitles.count) task\(editedTitles.count == 1 ? "" : "s"), added \(createdCount)"

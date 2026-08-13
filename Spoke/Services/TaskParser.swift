@@ -11,6 +11,17 @@ struct ParsedTask {
 enum ParsedAction {
     case create(ParsedTask)
     case edit(matchTitle: String, updates: ParsedTask)
+    case createEvent(ParsedEvent)
+    case editEvent(original: DayEvent, updates: ParsedEvent)
+
+    /// True for anything that writes to the calendar — these always require
+    /// user confirmation, never a silent apply.
+    var isEvent: Bool {
+        switch self {
+        case .createEvent, .editEvent: return true
+        case .create, .edit: return false
+        }
+    }
 }
 
 struct AssistantQuestion {
@@ -116,7 +127,7 @@ enum TaskParser {
 
     /// Main assistant entry point: parses the transcript into actions plus an optional
     /// remark (something worth telling the user) and at most one clarifying question.
-    static func parseAssistant(transcript: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) async -> AssistantResponse {
+    static func parseAssistant(transcript: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = []) async -> AssistantResponse {
         let start = Date()
         let wordCount = transcript.split(separator: " ").count
         if wordCount <= 3 {
@@ -127,10 +138,12 @@ enum TaskParser {
         let today = dateContext()
         let tagInstruction = tagPromptInstruction()
         let taskList = existingTaskListBlock(existingTasks)
+        let eventList = eventListBlock(existingEvents)
 
         let system = """
             \(today) You are Spoke, a voice assistant for the user's to-do list. Given a voice transcript, decide what to change on the list and how to respond. \
             \(taskList) \
+            \(eventList) \
             Return ONLY a valid JSON OBJECT with keys: "actions" (required array), "remark" (optional string), "question" (optional object). \
             \(actionRules(tagInstruction: tagInstruction)) \
             Remark rules: \
@@ -145,6 +158,8 @@ enum TaskParser {
             Examples: \
             Simple: {"actions": [{"action": "create", "title": "Call the dentist"}]} \
             Braindump: {"actions": [{"action": "create", "title": "Book car in for MOT", "deadline": "YYYY-MM-DD"}, {"action": "create", "title": "Sort out travel insurance", "deadline": "this-week"}, {"action": "create", "title": "Email landlord about boiler"}], "remark": "Got 3 tasks — set Friday on the MOT and put the insurance down for this week."} \
+            Appointment: {"actions": [{"action": "event", "title": "Dentist appointment", "date": "YYYY-MM-DD", "start": "11:00"}], "remark": "Sounds like a calendar event — check it over before I add it."} \
+            Reschedule: {"actions": [{"action": "edit-event", "match": "Hair appointment", "start": "14:00"}], "remark": "Moving your hair appointment to 2pm — confirm and I'll update the calendar."} \
             Duplicate: {"actions": [], "question": {"text": "You already have \\"Call the dentist\\" — same one, or a new appointment?", "options": ["Same one", "New task"]}}
             """
         let user = "Transcript: \"\(transcript)\""
@@ -156,7 +171,7 @@ enum TaskParser {
         }
         lastRawResponse = text
         let json = extractJSON(from: text)
-        if let response = parseAssistantResponse(json, existingTasks: existingTasks) {
+        if let response = parseAssistantResponse(json, existingTasks: existingTasks, existingEvents: existingEvents) {
             logEntry(mode: "assistant", transcript: transcript, system: system, user: user, response: text, tasks: response.actions.map(task(of:)), error: nil, start: start)
             return response
         }
@@ -168,14 +183,16 @@ enum TaskParser {
     /// Second turn after a clarifying question: produce the final actions for the
     /// original transcript, honoring the user's answer. Returns nil on API/parse
     /// failure; an empty array is a deliberate "nothing to change".
-    static func resolveClarification(transcript: String, question: String, answer: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) async -> [ParsedAction]? {
+    static func resolveClarification(transcript: String, question: String, answer: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = []) async -> [ParsedAction]? {
         let start = Date()
         let today = dateContext()
         let tagInstruction = tagPromptInstruction()
         let taskList = existingTaskListBlock(existingTasks)
+        let eventList = eventListBlock(existingEvents)
         let system = """
             \(today) You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript, you asked a clarifying question, and the user has now answered. Produce the FINAL actions for the ENTIRE original transcript, honoring the user's answer. \
             \(taskList) \
+            \(eventList) \
             \(actionRules(tagInstruction: tagInstruction)) \
             - If the user's answer means nothing should change (e.g. it was a duplicate of an existing task), return []. \
             Return ONLY a valid JSON ARRAY of action objects, no markdown, no code fences, no commentary.
@@ -198,21 +215,23 @@ enum TaskParser {
             logEntry(mode: "clarify", transcript: transcript, system: system, user: user, response: text, tasks: [], error: "parse_failed", start: start)
             return nil
         }
-        let actions = parseActions(from: array, existingTasks: existingTasks)
+        let actions = parseActions(from: array, existingTasks: existingTasks, existingEvents: existingEvents)
         logEntry(mode: "clarify", transcript: transcript, system: system, user: user, response: text, tasks: actions.map(task(of:)), error: nil, start: start)
         return actions
     }
 
     /// Follow-up turn on a pending summary: the user spoke again while reviewing the
     /// proposed tasks. The reply is an approval, a cancellation, or a replacement set.
-    static func refineActions(transcript: String, pending: [ParsedAction], correction: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) async -> RefineOutcome {
+    static func refineActions(transcript: String, pending: [ParsedAction], correction: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = []) async -> RefineOutcome {
         let start = Date()
         let today = dateContext()
         let tagInstruction = tagPromptInstruction()
         let taskList = existingTaskListBlock(existingTasks)
+        let eventList = eventListBlock(existingEvents)
         let system = """
             \(today) You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript and you proposed tasks; the user is reviewing them and has spoken a follow-up. \
             \(taskList) \
+            \(eventList) \
             Decide what the follow-up means: \
             - Pure approval ("yes", "yep", "looks good", "go ahead"): return {"approve": true}. \
             - Cancellation ("no", "cancel", "forget it", "discard that"): return {"cancel": true}. \
@@ -244,7 +263,7 @@ enum TaskParser {
                 return .cancel
             }
         }
-        if let response = parseAssistantResponse(json, existingTasks: existingTasks) {
+        if let response = parseAssistantResponse(json, existingTasks: existingTasks, existingEvents: existingEvents) {
             logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: text, tasks: response.actions.map(task(of:)), error: nil, start: start)
             return .response(response)
         }
@@ -259,8 +278,12 @@ enum TaskParser {
     private static func actionRules(tagInstruction: String) -> String {
         """
         Action rules: \
-        - Each action object has an "action" field: "create" or "edit". \
+        - Each action object has an "action" field: "create", "edit" or "event". \
         - For "create": include "title" (required), "description" (optional), "deadline" (optional), "tag" (optional). Action-oriented title, max 50 chars. Keep specific details — times, names, locations — in the title when they fit. \
+        - Use "event" ONLY for appointment-like commitments at a specific clock time on a specific day: appointments, meetings, reservations, flights, classes, calls scheduled for a set time (e.g. "I have a dentist appointment next Tuesday at 11am"). For "event": include "title" (required, the appointment name, no leading verb like "Attend"), "date" (YYYY-MM-DD, required), "start" (HH:MM 24-hour, required), "end" (HH:MM, optional — omit unless the user gave one), "location" (optional). \
+        - Something to get DONE is a task even when a time is mentioned as a deadline ("finish the report by 5pm", "call the plumber tomorrow morning") — use "create". Only a commitment to BE somewhere or attend something at a fixed time is an "event". When unsure, use "create". \
+        - If the user mentions an appointment WITHOUT a specific clock time ("dentist sometime next week"), use "create" with a deadline, not "event". \
+        - Use "edit-event" to change an EXISTING calendar event from the upcoming-events list ("move my hair appointment to 2pm", "push Friday's dentist back an hour"). Include "match" (the event's title from the list, exactly as shown) and only the fields that change: "title", "date", "start", "end", "location". When the user talks about moving or rescheduling something that appears in BOTH the task list and the upcoming-events list, they almost always mean the calendar event — prefer "edit-event". \
         - For "edit": include "match" (the title of the existing task to edit — must closely match one from the list above) and the updated fields: "title", "description", "deadline", "tag". Merge new information with what exists — don't drop existing content. \
         - Only use "edit" when the user clearly refers to an existing task by name or obvious reference (e.g. "add milk to the grocery list"). \
         - If the transcript contains multiple unrelated tasks, return multiple action objects. \
@@ -286,6 +309,23 @@ enum TaskParser {
         return "Existing tasks:\n" + items.joined(separator: "\n")
     }
 
+    /// Upcoming calendar events, so "move my hair appointment to 2pm" edits
+    /// the event instead of being mis-matched onto a similarly-named task.
+    private static func eventListBlock(_ events: [DayEvent]) -> String {
+        guard !events.isEmpty else { return "There are no upcoming calendar events." }
+        let df = DateFormatter()
+        df.dateFormat = "EEE yyyy-MM-dd"
+        let tf = DateFormatter()
+        tf.dateFormat = "HH:mm"
+        let items = events.map { e in
+            let when = e.isAllDay
+                ? "\(df.string(from: e.start)) all day"
+                : "\(df.string(from: e.start)) \(tf.string(from: e.start))–\(tf.string(from: e.end))"
+            return "- \"\(e.title)\" \(when)"
+        }
+        return "Upcoming calendar events (read-only list — change them ONLY via \"edit-event\"):\n" + items.joined(separator: "\n")
+    }
+
     private static func serializeActions(_ actions: [ParsedAction]) -> String {
         actions.map { action in
             switch action {
@@ -305,6 +345,16 @@ enum TaskParser {
                     line += " — \(String(desc.prefix(80)).replacingOccurrences(of: "\n", with: " "))"
                 }
                 return line
+            case .createEvent(let e):
+                let df = DateFormatter()
+                df.dateFormat = e.isAllDay ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm"
+                var line = "- EVENT \"\(e.title)\" at \(df.string(from: e.start))"
+                if let loc = e.location { line += " location:\(loc)" }
+                return line
+            case .editEvent(let original, let e):
+                let df = DateFormatter()
+                df.dateFormat = e.isAllDay ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm"
+                return "- EDIT-EVENT \"\(original.title)\" → \"\(e.title)\" at \(df.string(from: e.start))"
             }
         }.joined(separator: "\n")
     }
@@ -323,16 +373,92 @@ enum TaskParser {
         switch action {
         case .create(let t): return t
         case .edit(_, let t): return t
+        case .createEvent(let e):
+            // Flattened representation so the recording log can show events too
+            return ParsedTask(title: "[Event] \(e.title)", description: e.location, deadline: e.start, tag: nil)
+        case .editEvent(_, let e):
+            return ParsedTask(title: "[Edit event] \(e.title)", description: e.location, deadline: e.start, tag: nil)
         }
+    }
+
+    /// Builds the full updated event for an "edit-event" action: the model
+    /// sends only the fields that change, everything else carries over from
+    /// the event being edited (including its duration when only the start moves).
+    private static func mergedEventUpdate(_ dict: [String: Any], original: DayEvent) -> ParsedEvent? {
+        let cal = Calendar.current
+        let title = (dict["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? original.title
+        let location = (dict["location"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? original.location
+
+        let day: Date
+        if let dateStr = dict["date"] as? String, let parsed = isoFormatter.date(from: dateStr) {
+            day = parsed
+        } else {
+            day = original.start
+        }
+
+        func time(from string: Any?) -> (hour: Int, minute: Int)? {
+            guard let string = string as? String else { return nil }
+            let parts = string.split(separator: ":").compactMap { Int($0) }
+            guard parts.count == 2, (0...23).contains(parts[0]), (0...59).contains(parts[1]) else { return nil }
+            return (parts[0], parts[1])
+        }
+
+        let originalStartParts = cal.dateComponents([.hour, .minute], from: original.start)
+        let startTime = time(from: dict["start"]) ?? (originalStartParts.hour ?? 9, originalStartParts.minute ?? 0)
+        guard let start = cal.date(bySettingHour: startTime.hour, minute: startTime.minute, second: 0, of: day) else { return nil }
+
+        if original.isAllDay && time(from: dict["start"]) == nil {
+            let dayStart = cal.startOfDay(for: day)
+            let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+            return ParsedEvent(title: title, start: dayStart, end: dayEnd, isAllDay: true, location: location)
+        }
+
+        let end: Date
+        if let endTime = time(from: dict["end"]),
+           let explicitEnd = cal.date(bySettingHour: endTime.hour, minute: endTime.minute, second: 0, of: day),
+           explicitEnd > start {
+            end = explicitEnd
+        } else {
+            let duration = original.isAllDay ? 3600 : max(original.end.timeIntervalSince(original.start), 60)
+            end = start.addingTimeInterval(duration)
+        }
+        return ParsedEvent(title: title, start: start, end: end, isAllDay: false, location: location)
+    }
+
+    /// Parses {"action": "event", "title": ..., "date": "YYYY-MM-DD", "start": "HH:MM", "end": "HH:MM", "location": ...}.
+    /// Untimed events aren't produced by the prompt, but a missing start
+    /// degrades to an all-day event rather than losing the appointment.
+    private static func parseEventDictionary(_ dict: [String: Any]) -> ParsedEvent? {
+        guard let title = dict["title"] as? String, !title.isEmpty,
+              let dateStr = dict["date"] as? String,
+              let day = isoFormatter.date(from: dateStr) else { return nil }
+        let location = (dict["location"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        let cal = Calendar.current
+
+        func time(on day: Date, from string: String?) -> Date? {
+            guard let string else { return nil }
+            let parts = string.split(separator: ":").compactMap { Int($0) }
+            guard parts.count == 2, (0...23).contains(parts[0]), (0...59).contains(parts[1]) else { return nil }
+            return cal.date(bySettingHour: parts[0], minute: parts[1], second: 0, of: day)
+        }
+
+        guard let start = time(on: day, from: dict["start"] as? String) else {
+            let dayStart = cal.startOfDay(for: day)
+            let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+            return ParsedEvent(title: title, start: dayStart, end: dayEnd, isAllDay: true, location: location)
+        }
+        let end = time(on: day, from: dict["end"] as? String).flatMap { $0 > start ? $0 : nil }
+            ?? start.addingTimeInterval(3600)
+        return ParsedEvent(title: title, start: start, end: end, isAllDay: false, location: location)
     }
 
     /// Parses the assistant object shape {"actions": [...], "remark": ..., "question": ...}.
     /// Tolerates a bare array (legacy shape) as actions-only.
-    private static func parseAssistantResponse(_ text: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) -> AssistantResponse? {
+    private static func parseAssistantResponse(_ text: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = []) -> AssistantResponse? {
         guard let data = text.data(using: .utf8) else { return nil }
         if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             let actionDicts = obj["actions"] as? [[String: Any]] ?? []
-            let actions = parseActions(from: actionDicts, existingTasks: existingTasks)
+            let actions = parseActions(from: actionDicts, existingTasks: existingTasks, existingEvents: existingEvents)
             let remark = (obj["remark"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             var question: AssistantQuestion? = nil
             if let q = obj["question"] as? [String: Any],
@@ -355,7 +481,7 @@ enum TaskParser {
             )
         }
         if let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-            let actions = parseActions(from: array, existingTasks: existingTasks)
+            let actions = parseActions(from: array, existingTasks: existingTasks, existingEvents: existingEvents)
             return actions.isEmpty ? nil : AssistantResponse(actions: actions, remark: nil, question: nil)
         }
         return nil
@@ -453,10 +579,31 @@ enum TaskParser {
         return trimmed
     }
 
-    private static func parseActions(from array: [[String: Any]], existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) -> [ParsedAction] {
+    private static func parseActions(from array: [[String: Any]], existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = []) -> [ParsedAction] {
         return array.compactMap { dict -> ParsedAction? in
             var dict = dict
             let action = dict["action"] as? String ?? "create"
+
+            if action == "event" {
+                if let event = parseEventDictionary(dict) { return .createEvent(event) }
+                // Malformed event: salvage as a plain task rather than dropping it
+                guard let parsed = parseDictionary(dict) else { return nil }
+                return .create(parsed)
+            }
+
+            if action == "edit-event", let matchTitle = dict["match"] as? String {
+                let lowered = matchTitle.lowercased()
+                // Soonest upcoming occurrence wins when titles repeat (recurring events)
+                let candidates = existingEvents.sorted { $0.start < $1.start }
+                let original = candidates.first { $0.title.lowercased() == lowered }
+                    ?? candidates.first { $0.title.lowercased().contains(lowered) }
+                    ?? candidates.first { lowered.contains($0.title.lowercased()) }
+                guard let original, let updates = mergedEventUpdate(dict, original: original) else {
+                    // Unknown event — never invent a calendar write from a bad match
+                    return nil
+                }
+                return .editEvent(original: original, updates: updates)
+            }
 
             if action == "edit", let matchTitle = dict["match"] as? String {
                 // Find best matching existing task (case-insensitive, prefix-tolerant)
