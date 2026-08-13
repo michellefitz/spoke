@@ -11,7 +11,10 @@ enum RecordingState: Equatable {
 @Observable
 @MainActor
 final class VoiceRecorder {
-    var recordingState: RecordingState = .idle
+    // Only the recorder may change state: an outside write that skips the
+    // audio teardown leaves the tap installed and the next recording crashes
+    // with "required condition is false: nullptr == Tap()".
+    private(set) var recordingState: RecordingState = .idle
     var liveTranscript: String = ""
     var audioLevel: Float = 0.0
 
@@ -97,6 +100,23 @@ final class VoiceRecorder {
         return transcript
     }
 
+    /// Abandons any live recording and moves to .processing, discarding the
+    /// transcript. For paths where the user acted by tapping a button while
+    /// the mic was still open — the speech no longer matters, but the audio
+    /// teardown very much does.
+    func cancelRecording() {
+        if recordingState == .recording {
+            audioEngine.stop()
+            audioEngine.inputNode.removeTap(onBus: 0)
+            disconnectWebSocket()
+            stopObservingInterruptions()
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            startedAt = nil
+        }
+        recordingState = .processing
+        audioLevel = 0.0
+    }
+
     /// Called when the app leaves the foreground mid-recording. Spoke keeps
     /// recording (the audio background mode allows it); this is noted only so
     /// the log can show it happened.
@@ -129,6 +149,9 @@ final class VoiceRecorder {
 
         guard let converter = AVAudioConverter(from: inputFormat, to: targetFormat) else { return }
 
+        // Belt and braces: a tap leaked by any teardown path would make this
+        // installTap throw NSException (uncatchable from Swift) and crash.
+        inputNode.removeTap(onBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
             // Calculate output frame count for the sample-rate ratio
             let ratio = 16_000.0 / inputFormat.sampleRate

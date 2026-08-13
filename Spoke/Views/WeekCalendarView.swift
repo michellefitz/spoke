@@ -26,6 +26,7 @@ struct WeekCalendarView: View {
     @Binding var weekOffset: Int
     @Environment(\.openURL) private var openURL
     @State private var selectedTask: SpokeTask?
+    @State private var selectedEvent: DayEvent?
     @State private var undatedExpanded = false
     @State private var weekEvents: [DayEvent] = []
     @AppStorage("calUndatedCollapsed") private var undatedCollapsed = false
@@ -37,6 +38,9 @@ struct WeekCalendarView: View {
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let dateColumnWidth: CGFloat = 52
+    /// Matches the compact date label (26pt badge + caption), so the label
+    /// never makes a day's first row taller than the rest.
+    private let scheduleRowMinHeight: CGFloat = 38
     private var cal: Calendar { Calendar.current }
 
     private var weekStart: Date {
@@ -225,6 +229,11 @@ struct WeekCalendarView: View {
                 .presentationDetents([.fraction(0.7), .large])
                 .presentationBackground(Color(.systemBackground))
         }
+        .sheet(item: $selectedEvent) { event in
+            EventDetailView(event: event)
+                .presentationDetents([.fraction(0.7), .large])
+                .presentationBackground(Color(.systemBackground))
+        }
     }
 
     // MARK: - Schedule rows
@@ -250,10 +259,14 @@ struct WeekCalendarView: View {
                 .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
             }
         } else {
+            // Every row is at least date-label height, so the first row — which
+            // carries the label inline — is no taller than its neighbours.
+            // Anything less and the label opens a gap between a day's first
+            // and second items. (An overlaid label doesn't work — List rows
+            // clip overflow.) The floor also brings rows closer to a 44pt
+            // touch target.
             ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
-                HStack(alignment: .top, spacing: 14) {
-                    // The invisible label must not reserve its height on
-                    // later rows, or every row inflates to date-column size.
+                HStack(alignment: .center, spacing: 14) {
                     if index == 0 {
                         label().frame(width: dateColumnWidth)
                     } else {
@@ -261,13 +274,15 @@ struct WeekCalendarView: View {
                     }
                     eventRow(event, on: eventsDay)
                 }
+                .frame(minHeight: scheduleRowMinHeight)
                 .opacity(dimmed ? 0.45 : 1)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
             }
             ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
-                HStack(alignment: .top, spacing: 14) {
-                    if events.isEmpty && index == 0 {
+                let isFirstRow = events.isEmpty && index == 0
+                HStack(alignment: .center, spacing: 14) {
+                    if isFirstRow {
                         label().frame(width: dateColumnWidth)
                     } else {
                         Color.clear.frame(width: dateColumnWidth, height: 1)
@@ -280,6 +295,7 @@ struct WeekCalendarView: View {
                         calendarStyle: true
                     )
                 }
+                .frame(minHeight: scheduleRowMinHeight)
                 .opacity(dimmed ? 0.45 : 1)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
@@ -289,7 +305,7 @@ struct WeekCalendarView: View {
 
     /// A calendar appointment: tinted block with the calendar's colour as a
     /// spine, time underneath — deliberately un-task-like (no checkbox).
-    /// Tapping opens the Calendar app at the event's time.
+    /// Tapping opens the in-app event detail sheet.
     private func eventRow(_ event: DayEvent, on day: Date) -> some View {
         HStack(alignment: .center, spacing: 10) {
             RoundedRectangle(cornerRadius: 1.5)
@@ -311,9 +327,7 @@ struct WeekCalendarView: View {
         .background(RoundedRectangle(cornerRadius: 10).fill(event.color.opacity(0.09)))
         .contentShape(Rectangle())
         .onTapGesture {
-            if let url = URL(string: "calshow:\(Int(event.start.timeIntervalSinceReferenceDate))") {
-                openURL(url)
-            }
+            selectedEvent = event
         }
     }
 
@@ -425,49 +439,52 @@ struct WeekCalendarView: View {
         weekdayFormatter.dateFormat = "EEE"
         let weekday = weekdayFormatter.string(from: day).uppercased()
 
-        return VStack(spacing: 2) {
+        // Compact on purpose: the label sits inline on a day's first row, so
+        // every point of its height beyond a task row shows up as a gap
+        // between the day's first and second items.
+        return VStack(spacing: 1) {
             Text(dayNumber)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(isToday ? .white : Color(.label))
-                .frame(width: 30, height: 30)
+                .frame(width: 26, height: 26)
                 .background {
                     if isToday {
                         Circle().fill(coral)
                     }
                 }
             Text(weekday)
-                .font(.system(size: 10, weight: .semibold))
-                .kerning(0.6)
+                .font(.system(size: 9, weight: .semibold))
+                .kerning(0.5)
                 .foregroundStyle(isToday ? coral : Color(.secondaryLabel))
         }
         .frame(maxWidth: .infinity)
     }
 
     private var poolColumn: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 1) {
             Image(systemName: "tray")
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(coral)
-                .frame(width: 30, height: 30)
+                .frame(width: 26, height: 26)
                 .background(Circle().fill(coral.opacity(0.12)))
             Text("ANY DAY")
-                .font(.system(size: 9, weight: .semibold))
-                .kerning(0.5)
+                .font(.system(size: 8, weight: .semibold))
+                .kerning(0.4)
                 .foregroundStyle(coral)
         }
         .frame(maxWidth: .infinity)
     }
 
     private var undatedColumn: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 1) {
             Image(systemName: "infinity")
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Color(.secondaryLabel))
-                .frame(width: 30, height: 30)
+                .frame(width: 26, height: 26)
                 .background(Circle().fill(Color(.tertiarySystemFill)))
             Text("NO DATE")
-                .font(.system(size: 9, weight: .semibold))
-                .kerning(0.5)
+                .font(.system(size: 8, weight: .semibold))
+                .kerning(0.4)
                 .foregroundStyle(Color(.secondaryLabel))
         }
         .frame(maxWidth: .infinity)

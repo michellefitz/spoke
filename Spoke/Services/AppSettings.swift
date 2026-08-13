@@ -41,6 +41,11 @@ final class AppSettings {
         didSet { defaults.set(Array(hiddenCalendarIDs), forKey: "hiddenCalendarIDs") }
     }
 
+    /// Where new events created from Spoke go. Nil means the system default.
+    var defaultEventCalendarID: String? {
+        didSet { defaults.set(defaultEventCalendarID, forKey: "defaultEventCalendarID") }
+    }
+
     var hasCompletedOnboarding: Bool {
         didSet { defaults.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
@@ -66,6 +71,7 @@ final class AppSettings {
         self.showCalendarEvents    = defaults.object(forKey: "showCalendarEvents")    as? Bool ?? true
         self.calendarPromptDismissed = defaults.bool(forKey: "calendarPromptDismissed")
         self.hiddenCalendarIDs     = Set(defaults.stringArray(forKey: "hiddenCalendarIDs") ?? [])
+        self.defaultEventCalendarID = defaults.string(forKey: "defaultEventCalendarID")
         self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
         self.autoDeleteCompleted   = defaults.object(forKey: "autoDeleteCompleted")   as? Bool ?? true
         self.hasSeenCoaching       = defaults.bool(forKey: "hasSeenCoaching")

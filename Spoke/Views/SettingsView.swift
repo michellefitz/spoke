@@ -115,6 +115,25 @@ struct SettingsView: View {
                             .font(.footnote)
                             .foregroundStyle(Color(.secondaryLabel))
                     }
+
+                    Section {
+                        Picker(selection: Binding(
+                            get: { settings.defaultEventCalendarID ?? "" },
+                            set: { settings.defaultEventCalendarID = $0.isEmpty ? nil : $0 }
+                        )) {
+                            Text("System default").tag("")
+                            ForEach(CalendarService.shared.writableCalendars()) { calendar in
+                                Text("\(calendar.title) (\(calendar.source))").tag(calendar.id)
+                            }
+                        } label: {
+                            Text("New events go to")
+                        }
+                        .tint(coral)
+                    } footer: {
+                        Text("Events you create with your voice are added to this calendar, always after you confirm them.")
+                            .font(.footnote)
+                            .foregroundStyle(Color(.secondaryLabel))
+                    }
                 }
 
                 // MARK: Tags
