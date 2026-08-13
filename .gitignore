@@ -34,3 +34,6 @@ recordings/
 
 # Secrets — copy Config.swift.example and fill in real keys locally
 Spoke/Config.swift
+
+# Python bytecode (evals)
+__pycache__/
