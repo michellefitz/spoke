@@ -1,0 +1,57 @@
+Test #,Category,Transcript,Expected Tasks,Actual Tasks,Task 1 Title,Task 1 Description,Task 1 Deadline,Task 1 Tag,Task 2 Title,Task 2 Description,Task 2 Deadline,Task 2 Tag,Task 3 Title,Task 3 Description,Task 3 Deadline,Task 3 Tag,Task 4 Title,Task 4 Description,Task 4 Deadline,Task 4 Tag,Task 5 Title,Task 5 Description,Task 5 Deadline,Task 5 Tag,Pass/Fail,Notes
+1,simple-single,Call the dentist,1,1,Call the dentist,,,,,,,,,,,,,,,,,,,,,
+2,simple-single,Take out the trash,1,1,Take out the trash,,,personal,,,,,,,,,,,,,,,,,,
+3,simple-single,Email Sarah about the project update,1,1,Email Sarah about the project update,,,work,,,,,,,,,,,,,,,,,,
+4,simple-single,Pay the electric bill,1,1,Pay the electric bill,,,finance,,,,,,,,,,,,,,,,,,
+5,simple-single,Pick up my prescription at CVS,1,1,Pick up prescription at CVS,,,health,,,,,,,,,,,,,,,,,,
+6,single-with-subtasks,"Do the grocery shopping I need milk, eggs, bread, and some chicken thighs",1,1,Do grocery shopping,"Things to pick up:
+• Milk
+• Eggs
+• Bread
+• Chicken thighs",,shopping,,,,,,,,,,,,,,,,,,
+7,single-with-subtasks,"Pack for the camping trip this weekend I need the tent, sleeping bags, cooler, flashlight, and bug spray",1,1,Pack for camping trip this weekend,"Items to pack:
+• Tent
+• Sleeping bags
+• Cooler
+• Flashlight
+• Bug spray",2026-04-05,personal,,,,,,,,,,,,,,,,,,
+8,single-with-subtasks,"Prep for the Monday morning standup I need to cover the API migration status, the new hire onboarding, and the Q2 roadmap changes",1,1,Prep for Monday morning standup,"Topics to cover:
+• API migration status
+• New hire onboarding
+• Q2 roadmap changes",2026-04-06,work,,,,,,,,,,,,,,,,,,
+9,single-with-subtasks,"Clean the apartment before Mom visits vacuum the living room, clean the bathroom, do the dishes, and change the sheets",1,1,Clean the apartment before Mom visits,"Things to do:
+• Vacuum the living room
+• Clean the bathroom
+• Do the dishes
+• Change the sheets",,personal,,,,,,,,,,,,,,,,,,
+10,single-with-subtasks,"Get the car ready for the road trip check the oil, fill up the tires, get a car wash, and pack the emergency kit",1,1,Get the car ready for the road trip,"Things to do:
+• Check the oil
+• Fill up the tires
+• Get a car wash
+• Pack the emergency kit",,personal,,,,,,,,,,,,,,,,,,
+11,two-tasks,I need to call the dentist and also pick up my dry cleaning on the way home,2,2,Call the dentist,,,health,Pick up dry cleaning on the way home,,,personal,,,,,,,,,,,,,,
+12,two-tasks,Schedule a meeting with the design team for Thursday and submit the expense report by Friday,2,2,Schedule meeting with design team,,2026-04-02,work,Submit expense report,,2026-04-03,work,,,,,,,,,,,,,,
+13,two-tasks,Return the Amazon package and then stop at the bank to deposit that check,2,2,Return the Amazon package,,,,Deposit check at the bank,,,,,,,,,,,,,,,,,
+14,two-tasks,Book a vet appointment for Luna and renew my gym membership before it expires next week,2,2,Book vet appointment for Luna,,,personal,Renew gym membership,,2026-04-07,personal,,,,,,,,,,,,,,
+15,two-tasks,Text Mom happy birthday and order flowers for delivery to her house,2,2,Text Mom happy birthday,,,,Order flowers for delivery to Mom's house,,,personal,,,,,,,,,,,,,,
+16,rambling,Oh yeah I just remembered I should probably um call the insurance company because they sent me that letter about the um the policy renewal and I think it said something about like the rate going up so I need to ask them about that before um I think it was before April fifteenth,1,1,Call insurance company about policy renewal,Ask about rate increase mentioned in their letter.,2026-04-15,finance,,,,,,,,,,,,,,,,,,
+17,rambling,So I was talking to Jake at lunch and he mentioned that oh wait actually I think it was at coffee anyway he said the presentation deck needs to be updated because the numbers from Q1 are wrong and I was like oh man I totally forgot about that so yeah I need to fix the Q1 numbers in the presentation,1,1,Fix Q1 numbers in presentation deck,,,work,,,,,,,,,,,,,,,,,,
+18,rambling,Hmm let me think what was it oh right so my landlord texted me and said they're going to do like an inspection or something on um I think he said next Wednesday so I should probably tidy up a bit and also I think there's that thing where the kitchen faucet is leaking I should mention that to him when he comes,2,2,Tidy up for landlord inspection,,2026-04-08,personal,Tell landlord about leaking kitchen faucet,,2026-04-08,personal,,,,,,,,,,,,,,
+19,rambling,OK so like I've been meaning to do this for ages but I really need to cancel that streaming service I never use anymore I think it's like Paramount Plus or something and it's been charging me like fifteen dollars a month and I keep forgetting,1,1,Cancel Paramount Plus subscription,,,finance,,,,,,,,,,,,,,,,,,
+20,rambling,Wait what was I going to say oh yeah so Sarah mentioned that the um the book club meeting got moved to next Tuesday and I still haven't finished reading the book so I really need to finish that before Tuesday I think I have like three chapters left,1,2,Finish reading book for club,Three chapters remaining before the Tuesday meeting.,2026-04-07,personal,Attend book club meeting,,2026-04-07,personal,,,,,,,,,,,,,,
+21,complex-braindump,OK so I have a bunch of stuff this week first I need to schedule a dentist appointment and then I have to buy groceries we need pasta sauce chicken rice and broccoli oh and I also need to submit my timesheet by Friday and call the landlord about the broken heater,4,4,Schedule dentist appointment,,,health,Buy groceries,"Things to buy:
+• Pasta sauce
+• Chicken
+• Rice
+• Broccoli",,shopping,Submit timesheet,,2026-04-04,work,Call landlord about broken heater,,,personal,,,,,,
+22,complex-braindump,Alright Monday things I need to send the proposal to the client by end of day Tuesday I have that doctor appointment at 2 PM don't forget to fast beforehand and I need to pick up a birthday gift for Dad his birthday is Saturday and also transfer money to savings this week at least five hundred dollars,4,4,Send proposal to client,,2026-04-02,work,Doctor appointment at 2 PM,Remember to fast beforehand.,2026-04-03,health,Pick up birthday gift for Dad,,2026-04-04,personal,Transfer $500 to savings,,2026-04-05,finance,,,,,,
+23,complex-braindump,Let me brain dump OK so for work I need to review the pull requests and write the technical spec for the new feature those are both due by Wednesday then personal stuff I need to book flights for the vacation in June and renew my passport before that oh and schedule the dog grooming appointment sometime this week,5,5,Review pull requests,,2026-04-01,work,Write technical spec for new feature,,2026-04-01,work,Book flights for June vacation,,,personal,Renew passport,,,personal,Schedule dog grooming appointment,,2026-04-05,personal,,
+24,complex-braindump,Things I cannot forget this week file taxes by April fifteenth buy a new laptop charger the old one is fraying return the library books they are way overdue send a thank you note to Grandma for the birthday money and make a dentist appointment for a cleaning,5,5,File taxes,,2026-04-15,finance,Buy a new laptop charger,The old one is fraying.,,shopping,Return the library books,They are way overdue.,,personal,Send thank you note to Grandma,For the birthday money.,,personal,Make dentist appointment for cleaning,,,health,,
+25,complex-braindump,So many things OK number one meal prep for the week I want to make chili and some overnight oats number two research new health insurance plans the enrollment deadline is April tenth number three sign up for that pottery class at the community center and number four fix the squeaky door in the bedroom,4,4,Meal prep for the week,"Things to make:
+• Chili
+• Overnight oats",,personal,Research new health insurance plans,,2026-04-10,health,Sign up for pottery class at community center,,,personal,Fix the squeaky door in bedroom,,,personal,,,,,,
+26,stress-test,Ugh I don't know there's just like so much stuff um I think I need to maybe look into that thing with the um the car registration it's expired or it's about to expire I don't remember which,1,1,Check car registration status,"Determine if registration has already expired or is about to expire, and renew if needed.",,personal,,,,,,,,,,,,,,,,,,
+27,stress-test,Hey so like you know that thing where um oh man what's it called the the thing for work where they want us to do the training module the compliance one yeah I should probably do that soon they keep sending me emails about it,1,1,Complete compliance training module,,,work,,,,,,,,,,,,,,,,,,
+28,stress-test,Oh shoot I just realized um OK so there's the thing with the the package that was supposed to come and I think it went to the wrong address so I need to like contact them or whatever and also my mom called and she wants me to um what did she say oh yeah help her set up her new phone this weekend,2,2,Contact package delivery about wrong address,,,personal,Help mom set up her new phone this weekend,,2026-04-05,personal,,,,,,,,,,,,,,
+29,stress-test,Blah blah blah OK fine I'll do it um so basically I need to like figure out dinner for tonight I don't know maybe order something or go to the store whatever and then um I think there was a bill that was due like soon the water bill or maybe electric I should check and oh also I keep forgetting to text Mike back about the camping trip thing,3,3,Figure out dinner for tonight,Order something or go to the store.,,personal,Check and pay water or electric bill,,,finance,Text Mike about camping trip,,,personal,,,,,,,,,,
+30,stress-test,I'm like so scattered today um what do I OK so I think maybe I should probably start working on that essay that's due I think next Monday for the writing class and uh also I had this idea to rearrange the living room furniture but I don't know if that counts as a task ha ha and my sister wanted me to help with the party planning so,3,3,Work on essay for writing class,,2026-04-07,work,Rearrange living room furniture,,,personal,Help sister with party planning,,,personal,,,,,,,,,,

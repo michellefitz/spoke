@@ -1,0 +1,571 @@
+[
+  {
+    "test_num": 1,
+    "category": "simple-single",
+    "transcript": "Call the dentist",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Call the dentist"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Call the dentist\"}]\n```"
+  },
+  {
+    "test_num": 2,
+    "category": "simple-single",
+    "transcript": "Take out the trash",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Take out the trash",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Take out the trash\", \"tag\": \"personal\"}]\n```"
+  },
+  {
+    "test_num": 3,
+    "category": "simple-single",
+    "transcript": "Email Sarah about the project update",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Email Sarah about the project update",
+        "tag": "work"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Email Sarah about the project update\", \"tag\": \"work\"}]\n```"
+  },
+  {
+    "test_num": 4,
+    "category": "simple-single",
+    "transcript": "Pay the electric bill",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Pay the electric bill",
+        "tag": "finance"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Pay the electric bill\", \"tag\": \"finance\"}]\n```"
+  },
+  {
+    "test_num": 5,
+    "category": "simple-single",
+    "transcript": "Pick up my prescription at CVS",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Pick up prescription at CVS",
+        "tag": "health"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Pick up prescription at CVS\", \"tag\": \"health\"}]\n```"
+  },
+  {
+    "test_num": 6,
+    "category": "single-with-subtasks",
+    "transcript": "Do the grocery shopping I need milk, eggs, bread, and some chicken thighs",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Do grocery shopping",
+        "description": "Things to pick up:\n\u2022 Milk\n\u2022 Eggs\n\u2022 Bread\n\u2022 Chicken thighs",
+        "tag": "shopping"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Do grocery shopping\", \"description\": \"Things to pick up:\\n\u2022 Milk\\n\u2022 Eggs\\n\u2022 Bread\\n\u2022 Chicken thighs\", \"tag\": \"shopping\"}]\n```"
+  },
+  {
+    "test_num": 7,
+    "category": "single-with-subtasks",
+    "transcript": "Pack for the camping trip this weekend I need the tent, sleeping bags, cooler, flashlight, and bug spray",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Pack for camping trip this weekend",
+        "description": "Items to pack:\n\u2022 Tent\n\u2022 Sleeping bags\n\u2022 Cooler\n\u2022 Flashlight\n\u2022 Bug spray",
+        "deadline": "2026-04-05",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Pack for camping trip this weekend\", \"description\": \"Items to pack:\\n\u2022 Tent\\n\u2022 Sleeping bags\\n\u2022 Cooler\\n\u2022 Flashlight\\n\u2022 Bug spray\", \"deadline\": \"2026-04-05\", \"tag\": \"personal\"}]\n```"
+  },
+  {
+    "test_num": 8,
+    "category": "single-with-subtasks",
+    "transcript": "Prep for the Monday morning standup I need to cover the API migration status, the new hire onboarding, and the Q2 roadmap changes",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Prep for Monday morning standup",
+        "description": "Topics to cover:\n\u2022 API migration status\n\u2022 New hire onboarding\n\u2022 Q2 roadmap changes",
+        "deadline": "2026-04-06",
+        "tag": "work"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Prep for Monday morning standup\", \"description\": \"Topics to cover:\\n\u2022 API migration status\\n\u2022 New hire onboarding\\n\u2022 Q2 roadmap changes\", \"deadline\": \"2026-04-06\", \"tag\": \"work\"}]\n```"
+  },
+  {
+    "test_num": 9,
+    "category": "single-with-subtasks",
+    "transcript": "Clean the apartment before Mom visits vacuum the living room, clean the bathroom, do the dishes, and change the sheets",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Clean the apartment before Mom visits",
+        "description": "Things to do:\n\u2022 Vacuum the living room\n\u2022 Clean the bathroom\n\u2022 Do the dishes\n\u2022 Change the sheets",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Clean the apartment before Mom visits\", \"description\": \"Things to do:\\n\u2022 Vacuum the living room\\n\u2022 Clean the bathroom\\n\u2022 Do the dishes\\n\u2022 Change the sheets\", \"tag\": \"personal\"}]\n```"
+  },
+  {
+    "test_num": 10,
+    "category": "single-with-subtasks",
+    "transcript": "Get the car ready for the road trip check the oil, fill up the tires, get a car wash, and pack the emergency kit",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Get the car ready for the road trip",
+        "description": "Things to do:\n\u2022 Check the oil\n\u2022 Fill up the tires\n\u2022 Get a car wash\n\u2022 Pack the emergency kit",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Get the car ready for the road trip\", \"description\": \"Things to do:\\n\u2022 Check the oil\\n\u2022 Fill up the tires\\n\u2022 Get a car wash\\n\u2022 Pack the emergency kit\", \"tag\": \"personal\"}]\n```"
+  },
+  {
+    "test_num": 11,
+    "category": "two-tasks",
+    "transcript": "I need to call the dentist and also pick up my dry cleaning on the way home",
+    "expected": 2,
+    "actual": 2,
+    "tasks": [
+      {
+        "title": "Call the dentist",
+        "tag": "health"
+      },
+      {
+        "title": "Pick up dry cleaning on the way home",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[\n  {\"title\": \"Call the dentist\", \"tag\": \"health\"},\n  {\"title\": \"Pick up dry cleaning on the way home\", \"tag\": \"personal\"}\n]\n```"
+  },
+  {
+    "test_num": 12,
+    "category": "two-tasks",
+    "transcript": "Schedule a meeting with the design team for Thursday and submit the expense report by Friday",
+    "expected": 2,
+    "actual": 2,
+    "tasks": [
+      {
+        "title": "Schedule meeting with design team",
+        "deadline": "2026-04-02",
+        "tag": "work"
+      },
+      {
+        "title": "Submit expense report",
+        "deadline": "2026-04-03",
+        "tag": "work"
+      }
+    ],
+    "raw": "```json\n[\n  {\n    \"title\": \"Schedule meeting with design team\",\n    \"deadline\": \"2026-04-02\",\n    \"tag\": \"work\"\n  },\n  {\n    \"title\": \"Submit expense report\",\n    \"deadline\": \"2026-04-03\",\n    \"tag\": \"work\"\n  }\n]\n```"
+  },
+  {
+    "test_num": 13,
+    "category": "two-tasks",
+    "transcript": "Return the Amazon package and then stop at the bank to deposit that check",
+    "expected": 2,
+    "actual": 2,
+    "tasks": [
+      {
+        "title": "Return the Amazon package"
+      },
+      {
+        "title": "Deposit check at the bank"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Return the Amazon package\"}, {\"title\": \"Deposit check at the bank\"}]\n```"
+  },
+  {
+    "test_num": 14,
+    "category": "two-tasks",
+    "transcript": "Book a vet appointment for Luna and renew my gym membership before it expires next week",
+    "expected": 2,
+    "actual": 2,
+    "tasks": [
+      {
+        "title": "Book vet appointment for Luna",
+        "tag": "personal"
+      },
+      {
+        "title": "Renew gym membership",
+        "deadline": "2026-04-07",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[\n  {\n    \"title\": \"Book vet appointment for Luna\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Renew gym membership\",\n    \"deadline\": \"2026-04-07\",\n    \"tag\": \"personal\"\n  }\n]\n```"
+  },
+  {
+    "test_num": 15,
+    "category": "two-tasks",
+    "transcript": "Text Mom happy birthday and order flowers for delivery to her house",
+    "expected": 2,
+    "actual": 2,
+    "tasks": [
+      {
+        "title": "Text Mom happy birthday"
+      },
+      {
+        "title": "Order flowers for delivery to Mom's house",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Text Mom happy birthday\"}, {\"title\": \"Order flowers for delivery to Mom's house\", \"tag\": \"personal\"}]\n```"
+  },
+  {
+    "test_num": 16,
+    "category": "rambling",
+    "transcript": "Oh yeah I just remembered I should probably um call the insurance company because they sent me that letter about the um the policy renewal and I think it said something about like the rate going up so I need to ask them about that before um I think it was before April fifteenth",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Call insurance company about policy renewal",
+        "description": "Ask about rate increase mentioned in their letter.",
+        "deadline": "2026-04-15",
+        "tag": "finance"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Call insurance company about policy renewal\", \"description\": \"Ask about rate increase mentioned in their letter.\", \"deadline\": \"2026-04-15\", \"tag\": \"finance\"}]\n```"
+  },
+  {
+    "test_num": 17,
+    "category": "rambling",
+    "transcript": "So I was talking to Jake at lunch and he mentioned that oh wait actually I think it was at coffee anyway he said the presentation deck needs to be updated because the numbers from Q1 are wrong and I was like oh man I totally forgot about that so yeah I need to fix the Q1 numbers in the presentation",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Fix Q1 numbers in presentation deck",
+        "tag": "work"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Fix Q1 numbers in presentation deck\", \"tag\": \"work\"}]\n```"
+  },
+  {
+    "test_num": 18,
+    "category": "rambling",
+    "transcript": "Hmm let me think what was it oh right so my landlord texted me and said they're going to do like an inspection or something on um I think he said next Wednesday so I should probably tidy up a bit and also I think there's that thing where the kitchen faucet is leaking I should mention that to him when he comes",
+    "expected": 2,
+    "actual": 2,
+    "tasks": [
+      {
+        "title": "Tidy up for landlord inspection",
+        "deadline": "2026-04-08",
+        "tag": "personal"
+      },
+      {
+        "title": "Tell landlord about leaking kitchen faucet",
+        "deadline": "2026-04-08",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Tidy up for landlord inspection\", \"deadline\": \"2026-04-08\", \"tag\": \"personal\"}, {\"title\": \"Tell landlord about leaking kitchen faucet\", \"deadline\": \"2026-04-08\", \"tag\": \"personal\"}]\n```"
+  },
+  {
+    "test_num": 19,
+    "category": "rambling",
+    "transcript": "OK so like I've been meaning to do this for ages but I really need to cancel that streaming service I never use anymore I think it's like Paramount Plus or something and it's been charging me like fifteen dollars a month and I keep forgetting",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Cancel Paramount Plus subscription",
+        "tag": "finance"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Cancel Paramount Plus subscription\", \"tag\": \"finance\"}]\n```"
+  },
+  {
+    "test_num": 20,
+    "category": "rambling",
+    "transcript": "Wait what was I going to say oh yeah so Sarah mentioned that the um the book club meeting got moved to next Tuesday and I still haven't finished reading the book so I really need to finish that before Tuesday I think I have like three chapters left",
+    "expected": 1,
+    "actual": 2,
+    "tasks": [
+      {
+        "title": "Finish reading book for club",
+        "description": "Three chapters remaining before the Tuesday meeting.",
+        "deadline": "2026-04-07",
+        "tag": "personal"
+      },
+      {
+        "title": "Attend book club meeting",
+        "deadline": "2026-04-07",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[\n  {\n    \"title\": \"Finish reading book for club\",\n    \"description\": \"Three chapters remaining before the Tuesday meeting.\",\n    \"deadline\": \"2026-04-07\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Attend book club meeting\",\n    \"deadline\": \"2026-04-07\",\n    \"tag\": \"personal\"\n  }\n]\n```"
+  },
+  {
+    "test_num": 21,
+    "category": "complex-braindump",
+    "transcript": "OK so I have a bunch of stuff this week first I need to schedule a dentist appointment and then I have to buy groceries we need pasta sauce chicken rice and broccoli oh and I also need to submit my timesheet by Friday and call the landlord about the broken heater",
+    "expected": 4,
+    "actual": 4,
+    "tasks": [
+      {
+        "title": "Schedule dentist appointment",
+        "tag": "health"
+      },
+      {
+        "title": "Buy groceries",
+        "description": "Things to buy:\n\u2022 Pasta sauce\n\u2022 Chicken\n\u2022 Rice\n\u2022 Broccoli",
+        "tag": "shopping"
+      },
+      {
+        "title": "Submit timesheet",
+        "deadline": "2026-04-04",
+        "tag": "work"
+      },
+      {
+        "title": "Call landlord about broken heater",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[\n  {\"title\": \"Schedule dentist appointment\", \"tag\": \"health\"},\n  {\"title\": \"Buy groceries\", \"description\": \"Things to buy:\\n\u2022 Pasta sauce\\n\u2022 Chicken\\n\u2022 Rice\\n\u2022 Broccoli\", \"tag\": \"shopping\"},\n  {\"title\": \"Submit timesheet\", \"deadline\": \"2026-04-04\", \"tag\": \"work\"},\n  {\"title\": \"Call landlord about broken heater\", \"tag\": \"personal\"}\n]\n```"
+  },
+  {
+    "test_num": 22,
+    "category": "complex-braindump",
+    "transcript": "Alright Monday things I need to send the proposal to the client by end of day Tuesday I have that doctor appointment at 2 PM don't forget to fast beforehand and I need to pick up a birthday gift for Dad his birthday is Saturday and also transfer money to savings this week at least five hundred dollars",
+    "expected": 4,
+    "actual": 4,
+    "tasks": [
+      {
+        "title": "Send proposal to client",
+        "deadline": "2026-04-02",
+        "tag": "work"
+      },
+      {
+        "title": "Doctor appointment at 2 PM",
+        "description": "Remember to fast beforehand.",
+        "deadline": "2026-04-03",
+        "tag": "health"
+      },
+      {
+        "title": "Pick up birthday gift for Dad",
+        "deadline": "2026-04-04",
+        "tag": "personal"
+      },
+      {
+        "title": "Transfer $500 to savings",
+        "deadline": "2026-04-05",
+        "tag": "finance"
+      }
+    ],
+    "raw": "```json\n[\n  {\n    \"title\": \"Send proposal to client\",\n    \"deadline\": \"2026-04-02\",\n    \"tag\": \"work\"\n  },\n  {\n    \"title\": \"Doctor appointment at 2 PM\",\n    \"description\": \"Remember to fast beforehand.\",\n    \"deadline\": \"2026-04-03\",\n    \"tag\": \"health\"\n  },\n  {\n    \"title\": \"Pick up birthday gift for Dad\",\n    \"deadline\": \"2026-04-04\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Transfer $500 to savings\",\n    \"deadline\": \"2026-04-05\",\n    \"tag\": \"finance\"\n  }\n]\n```"
+  },
+  {
+    "test_num": 23,
+    "category": "complex-braindump",
+    "transcript": "Let me brain dump OK so for work I need to review the pull requests and write the technical spec for the new feature those are both due by Wednesday then personal stuff I need to book flights for the vacation in June and renew my passport before that oh and schedule the dog grooming appointment sometime this week",
+    "expected": 5,
+    "actual": 5,
+    "tasks": [
+      {
+        "title": "Review pull requests",
+        "deadline": "2026-04-01",
+        "tag": "work"
+      },
+      {
+        "title": "Write technical spec for new feature",
+        "deadline": "2026-04-01",
+        "tag": "work"
+      },
+      {
+        "title": "Book flights for June vacation",
+        "tag": "personal"
+      },
+      {
+        "title": "Renew passport",
+        "tag": "personal"
+      },
+      {
+        "title": "Schedule dog grooming appointment",
+        "deadline": "2026-04-05",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[\n  {\n    \"title\": \"Review pull requests\",\n    \"deadline\": \"2026-04-01\",\n    \"tag\": \"work\"\n  },\n  {\n    \"title\": \"Write technical spec for new feature\",\n    \"deadline\": \"2026-04-01\",\n    \"tag\": \"work\"\n  },\n  {\n    \"title\": \"Book flights for June vacation\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Renew passport\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Schedule dog grooming appointment\",\n    \"deadline\": \"2026-04-05\",\n    \"tag\": \"personal\"\n  }\n]\n```"
+  },
+  {
+    "test_num": 24,
+    "category": "complex-braindump",
+    "transcript": "Things I cannot forget this week file taxes by April fifteenth buy a new laptop charger the old one is fraying return the library books they are way overdue send a thank you note to Grandma for the birthday money and make a dentist appointment for a cleaning",
+    "expected": 5,
+    "actual": 5,
+    "tasks": [
+      {
+        "title": "File taxes",
+        "deadline": "2026-04-15",
+        "tag": "finance"
+      },
+      {
+        "title": "Buy a new laptop charger",
+        "description": "The old one is fraying.",
+        "tag": "shopping"
+      },
+      {
+        "title": "Return the library books",
+        "description": "They are way overdue.",
+        "tag": "personal"
+      },
+      {
+        "title": "Send thank you note to Grandma",
+        "description": "For the birthday money.",
+        "tag": "personal"
+      },
+      {
+        "title": "Make dentist appointment for cleaning",
+        "tag": "health"
+      }
+    ],
+    "raw": "```json\n[\n  {\n    \"title\": \"File taxes\",\n    \"deadline\": \"2026-04-15\",\n    \"tag\": \"finance\"\n  },\n  {\n    \"title\": \"Buy a new laptop charger\",\n    \"description\": \"The old one is fraying.\",\n    \"tag\": \"shopping\"\n  },\n  {\n    \"title\": \"Return the library books\",\n    \"description\": \"They are way overdue.\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Send thank you note to Grandma\",\n    \"description\": \"For the birthday money.\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Make dentist appointment for cleaning\",\n    \"tag\": \"health\"\n  }\n]\n```"
+  },
+  {
+    "test_num": 25,
+    "category": "complex-braindump",
+    "transcript": "So many things OK number one meal prep for the week I want to make chili and some overnight oats number two research new health insurance plans the enrollment deadline is April tenth number three sign up for that pottery class at the community center and number four fix the squeaky door in the bedroom",
+    "expected": 4,
+    "actual": 4,
+    "tasks": [
+      {
+        "title": "Meal prep for the week",
+        "description": "Things to make:\n\u2022 Chili\n\u2022 Overnight oats",
+        "tag": "personal"
+      },
+      {
+        "title": "Research new health insurance plans",
+        "deadline": "2026-04-10",
+        "tag": "health"
+      },
+      {
+        "title": "Sign up for pottery class at community center",
+        "tag": "personal"
+      },
+      {
+        "title": "Fix the squeaky door in bedroom",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[\n  {\n    \"title\": \"Meal prep for the week\",\n    \"description\": \"Things to make:\\n\u2022 Chili\\n\u2022 Overnight oats\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Research new health insurance plans\",\n    \"deadline\": \"2026-04-10\",\n    \"tag\": \"health\"\n  },\n  {\n    \"title\": \"Sign up for pottery class at community center\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Fix the squeaky door in bedroom\",\n    \"tag\": \"personal\"\n  }\n]\n```"
+  },
+  {
+    "test_num": 26,
+    "category": "stress-test",
+    "transcript": "Ugh I don't know there's just like so much stuff um I think I need to maybe look into that thing with the um the car registration it's expired or it's about to expire I don't remember which",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Check car registration status",
+        "description": "Determine if registration has already expired or is about to expire, and renew if needed.",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Check car registration status\", \"description\": \"Determine if registration has already expired or is about to expire, and renew if needed.\", \"tag\": \"personal\"}]\n```"
+  },
+  {
+    "test_num": 27,
+    "category": "stress-test",
+    "transcript": "Hey so like you know that thing where um oh man what's it called the the thing for work where they want us to do the training module the compliance one yeah I should probably do that soon they keep sending me emails about it",
+    "expected": 1,
+    "actual": 1,
+    "tasks": [
+      {
+        "title": "Complete compliance training module",
+        "tag": "work"
+      }
+    ],
+    "raw": "```json\n[{\"title\": \"Complete compliance training module\", \"tag\": \"work\"}]\n```"
+  },
+  {
+    "test_num": 28,
+    "category": "stress-test",
+    "transcript": "Oh shoot I just realized um OK so there's the thing with the the package that was supposed to come and I think it went to the wrong address so I need to like contact them or whatever and also my mom called and she wants me to um what did she say oh yeah help her set up her new phone this weekend",
+    "expected": 2,
+    "actual": 2,
+    "tasks": [
+      {
+        "title": "Contact package delivery about wrong address",
+        "tag": "personal"
+      },
+      {
+        "title": "Help mom set up her new phone this weekend",
+        "deadline": "2026-04-05",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[\n  {\n    \"title\": \"Contact package delivery about wrong address\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Help mom set up her new phone this weekend\",\n    \"deadline\": \"2026-04-05\",\n    \"tag\": \"personal\"\n  }\n]\n```"
+  },
+  {
+    "test_num": 29,
+    "category": "stress-test",
+    "transcript": "Blah blah blah OK fine I'll do it um so basically I need to like figure out dinner for tonight I don't know maybe order something or go to the store whatever and then um I think there was a bill that was due like soon the water bill or maybe electric I should check and oh also I keep forgetting to text Mike back about the camping trip thing",
+    "expected": 3,
+    "actual": 3,
+    "tasks": [
+      {
+        "title": "Figure out dinner for tonight",
+        "description": "Order something or go to the store.",
+        "tag": "personal"
+      },
+      {
+        "title": "Check and pay water or electric bill",
+        "tag": "finance"
+      },
+      {
+        "title": "Text Mike about camping trip",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[\n  {\n    \"title\": \"Figure out dinner for tonight\",\n    \"description\": \"Order something or go to the store.\",\n    \"tag\": \"personal\"\n  },\n  {\n    \"title\": \"Check and pay water or electric bill\",\n    \"tag\": \"finance\"\n  },\n  {\n    \"title\": \"Text Mike about camping trip\",\n    \"tag\": \"personal\"\n  }\n]\n```"
+  },
+  {
+    "test_num": 30,
+    "category": "stress-test",
+    "transcript": "I'm like so scattered today um what do I OK so I think maybe I should probably start working on that essay that's due I think next Monday for the writing class and uh also I had this idea to rearrange the living room furniture but I don't know if that counts as a task ha ha and my sister wanted me to help with the party planning so",
+    "expected": 3,
+    "actual": 3,
+    "tasks": [
+      {
+        "title": "Work on essay for writing class",
+        "deadline": "2026-04-07",
+        "tag": "work"
+      },
+      {
+        "title": "Rearrange living room furniture",
+        "tag": "personal"
+      },
+      {
+        "title": "Help sister with party planning",
+        "tag": "personal"
+      }
+    ],
+    "raw": "```json\n[\n  {\"title\": \"Work on essay for writing class\", \"deadline\": \"2026-04-07\", \"tag\": \"work\"},\n  {\"title\": \"Rearrange living room furniture\", \"tag\": \"personal\"},\n  {\"title\": \"Help sister with party planning\", \"tag\": \"personal\"}\n]\n```"
+  }
+]

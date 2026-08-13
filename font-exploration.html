@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spoke — Typography Exploration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600&family=Figtree:wght@300;400;500;600&family=Red+Hat+Display:wght@300;400;500;600&family=Red+Hat+Text:wght@300;400;500;600&family=Familjen+Grotesk:wght@400;500;600&family=Albert+Sans:wght@300;400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: oklch(0.96 0.003 70);
+      --surface: oklch(0.985 0.003 70);
+      --phone-bg: oklch(0.975 0.002 70);
+      --border: oklch(0.90 0.003 70);
+      --border-light: oklch(0.93 0.003 70);
+      --text-primary: oklch(0.15 0.005 70);
+      --text-secondary: oklch(0.45 0.005 70);
+      --text-tertiary: oklch(0.62 0.003 70);
+      --coral: oklch(0.65 0.2 25);
+      --coral-subtle: oklch(0.65 0.2 25 / 0.1);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      padding: 40px 32px 80px;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      max-width: 1280px;
+      margin: 0 auto 48px;
+      text-align: center;
+    }
+    .page-header h1 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+    .page-header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ── Four-up grid ── */
+    .four-up {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .option-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── Option label ── */
+    .option-header {
+      text-align: center;
+    }
+    .option-letter {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--coral);
+      margin-bottom: 4px;
+    }
+    .option-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .option-desc {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+      margin-top: 2px;
+    }
+
+    /* ── Phone frame ── */
+    .phone-frame {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      padding: 12px;
+      box-shadow: 0 1px 3px oklch(0 0 0 / 0.04);
+    }
+    .phone-screen {
+      background: var(--phone-bg);
+      border-radius: 22px;
+      overflow: hidden;
+    }
+
+    /* ── Status bar ── */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 20px 2px;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .status-bar .time { letter-spacing: 0.01em; }
+    .status-icons {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .status-icons svg { width: 12px; height: 12px; fill: var(--text-primary); }
+
+    /* ── Nav bar ── */
+    .mock-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px 10px;
+    }
+    .wordmark-dot {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      background: var(--coral);
+      border-radius: 50%;
+      margin-left: 1px;
+      vertical-align: middle;
+    }
+    .nav-right {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: oklch(0.94 0.003 70);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-right svg { width: 14px; height: 14px; fill: var(--text-secondary); }
+
+    /* ── Filters ── */
+    .mock-filters {
+      display: flex;
+      gap: 6px;
+      padding: 6px 16px 8px;
+    }
+    .filter-pill {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .filter-pill.active {
+      background: var(--text-primary);
+      color: var(--surface);
+      font-weight: 500;
+    }
+    .filter-pill.inactive {
+      background: oklch(0.94 0.003 70);
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    /* ── Section header ── */
+    .mock-section-header {
+      padding: 14px 16px 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-tertiary);
+    }
+
+    /* ── Task rows ── */
+    .mock-task {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 16px;
+    }
+    .mock-checkbox {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .mock-checkbox.checked {
+      background: var(--coral);
+      border-color: var(--coral);
+      position: relative;
+    }
+    .mock-checkbox.checked::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 5px;
+      width: 5px; height: 8px;
+      border: solid white;
+      border-width: 0 1.5px 1.5px 0;
+      transform: rotate(45deg);
+    }
+    .mock-task-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .mock-task-title {
+      line-height: 1.35;
+      color: var(--text-primary);
+    }
+    .mock-task-title.completed {
+      text-decoration: line-through;
+      color: var(--text-tertiary);
+    }
+    .mock-task-meta {
+      display: flex;
+      gap: 5px;
+      margin-top: 3px;
+      align-items: center;
+    }
+    .mock-tag {
+      font-size: 9px;
+      font-weight: 500;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: var(--coral-subtle);
+      color: var(--coral);
+    }
+    .mock-deadline {
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+    .mock-subtask-count {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      margin-left: auto;
+    }
+
+    /* ── Separator ── */
+    .mock-sep {
+      height: 1px;
+      background: var(--border-light);
+      margin: 2px 16px;
+    }
+
+    /* ── Mic bar ── */
+    .mock-mic-bar {
+      display: flex;
+      justify-content: center;
+      padding: 12px 16px 16px;
+      background: linear-gradient(to bottom, transparent 0%, var(--phone-bg) 40%);
+    }
+    .mock-mic {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--coral);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px oklch(0.65 0.2 25 / 0.3);
+    }
+    .mock-mic svg { width: 18px; height: 18px; }
+
+    /* ── Wordmark large showcase ── */
+    .wordmark-row {
+      max-width: 1280px;
+      margin: 0 auto 40px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .wm-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 16px;
+      text-align: center;
+    }
+    .wm-large {
+      font-size: 42px;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .wm-large .wm-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--coral);
+      border-radius: 50%;
+      vertical-align: 3px;
+      margin-left: 1px;
+    }
+
+    .wm-bricolage { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 300; }
+    .wm-redhat { font-family: 'Red Hat Display', sans-serif; font-weight: 400; }
+    .wm-familjen { font-family: 'Familjen Grotesk', sans-serif; font-weight: 400; }
+    .wm-schibsted { font-family: 'Schibsted Grotesk', sans-serif; font-weight: 400; }
+
+    /* ── Font-specific: Option A ── */
+    .font-a .wordmark { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 400; font-size: 16px; letter-spacing: -0.02em; }
+    .font-a .section-head { font-family: 'Bricolage Grotesque', sans-serif; }
+    .font-a .task-title { font-family: 'Figtree', sans-serif; font-weight: 400; font-size: 14px; }
+    .font-a .filter-pill { font-family: 'Figtree', sans-serif; }
+    .font-a .mock-tag, .font-a .mock-deadline, .font-a .mock-subtask-count { font-family: 'Figtree', sans-serif; }
+
+    /* ── Font-specific: Option B ── */
+    .font-b .wordmark { font-family: 'Red Hat Display', sans-serif; font-weight: 500; font-size: 16px; letter-spacing: -0.01em; }
+    .font-b .section-head { font-family: 'Red Hat Display', sans-serif; }
+    .font-b .task-title { font-family: 'Red Hat Text', sans-serif; font-weight: 400; font-size: 14px; }
+    .font-b .filter-pill { font-family: 'Red Hat Text', sans-serif; }
+    .font-b .mock-tag, .font-b .mock-deadline, .font-b .mock-subtask-count { font-family: 'Red Hat Text', sans-serif; }
+
+    /* ── Font-specific: Option C ── */
+    .font-c .wordmark { font-family: 'Familjen Grotesk', sans-serif; font-weight: 400; font-size: 16px; letter-spacing: -0.01em; }
+    .font-c .section-head { font-family: 'Familjen Grotesk', sans-serif; }
+    .font-c .task-title { font-family: 'Albert Sans', sans-serif; font-weight: 400; font-size: 14px; }
+    .font-c .filter-pill { font-family: 'Albert Sans', sans-serif; }
+    .font-c .mock-tag, .font-c .mock-deadline, .font-c .mock-subtask-count { font-family: 'Albert Sans', sans-serif; }
+
+    /* ── Font-specific: Option D ── */
+    .font-d .wordmark { font-family: 'Schibsted Grotesk', sans-serif; font-weight: 500; font-size: 16px; letter-spacing: -0.015em; }
+    .font-d .section-head { font-family: 'Schibsted Grotesk', sans-serif; }
+    .font-d .task-title { font-family: 'Schibsted Grotesk', sans-serif; font-weight: 400; font-size: 14px; }
+    .font-d .filter-pill { font-family: 'Schibsted Grotesk', sans-serif; }
+    .font-d .mock-tag, .font-d .mock-deadline, .font-d .mock-subtask-count { font-family: 'Schibsted Grotesk', sans-serif; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1100px) {
+      .four-up, .wordmark-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .four-up, .wordmark-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Spoke — Typography Exploration</h1>
+  <p>Four font directions applied to the same task list. Compare the wordmark, section headers, task titles, and metadata across each.</p>
+</div>
+
+<!-- ── Wordmark at large size ── -->
+<div class="wordmark-row">
+  <div class="wm-card">
+    <div class="wm-large wm-bricolage">spoke<span class="wm-dot"></span></div>
+    <span class="option-letter">A</span>
+    <div class="option-desc">Bricolage Grotesque</div>
+  </div>
+  <div class="wm-card">
+    <div class="wm-large wm-redhat">spoke<span class="wm-dot"></span></div>
+    <span class="option-letter">B</span>
+    <div class="option-desc">Red Hat Display</div>
+  </div>
+  <div class="wm-card">
+    <div class="wm-large wm-familjen">spoke<span class="wm-dot"></span></div>
+    <span class="option-letter">C</span>
+    <div class="option-desc">Familjen Grotesk</div>
+  </div>
+  <div class="wm-card">
+    <div class="wm-large wm-schibsted">spoke<span class="wm-dot"></span></div>
+    <span class="option-letter">D</span>
+    <div class="option-desc">Schibsted Grotesk</div>
+  </div>
+</div>
+
+<!-- ── Four phone mocks side by side ── -->
+<div class="four-up">
+
+  <!-- Option A -->
+  <div class="option-col font-a">
+    <div class="option-header">
+      <div class="option-letter">Option A</div>
+      <div class="option-name">Bricolage Grotesque + Figtree</div>
+      <div class="option-desc">Ink traps, optical sizing. Quiet personality.</div>
+    </div>
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="status-bar">
+          <span class="time">9:41</span>
+          <div class="status-icons">
+            <svg viewBox="0 0 16 16"><path d="M1 10h2v4H1zM5 7h2v7H5zM9 4h2v10H9zM13 1h2v13h-2z"/></svg>
+            <svg viewBox="0 0 16 16"><path d="M14.5 9.5a6.5 6.5 0 00-13 0h1.5a5 5 0 019.99 0h1.51zM11.5 9.5a3.5 3.5 0 00-7 0h1.5a2 2 0 014 0h1.5z"/><circle cx="8" cy="10" r="1.5"/></svg>
+            <svg viewBox="0 0 20 10"><rect x="0" y="0" width="18" height="10" rx="2" stroke="currentColor" stroke-width="1" fill="none"/><rect x="18.5" y="3" width="1.5" height="4" rx="0.5" fill="currentColor"/><rect x="1.5" y="1.5" width="12" height="7" rx="1" fill="currentColor"/></svg>
+          </div>
+        </div>
+        <div class="mock-nav">
+          <span class="wordmark">spoke<span class="wordmark-dot"></span></span>
+          <div class="nav-right"><svg viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.5" fill="currentColor"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="13" r="1.5" fill="currentColor"/></svg></div>
+        </div>
+        <div class="mock-filters">
+          <span class="filter-pill active task-title">All</span>
+          <span class="filter-pill inactive task-title">Work</span>
+          <span class="filter-pill inactive task-title">Personal</span>
+        </div>
+        <div class="mock-section-header section-head">Today</div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Book flights for Portland trip</div>
+            <div class="mock-task-meta"><span class="mock-tag">Travel</span><span class="mock-deadline">Tomorrow</span></div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Pick up prescription from CVS</div>
+            <div class="mock-task-meta"><span class="mock-tag">Errands</span><span class="mock-subtask-count">2 of 3</span></div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Review Sarah's presentation deck</div>
+            <div class="mock-task-meta"><span class="mock-tag">Work</span></div>
+          </div>
+        </div>
+        <div class="mock-sep"></div>
+        <div class="mock-section-header section-head">Yesterday</div>
+        <div class="mock-task">
+          <div class="mock-checkbox checked"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title completed">Call dentist to reschedule</div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox checked"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title completed">Send invoice to client</div>
+          </div>
+        </div>
+        <div class="mock-mic-bar">
+          <div class="mock-mic"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="13" rx="3" fill="white"/><path d="M5 11c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="18" x2="12" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8.5" y1="21.5" x2="15.5" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="option-col font-b">
+    <div class="option-header">
+      <div class="option-letter">Option B</div>
+      <div class="option-name">Red Hat Display + Text</div>
+      <div class="option-desc">Squared terminals. Polished matched family.</div>
+    </div>
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="status-bar">
+          <span class="time">9:41</span>
+          <div class="status-icons">
+            <svg viewBox="0 0 16 16"><path d="M1 10h2v4H1zM5 7h2v7H5zM9 4h2v10H9zM13 1h2v13h-2z"/></svg>
+            <svg viewBox="0 0 16 16"><path d="M14.5 9.5a6.5 6.5 0 00-13 0h1.5a5 5 0 019.99 0h1.51zM11.5 9.5a3.5 3.5 0 00-7 0h1.5a2 2 0 014 0h1.5z"/><circle cx="8" cy="10" r="1.5"/></svg>
+            <svg viewBox="0 0 20 10"><rect x="0" y="0" width="18" height="10" rx="2" stroke="currentColor" stroke-width="1" fill="none"/><rect x="18.5" y="3" width="1.5" height="4" rx="0.5" fill="currentColor"/><rect x="1.5" y="1.5" width="12" height="7" rx="1" fill="currentColor"/></svg>
+          </div>
+        </div>
+        <div class="mock-nav">
+          <span class="wordmark">spoke<span class="wordmark-dot"></span></span>
+          <div class="nav-right"><svg viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.5" fill="currentColor"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="13" r="1.5" fill="currentColor"/></svg></div>
+        </div>
+        <div class="mock-filters">
+          <span class="filter-pill active task-title">All</span>
+          <span class="filter-pill inactive task-title">Work</span>
+          <span class="filter-pill inactive task-title">Personal</span>
+        </div>
+        <div class="mock-section-header section-head">Today</div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Book flights for Portland trip</div>
+            <div class="mock-task-meta"><span class="mock-tag">Travel</span><span class="mock-deadline">Tomorrow</span></div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Pick up prescription from CVS</div>
+            <div class="mock-task-meta"><span class="mock-tag">Errands</span><span class="mock-subtask-count">2 of 3</span></div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Review Sarah's presentation deck</div>
+            <div class="mock-task-meta"><span class="mock-tag">Work</span></div>
+          </div>
+        </div>
+        <div class="mock-sep"></div>
+        <div class="mock-section-header section-head">Yesterday</div>
+        <div class="mock-task">
+          <div class="mock-checkbox checked"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title completed">Call dentist to reschedule</div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox checked"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title completed">Send invoice to client</div>
+          </div>
+        </div>
+        <div class="mock-mic-bar">
+          <div class="mock-mic"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="13" rx="3" fill="white"/><path d="M5 11c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="18" x2="12" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8.5" y1="21.5" x2="15.5" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="option-col font-c">
+    <div class="option-header">
+      <div class="option-letter">Option C</div>
+      <div class="option-name">Familjen Grotesk + Albert Sans</div>
+      <div class="option-desc">Editorial warmth. Paper-planner feel.</div>
+    </div>
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="status-bar">
+          <span class="time">9:41</span>
+          <div class="status-icons">
+            <svg viewBox="0 0 16 16"><path d="M1 10h2v4H1zM5 7h2v7H5zM9 4h2v10H9zM13 1h2v13h-2z"/></svg>
+            <svg viewBox="0 0 16 16"><path d="M14.5 9.5a6.5 6.5 0 00-13 0h1.5a5 5 0 019.99 0h1.51zM11.5 9.5a3.5 3.5 0 00-7 0h1.5a2 2 0 014 0h1.5z"/><circle cx="8" cy="10" r="1.5"/></svg>
+            <svg viewBox="0 0 20 10"><rect x="0" y="0" width="18" height="10" rx="2" stroke="currentColor" stroke-width="1" fill="none"/><rect x="18.5" y="3" width="1.5" height="4" rx="0.5" fill="currentColor"/><rect x="1.5" y="1.5" width="12" height="7" rx="1" fill="currentColor"/></svg>
+          </div>
+        </div>
+        <div class="mock-nav">
+          <span class="wordmark">spoke<span class="wordmark-dot"></span></span>
+          <div class="nav-right"><svg viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.5" fill="currentColor"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="13" r="1.5" fill="currentColor"/></svg></div>
+        </div>
+        <div class="mock-filters">
+          <span class="filter-pill active task-title">All</span>
+          <span class="filter-pill inactive task-title">Work</span>
+          <span class="filter-pill inactive task-title">Personal</span>
+        </div>
+        <div class="mock-section-header section-head">Today</div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Book flights for Portland trip</div>
+            <div class="mock-task-meta"><span class="mock-tag">Travel</span><span class="mock-deadline">Tomorrow</span></div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Pick up prescription from CVS</div>
+            <div class="mock-task-meta"><span class="mock-tag">Errands</span><span class="mock-subtask-count">2 of 3</span></div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Review Sarah's presentation deck</div>
+            <div class="mock-task-meta"><span class="mock-tag">Work</span></div>
+          </div>
+        </div>
+        <div class="mock-sep"></div>
+        <div class="mock-section-header section-head">Yesterday</div>
+        <div class="mock-task">
+          <div class="mock-checkbox checked"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title completed">Call dentist to reschedule</div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox checked"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title completed">Send invoice to client</div>
+          </div>
+        </div>
+        <div class="mock-mic-bar">
+          <div class="mock-mic"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="13" rx="3" fill="white"/><path d="M5 11c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="18" x2="12" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8.5" y1="21.5" x2="15.5" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option D -->
+  <div class="option-col font-d">
+    <div class="option-header">
+      <div class="option-letter">Option D</div>
+      <div class="option-name">Schibsted Grotesk</div>
+      <div class="option-desc">One sharp family. Most minimal.</div>
+    </div>
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="status-bar">
+          <span class="time">9:41</span>
+          <div class="status-icons">
+            <svg viewBox="0 0 16 16"><path d="M1 10h2v4H1zM5 7h2v7H5zM9 4h2v10H9zM13 1h2v13h-2z"/></svg>
+            <svg viewBox="0 0 16 16"><path d="M14.5 9.5a6.5 6.5 0 00-13 0h1.5a5 5 0 019.99 0h1.51zM11.5 9.5a3.5 3.5 0 00-7 0h1.5a2 2 0 014 0h1.5z"/><circle cx="8" cy="10" r="1.5"/></svg>
+            <svg viewBox="0 0 20 10"><rect x="0" y="0" width="18" height="10" rx="2" stroke="currentColor" stroke-width="1" fill="none"/><rect x="18.5" y="3" width="1.5" height="4" rx="0.5" fill="currentColor"/><rect x="1.5" y="1.5" width="12" height="7" rx="1" fill="currentColor"/></svg>
+          </div>
+        </div>
+        <div class="mock-nav">
+          <span class="wordmark">spoke<span class="wordmark-dot"></span></span>
+          <div class="nav-right"><svg viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.5" fill="currentColor"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="13" r="1.5" fill="currentColor"/></svg></div>
+        </div>
+        <div class="mock-filters">
+          <span class="filter-pill active task-title">All</span>
+          <span class="filter-pill inactive task-title">Work</span>
+          <span class="filter-pill inactive task-title">Personal</span>
+        </div>
+        <div class="mock-section-header section-head">Today</div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Book flights for Portland trip</div>
+            <div class="mock-task-meta"><span class="mock-tag">Travel</span><span class="mock-deadline">Tomorrow</span></div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Pick up prescription from CVS</div>
+            <div class="mock-task-meta"><span class="mock-tag">Errands</span><span class="mock-subtask-count">2 of 3</span></div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title">Review Sarah's presentation deck</div>
+            <div class="mock-task-meta"><span class="mock-tag">Work</span></div>
+          </div>
+        </div>
+        <div class="mock-sep"></div>
+        <div class="mock-section-header section-head">Yesterday</div>
+        <div class="mock-task">
+          <div class="mock-checkbox checked"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title completed">Call dentist to reschedule</div>
+          </div>
+        </div>
+        <div class="mock-task">
+          <div class="mock-checkbox checked"></div>
+          <div class="mock-task-content">
+            <div class="mock-task-title task-title completed">Send invoice to client</div>
+          </div>
+        </div>
+        <div class="mock-mic-bar">
+          <div class="mock-mic"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="13" rx="3" fill="white"/><path d="M5 11c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="18" x2="12" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8.5" y1="21.5" x2="15.5" y2="21.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
