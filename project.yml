@@ -13,7 +13,7 @@ settings:
     TARGETED_DEVICE_FAMILY: "1"
     PRODUCT_BUNDLE_IDENTIFIER: com.michellefitzpatrick.Spoke
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "3"
     SWIFT_STRICT_CONCURRENCY: targeted
     # Let Xcode pick the signing identity: Apple Development for local
     # builds, Apple Distribution when archiving. Never pin the identity by
@@ -34,7 +34,7 @@ targets:
       properties:
         CFBundleDisplayName: Spoke
         CFBundleShortVersionString: "1.0"
-        CFBundleVersion: "2"
+        CFBundleVersion: "3"
         ITSAppUsesNonExemptEncryption: false
         # Keeps recording when you glance at another app mid-braindump,
         # the way voice notes do. Without this iOS suspends Spoke and the
@@ -82,7 +82,7 @@ targets:
       properties:
         CFBundleDisplayName: Spoke Widget
         CFBundleShortVersionString: "1.0"
-        CFBundleVersion: "2"
+        CFBundleVersion: "3"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

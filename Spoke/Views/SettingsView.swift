@@ -5,6 +5,7 @@ struct SettingsView: View {
 
     var tagStore: TagStore
     private let settings = AppSettings.shared
+    private let calendarService = CalendarService.shared
 
     @State private var isAddingTag = false
     @State private var newTagName = ""
@@ -58,32 +59,60 @@ struct SettingsView: View {
                     }
                     .tint(coral)
 
-                    Toggle(isOn: Binding(
-                        get: { settings.showCalendarEvents },
-                        set: { newValue in
-                            settings.showCalendarEvents = newValue
-                            if newValue && CalendarService.shared.canRequestAccess {
-                                Task { await CalendarService.shared.requestAccess() }
-                            }
-                        }
-                    )) {
-                        Text("Show calendar events in calendar view")
-                    }
-                    .tint(coral)
                 } header: {
                     sectionHeader("Display")
-                } footer: {
-                    if settings.showCalendarEvents && CalendarService.shared.isDenied {
-                        Text("Calendar access is turned off for Spoke. Allow it in iOS Settings → Privacy & Security → Calendars.")
-                            .font(.footnote)
+                }
+
+                // MARK: Calendar connection
+                Section {
+                    if isCalendarLinked {
+                        HStack {
+                            Text("Your calendar")
+                            Spacer()
+                            Text("Connected")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(coral)
+                        }
+                        Button(role: .destructive) {
+                            withAnimation { settings.showCalendarEvents = false }
+                        } label: {
+                            Text("Disconnect calendar")
+                        }
+                    } else if calendarService.isDenied {
+                        Text("Calendar access is turned off for Spoke.")
                             .foregroundStyle(Color(.secondaryLabel))
+                        Button {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            Text("Open iOS Settings")
+                                .foregroundStyle(coral)
+                        }
+                    } else {
+                        Button {
+                            connectCalendar()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "calendar.badge.plus")
+                                    .font(.system(size: 15))
+                                Text("Connect your calendar")
+                            }
+                            .foregroundStyle(coral)
+                        }
                     }
+                } header: {
+                    sectionHeader("Calendar")
+                } footer: {
+                    Text(calendarFooter)
+                        .font(.footnote)
+                        .foregroundStyle(Color(.secondaryLabel))
                 }
 
                 // MARK: Calendars
-                if settings.showCalendarEvents && CalendarService.shared.isConnected {
+                if isCalendarLinked {
                     Section {
-                        ForEach(CalendarService.shared.availableCalendars()) { calendar in
+                        ForEach(calendarService.availableCalendars()) { calendar in
                             Toggle(isOn: Binding(
                                 get: { !settings.hiddenCalendarIDs.contains(calendar.id) },
                                 set: { visible in
@@ -229,6 +258,39 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showRecordingLog) {
                 RecordingLogView()
+            }
+        }
+    }
+
+    /// Connected means both: iOS has granted access, and the user hasn't
+    /// switched the integration off in here.
+    private var isCalendarLinked: Bool {
+        calendarService.isConnected && settings.showCalendarEvents
+    }
+
+    private var calendarFooter: String {
+        if isCalendarLinked {
+            return "Your appointments show beside your tasks in the week view. Disconnecting stops Spoke reading them — iOS keeps the permission itself until you turn it off in Settings → Privacy & Security → Calendars."
+        }
+        if calendarService.isDenied {
+            return "Allow it in iOS Settings → Privacy & Security → Calendars, then come back here."
+        }
+        return "Spoke reads the calendars already on your iPhone — iCloud, Google, work — so appointments sit beside what needs doing. It only ever reads them: nothing is created, changed or deleted."
+    }
+
+    private func connectCalendar() {
+        // Permission may already be granted from a previous connection, in
+        // which case there's nothing to ask for — just switch it back on.
+        guard !calendarService.isConnected else {
+            withAnimation { settings.showCalendarEvents = true }
+            return
+        }
+        Task {
+            if await calendarService.requestAccess() {
+                withAnimation {
+                    settings.showCalendarEvents = true
+                    settings.calendarPromptDismissed = true
+                }
             }
         }
     }
