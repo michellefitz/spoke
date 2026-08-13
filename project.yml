@@ -11,6 +11,13 @@ settings:
     SWIFT_VERSION: "5.9"
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     TARGETED_DEVICE_FAMILY: "1"
+    # iPhone only — without these, every regeneration re-adds the derived
+    # iPad / Mac / Apple Vision destinations that then have to be deleted
+    # by hand in Xcode.
+    SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+    SUPPORTS_MACCATALYST: false
+    SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: false
+    SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: false
     PRODUCT_BUNDLE_IDENTIFIER: com.michellefitzpatrick.Spoke
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "3"
@@ -19,6 +26,7 @@ settings:
     # builds, Apple Distribution when archiving. Never pin the identity by
     # hand — a hardcoded development cert makes archives upload-rejected.
     CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: TD9H5RA3U9
 
 targets:
   Spoke:
