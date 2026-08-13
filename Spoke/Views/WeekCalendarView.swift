@@ -85,7 +85,9 @@ struct WeekCalendarView: View {
     }
 
     private func loadEvents() {
-        guard calendarService.isConnected else {
+        // Disconnecting in Settings should stop Spoke reading the calendar
+        // at all, not just stop it drawing what it read.
+        guard calendarService.isConnected, settings.showCalendarEvents else {
             weekEvents = []
             return
         }
@@ -218,6 +220,7 @@ struct WeekCalendarView: View {
         )
         .task(id: weekOffset) { loadEvents() }
         .onChange(of: calendarService.isConnected) { loadEvents() }
+        .onChange(of: settings.showCalendarEvents) { loadEvents() }
         .onChange(of: settings.hiddenCalendarIDs) { loadEvents() }
         .onReceive(NotificationCenter.default.publisher(for: .EKEventStoreChanged)) { _ in loadEvents() }
         .sheet(item: $selectedTask) { task in
