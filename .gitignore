@@ -1,6 +1,6 @@
 # Xcode
-*.xcodeproj/xcuserdata/
-*.xcworkspace/xcuserdata/
+# (** so the pattern also catches the xcworkspace nested inside the xcodeproj)
+**/xcuserdata/
 *.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 build/
 DerivedData/
@@ -23,6 +23,14 @@ fastlane/test_output
 
 # OS
 .DS_Store
+
+# Local Claude session tooling
+.planning/
+.superpowers/
+.impeccable.md
+
+# Screen recordings and simulator captures (large media)
+recordings/
 
 # Secrets — copy Config.swift.example and fill in real keys locally
 Spoke/Config.swift
