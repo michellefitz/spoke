@@ -8,7 +8,21 @@ import urllib.request
 import urllib.error
 import os
 
-API_KEY = os.environ["ANTHROPIC_API_KEY"]
+import sys
+
+# Claude Code strips ANTHROPIC_API_KEY from the shells it spawns, so under a
+# Claude Code session the key has to arrive under a different name. Check the
+# unreserved name first, then fall back to the standard one for plain shells.
+KEY_VARS = ("SPOKE_EVAL_API_KEY", "ANTHROPIC_API_KEY")
+API_KEY = next((os.environ[v] for v in KEY_VARS if os.environ.get(v)), None)
+
+if not API_KEY:
+    sys.exit(
+        "No API key found. Set one of: " + ", ".join(KEY_VARS) + "\n"
+        "Under Claude Code, use SPOKE_EVAL_API_KEY — ANTHROPIC_API_KEY is\n"
+        "reserved for the session's own auth and is not passed to subprocesses."
+    )
+
 OUTDIR = os.path.dirname(os.path.abspath(__file__))
 
 SYSTEM_PROMPT = (
