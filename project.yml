@@ -42,7 +42,7 @@ targets:
         UIBackgroundModes:
           - audio
         NSMicrophoneUsageDescription: "Spoke uses the microphone to capture your voice tasks."
-        NSCalendarsFullAccessUsageDescription: "Spoke shows your calendar appointments alongside your tasks in the week view."
+        NSCalendarsFullAccessUsageDescription: "Spoke shows your calendar appointments alongside your tasks, and adds or updates events when you ask it to — always with your confirmation."
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UILaunchScreen: {}
