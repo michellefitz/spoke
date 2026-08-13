@@ -96,7 +96,7 @@ private final class Engine {
 
                 let analyzer = SpeechAnalyzer(modules: [transcriber])
                 self.analyzer = analyzer
-                self.analyzerFormat = await SpeechTranscriber.bestAvailableAudioFormat(compatibleWith: [transcriber])
+                self.analyzerFormat = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber])
 
                 let (stream, continuation) = AsyncStream<AnalyzerInput>.makeStream()
                 self.continuation = continuation
