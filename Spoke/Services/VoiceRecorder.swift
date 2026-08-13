@@ -40,6 +40,11 @@ final class VoiceRecorder {
     private var finalSegments: [String] = []
     private var currentInterim: String = ""
 
+    // Apple's on-device engine listening to the same audio, purely so the
+    // two can be compared. It never feeds the parser.
+    private let shadow = OnDeviceTranscriber()
+    private var shadowRunning = false
+
     // MARK: - Permissions
 
     func requestPermissionsIfNeeded() async -> Bool {
@@ -63,6 +68,9 @@ final class VoiceRecorder {
         try audioSession.setCategory(.record, mode: .default, options: .duckOthers)
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
 
+        shadowRunning = AppSettings.shared.compareTranscription && OnDeviceTranscriber.isSupported
+        if shadowRunning { shadow.start() }
+
         connectTask = Task { await self.connectWebSocket() }
         try startAudioCapture()
         startPingTask()
@@ -85,6 +93,17 @@ final class VoiceRecorder {
         if !currentInterim.isEmpty { parts.append(currentInterim) }
         let transcript = parts.joined(separator: " ")
 
+        if shadowRunning {
+            shadowRunning = false
+            // Finalising is quick — the audio has already been processed —
+            // but it's async, so it lands via the logger rather than here.
+            Task { @MainActor [shadow] in
+                if let alt = await shadow.finish() {
+                    TaskParserLogger.shared.attachAltTranscript(alt)
+                }
+            }
+        }
+
         diagnostics.durationMs = Int((Date().timeIntervalSince(startedAt ?? Date())) * 1000)
         diagnostics.finalSegments = finalSegments.count
         lastDiagnostics = diagnostics
@@ -106,6 +125,10 @@ final class VoiceRecorder {
     /// teardown very much does.
     func cancelRecording() {
         if recordingState == .recording {
+            if shadowRunning {
+                shadowRunning = false
+                shadow.cancel()
+            }
             audioEngine.stop()
             audioEngine.inputNode.removeTap(onBus: 0)
             disconnectWebSocket()
@@ -149,6 +172,10 @@ final class VoiceRecorder {
 
         guard let converter = AVAudioConverter(from: inputFormat, to: targetFormat) else { return }
 
+        // Captured up front: the tap runs on the audio thread and must not
+        // reach back into main-actor state to find it.
+        let shadow: OnDeviceTranscriber? = shadowRunning ? self.shadow : nil
+
         // Belt and braces: a tap leaked by any teardown path would make this
         // installTap throw NSException (uncatchable from Swift) and crash.
         inputNode.removeTap(onBus: 0)
@@ -178,6 +205,10 @@ final class VoiceRecorder {
             }
             // Power curve: sensitive at low levels, soft ceiling at loud levels
             let normalizedLevel = min(1.0 - exp(-rms * 20.0), 1.0)
+
+            // The shadow engine wants the microphone's own format, not the
+            // 16 kHz mono Deepgram needs, so it gets the original buffer.
+            shadow?.append(buffer)
 
             Task { @MainActor [weak self] in
                 self?.audioLevel = normalizedLevel

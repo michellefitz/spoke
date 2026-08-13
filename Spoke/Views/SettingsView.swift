@@ -256,10 +256,21 @@ struct SettingsView: View {
                                 .foregroundStyle(Color(.tertiaryLabel))
                         }
                     }
+                    if OnDeviceTranscriber.isSupported {
+                        Toggle(isOn: Binding(
+                            get: { settings.compareTranscription },
+                            set: { settings.compareTranscription = $0 }
+                        )) {
+                            Text("Compare on-device transcription")
+                        }
+                        .tint(coral)
+                    }
                 } header: {
                     sectionHeader("Recordings")
                 } footer: {
-                    Text("Everything you've said to Spoke and what it made of it. Useful when something didn't come out the way you expected.")
+                    Text(OnDeviceTranscriber.isSupported
+                         ? "Everything you've said to Spoke and what it made of it. Comparison runs Apple's on-device engine on the same audio so you can rate the two against each other — it costs a little battery and changes nothing about how tasks are created."
+                         : "Everything you've said to Spoke and what it made of it. Useful when something didn't come out the way you expected.")
                         .font(.footnote)
                         .foregroundStyle(Color(.secondaryLabel))
                 }

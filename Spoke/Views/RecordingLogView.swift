@@ -101,6 +101,17 @@ struct RecordingLogView: View {
                         .font(.system(size: 10))
                         .foregroundStyle(.orange)
                 }
+                if entry.altTranscript != nil {
+                    // Unrated comparisons are the ones worth going into.
+                    Text(entry.transcriptRating?.uppercased() ?? "RATE")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(entry.transcriptRating == nil ? .white : coral)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1.5)
+                        .background(
+                            Capsule().fill(entry.transcriptRating == nil ? coral : coral.opacity(0.14))
+                        )
+                }
                 Spacer()
                 Text(taskSummary(entry))
                     .font(.system(size: 11))
@@ -133,6 +144,12 @@ struct RecordingLogView: View {
 private struct RecordingDetailView: View {
     let entry: ParserLogEntry
     @State private var showTechnical = false
+    @State private var rating: String?
+
+    init(entry: ParserLogEntry) {
+        self.entry = entry
+        _rating = State(initialValue: entry.transcriptRating)
+    }
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
 
@@ -151,16 +168,20 @@ private struct RecordingDetailView: View {
                 }
             }
 
-            Section("What you said") {
-                if entry.transcript.isEmpty {
-                    Text("Nothing was heard.")
-                        .font(.system(size: 14))
-                        .italic()
-                        .foregroundStyle(Color(.secondaryLabel))
-                } else {
-                    Text(entry.transcript)
-                        .font(.system(size: 15))
-                        .textSelection(.enabled)
+            if let alt = entry.altTranscript {
+                comparisonSection(alt: alt)
+            } else {
+                Section("What you said") {
+                    if entry.transcript.isEmpty {
+                        Text("Nothing was heard.")
+                            .font(.system(size: 14))
+                            .italic()
+                            .foregroundStyle(Color(.secondaryLabel))
+                    } else {
+                        Text(entry.transcript)
+                            .font(.system(size: 15))
+                            .textSelection(.enabled)
+                    }
                 }
             }
 
@@ -235,6 +256,83 @@ private struct RecordingDetailView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(entry.timestamp.formatted(date: .abbreviated, time: .shortened))
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Both engines on the same audio, with the rating control underneath.
+    /// Stacked rather than literally side by side: two columns of prose on a
+    /// phone gives each about 20 characters a line, which makes the wording
+    /// harder to judge than the engines.
+    @ViewBuilder
+    private func comparisonSection(alt: String) -> some View {
+        Section {
+            transcriptPanel(
+                label: "Cloud · Deepgram",
+                text: entry.transcript,
+                highlighted: rating == "cloud"
+            )
+            transcriptPanel(
+                label: "On device · \(entry.altEngine ?? "Apple")",
+                text: alt,
+                highlighted: rating == "device"
+            )
+        } header: {
+            Text("What you said — two engines")
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Which got it right?")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary)
+                HStack(spacing: 8) {
+                    ratingButton("Cloud", value: "cloud")
+                    ratingButton("Tie", value: "tie")
+                    ratingButton("On device", value: "device")
+                }
+                Text("Only the cloud transcript is used to create tasks. Ratings are saved with the recording and come out in the CSV export.")
+                    .font(.footnote)
+                    .foregroundStyle(Color(.secondaryLabel))
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    private func transcriptPanel(label: String, text: String, highlighted: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 5) {
+                Text(label.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(highlighted ? coral : Color(.secondaryLabel))
+                if highlighted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(coral)
+                }
+            }
+            Text(text.isEmpty ? "Nothing was heard." : text)
+                .font(.system(size: 15))
+                .italic(text.isEmpty)
+                .foregroundStyle(text.isEmpty ? Color(.secondaryLabel) : .primary)
+                .textSelection(.enabled)
+        }
+        .padding(.vertical, 3)
+    }
+
+    private func ratingButton(_ title: String, value: String) -> some View {
+        Button {
+            // Tapping the current choice clears it, so a misclick is undoable.
+            let newValue = rating == value ? nil : value
+            rating = newValue
+            TaskParserLogger.shared.rate(entry.id, as: newValue)
+        } label: {
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(rating == value ? .white : coral)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule().fill(rating == value ? coral : coral.opacity(0.12))
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private func detail(_ label: String, _ value: String, monospaced: Bool = false, tint: Color? = nil) -> some View {

@@ -27,6 +27,13 @@ final class AppSettings {
         didSet { defaults.set(showCompletedInCalendar, forKey: "showCompletedInCalendar") }
     }
 
+    /// Runs Apple's on-device engine alongside Deepgram so the two
+    /// transcripts can be compared in the recording log. Costs a little
+    /// battery and changes nothing about what the app does with your words.
+    var compareTranscription: Bool {
+        didSet { defaults.set(compareTranscription, forKey: "compareTranscription") }
+    }
+
     var showCalendarEvents: Bool {
         didSet { defaults.set(showCalendarEvents, forKey: "showCalendarEvents") }
     }
@@ -69,6 +76,7 @@ final class AppSettings {
         self.showUndatedInCalendar = defaults.object(forKey: "showUndatedInCalendar") as? Bool ?? true
         self.showCompletedInCalendar = defaults.object(forKey: "showCompletedInCalendar") as? Bool ?? false
         self.showCalendarEvents    = defaults.object(forKey: "showCalendarEvents")    as? Bool ?? true
+        self.compareTranscription  = defaults.object(forKey: "compareTranscription")  as? Bool ?? true
         self.calendarPromptDismissed = defaults.bool(forKey: "calendarPromptDismissed")
         self.hiddenCalendarIDs     = Set(defaults.stringArray(forKey: "hiddenCalendarIDs") ?? [])
         self.defaultEventCalendarID = defaults.string(forKey: "defaultEventCalendarID")
