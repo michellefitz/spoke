@@ -36,6 +36,7 @@
 		D6B6743C85D97080686D59E2 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B43B812FD122C8A64E4EC4 /* CalendarService.swift */; };
 		F293693B0CF0C2F0D1882F5D /* SpokeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61697DD7E73DC52F3DBF8513 /* SpokeApp.swift */; };
 		FC4DC001032608AD6A238863 /* TaskParserLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D7826DD8178666D5171C12 /* TaskParserLogger.swift */; };
+		AB10C0DE0001F0010000A001 /* OnDeviceTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0DE0002F0020000A002 /* OnDeviceTranscriber.swift */; };
 		FD49F038E5FF3E6C0C3D8707 /* Config.swift.example in Resources */ = {isa = PBXBuildFile; fileRef = 5AE9B43530324EA0A2EA007D /* Config.swift.example */; };
 /* End PBXBuildFile section */
 
@@ -65,6 +66,7 @@
 
 /* Begin PBXFileReference section */
 		05D7826DD8178666D5171C12 /* TaskParserLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskParserLogger.swift; sourceTree = "<group>"; };
+		AB10C0DE0002F0020000A002 /* OnDeviceTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceTranscriber.swift; sourceTree = "<group>"; };
 		06091115C946D1019E81CACF /* Spoke.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Spoke.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0AA40E6992C1BF270F39FF84 /* TagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagStore.swift; sourceTree = "<group>"; };
 		0DDFE16C15B248AE931BEDEC /* TaskParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskParser.swift; sourceTree = "<group>"; };
@@ -116,6 +118,7 @@
 				0AA40E6992C1BF270F39FF84 /* TagStore.swift */,
 				0DDFE16C15B248AE931BEDEC /* TaskParser.swift */,
 				05D7826DD8178666D5171C12 /* TaskParserLogger.swift */,
+				AB10C0DE0002F0020000A002 /* OnDeviceTranscriber.swift */,
 				1F45466236E0D0B9CC126A7D /* VoiceRecorder.swift */,
 			);
 			path = Services;
@@ -311,6 +314,7 @@
 				061CB711E670940715A50834 /* TaskDetailView.swift in Sources */,
 				CE1ADD384352B92C57C1792F /* TaskParser.swift in Sources */,
 				FC4DC001032608AD6A238863 /* TaskParserLogger.swift in Sources */,
+				AB10C0DE0001F0010000A001 /* OnDeviceTranscriber.swift in Sources */,
 				32DE61591E9C74C53CC9E426 /* TaskRowView.swift in Sources */,
 				AA3A56371496FE23703B619F /* VoiceButton.swift in Sources */,
 				1A4CB5968BBCB0DBB8A87C28 /* VoiceRecorder.swift in Sources */,

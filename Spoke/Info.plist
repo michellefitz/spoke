@@ -26,6 +26,8 @@
 	<string>Spoke shows your calendar appointments alongside your tasks, and adds or updates events when you ask it to — always with your confirmation.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Spoke uses the microphone to capture your voice tasks.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Spoke turns what you say into tasks. Transcription can run on this iPhone without your voice leaving it.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

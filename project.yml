@@ -50,6 +50,7 @@ targets:
         UIBackgroundModes:
           - audio
         NSMicrophoneUsageDescription: "Spoke uses the microphone to capture your voice tasks."
+        NSSpeechRecognitionUsageDescription: "Spoke turns what you say into tasks. Transcription can run on this iPhone without your voice leaving it."
         NSCalendarsFullAccessUsageDescription: "Spoke shows your calendar appointments alongside your tasks, and adds or updates events when you ask it to — always with your confirmation."
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

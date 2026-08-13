@@ -43,6 +43,14 @@ struct ParserLogEntry: Identifiable, Codable {
     // Optional so entries written before this existed still decode.
     var recording: RecordingDiagnostics?
 
+    // A/B comparison. `transcript` above is the one the app actually used
+    // (Deepgram); this is the same audio heard by the on-device engine,
+    // recorded for rating and nothing else.
+    var altTranscript: String?
+    var altEngine: String?
+    /// "cloud", "device" or "tie" — set by tapping in the recording log.
+    var transcriptRating: String?
+
     struct ParsedTaskLog: Codable {
         let title: String
         let description: String?
@@ -61,6 +69,31 @@ final class TaskParserLogger {
     /// Set by VoiceRecorder when a recording stops; stamped onto the next
     /// entry logged, which is the parse of that recording.
     var pendingDiagnostics: RecordingDiagnostics?
+    /// Likewise for the on-device transcript of the same audio.
+    var pendingAltTranscript: String?
+
+    /// The on-device transcript finishes a beat after the recording stops,
+    /// which is usually before the parse has come back — hence the pending
+    /// slot. If the parse got there first, patch the entry it just wrote.
+    func attachAltTranscript(_ text: String) {
+        if let newest = entries.first,
+           newest.altTranscript == nil,
+           Date().timeIntervalSince(newest.timestamp) < 60 {
+            entries[0].altTranscript = text
+            entries[0].altEngine = OnDeviceTranscriber.engineName
+            saveToDisk()
+        } else {
+            pendingAltTranscript = text
+        }
+    }
+
+    /// Records which transcript was better. Ratings live with the entry so
+    /// they survive a restart and come out in the CSV.
+    func rate(_ entryID: UUID, as rating: String?) {
+        guard let index = entries.firstIndex(where: { $0.id == entryID }) else { return }
+        entries[index].transcriptRating = rating
+        saveToDisk()
+    }
 
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -83,7 +116,9 @@ final class TaskParserLogger {
             parsedTasks: [],
             error: diagnostics.connectionError,
             durationMs: 0,
-            recording: diagnostics
+            recording: diagnostics,
+            altTranscript: pendingAltTranscript,
+            altEngine: pendingAltTranscript == nil ? nil : OnDeviceTranscriber.engineName
         ))
     }
 
@@ -92,7 +127,12 @@ final class TaskParserLogger {
         if entry.recording == nil, let pending = pendingDiagnostics {
             entry.recording = pending
         }
+        if entry.altTranscript == nil, let alt = pendingAltTranscript {
+            entry.altTranscript = alt
+            entry.altEngine = OnDeviceTranscriber.engineName
+        }
         pendingDiagnostics = nil
+        pendingAltTranscript = nil
         entries.insert(entry, at: 0) // newest first
         // Keep last 100 entries
         if entries.count > 100 { entries = Array(entries.prefix(100)) }
@@ -110,7 +150,7 @@ final class TaskParserLogger {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let csvURL = docs.appendingPathComponent("spoke_parser_log.csv")
 
-        var csv = "Timestamp,Mode,Transcript,Tasks Created,Titles,Tags,Deadlines,Duration (ms),Error,Recording (s),Segments,Ended Early,Reason\n"
+        var csv = "Timestamp,Mode,Transcript (cloud),Transcript (on-device),Engine,Rating,Tasks Created,Titles,Tags,Deadlines,Duration (ms),Error,Recording (s),Segments,Ended Early,Reason\n"
         for entry in entries {
             let titles = entry.parsedTasks.map { $0.title }.joined(separator: " | ")
             let tags = entry.parsedTasks.compactMap { $0.tag }.joined(separator: " | ")
@@ -122,7 +162,8 @@ final class TaskParserLogger {
             let segments = rec.map { String($0.finalSegments) } ?? ""
             let endedEarly = rec.map { $0.endedEarly ? "yes" : "no" } ?? ""
             let reason = (rec?.explanation ?? "").replacingOccurrences(of: "\"", with: "\"\"")
-            csv += "\"\(entry.timestamp)\",\"\(entry.mode)\",\"\(transcript)\",\(entry.parsedTasks.count),\"\(titles)\",\"\(tags)\",\"\(deadlines)\",\(entry.durationMs),\"\(error)\",\(seconds),\(segments),\(endedEarly),\"\(reason)\"\n"
+            let alt = (entry.altTranscript ?? "").replacingOccurrences(of: "\"", with: "\"\"")
+            csv += "\"\(entry.timestamp)\",\"\(entry.mode)\",\"\(transcript)\",\"\(alt)\",\"\(entry.altEngine ?? "")\",\"\(entry.transcriptRating ?? "")\",\(entry.parsedTasks.count),\"\(titles)\",\"\(tags)\",\"\(deadlines)\",\(entry.durationMs),\"\(error)\",\(seconds),\(segments),\(endedEarly),\"\(reason)\"\n"
         }
 
         do {
