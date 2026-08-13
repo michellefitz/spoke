@@ -1098,6 +1098,9 @@ struct ContentView: View {
         var eventEditCount = 0
         var eventEditsFailed = false
         var eventsFellBackToTasks = false
+        // Resolved deadlines surface in the toast so a misheard "next Tuesday"
+        // is caught immediately instead of days later.
+        var createdDeadlines: [Date] = []
 
         // Events need calendar access, which may involve an async permission
         // prompt — sort that out before the synchronous animation block.
@@ -1146,6 +1149,9 @@ struct ContentView: View {
                     let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag, deadlineIsWeek: parsed.deadlineIsWeek)
                     modelContext.insert(task)
                     createdCount += 1
+                    if let deadline = parsed.deadline, !parsed.deadlineIsWeek {
+                        createdDeadlines.append(deadline)
+                    }
 
                 case .edit(let matchTitle, let updates):
                     if let existing = activeTasks.first(where: { $0.title == matchTitle }) {
@@ -1203,11 +1209,24 @@ struct ContentView: View {
                 message = "Updated \(editedTitles.count) tasks"
             }
         } else if createdCount > 1 {
-            message = "\(createdCount) tasks added"
+            if createdDeadlines.count == createdCount, let first = createdDeadlines.first,
+               createdDeadlines.allSatisfy({ Calendar.current.isDate($0, inSameDayAs: first) }) {
+                message = "\(createdCount) tasks added for \(toastDayLabel(first))"
+            } else {
+                message = "\(createdCount) tasks added"
+            }
+        } else if createdCount == 1, let deadline = createdDeadlines.first {
+            message = "Added for \(toastDayLabel(deadline))"
         } else {
             message = nil
         }
         if let message { showToast(message) }
+    }
+
+    private func toastDayLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE d MMM"
+        return formatter.string(from: date)
     }
 
     private func showToast(_ message: String, duration: Double = 2.5) {

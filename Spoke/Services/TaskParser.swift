@@ -750,7 +750,7 @@ enum TaskParser {
             return "\(weekdayFormatter.string(from: date)) = \(isoFormatter.string(from: date))\(label)"
         }
         let todayName = weekdayFormatter.string(from: .now)
-        return "Today is \(todayName), \(isoToday()). Resolve day names to dates using EXACTLY this table — a task due on a named day gets THAT day's date, never the day before or after: \(entries.joined(separator: "; "))."
+        return "Today is \(todayName), \(isoToday()). Resolve day names to dates using EXACTLY this table — a task due on a named day gets THAT day's date, never the day before or after: \(entries.joined(separator: "; ")). Each day name appears twice; \"Tuesday\", \"on Tuesday\", \"this Tuesday\" and \"next Tuesday\" ALL mean the FIRST (soonest) date for that name. Use the second date only for \"Tuesday after next\" or \"a week from Tuesday\"."
     }
 
     private static func fallback(_ transcript: String) -> ParsedTask {
