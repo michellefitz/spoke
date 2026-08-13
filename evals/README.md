@@ -4,7 +4,7 @@ Automated checks on the thing most likely to break quietly: what the model
 does with what you said.
 
 ```sh
-export ANTHROPIC_API_KEY=sk-ant-...
+export SPOKE_EVAL_API_KEY=sk-ant-...   # ANTHROPIC_API_KEY also works
 
 python3 evals/run.py                      # everything
 python3 evals/run.py --only dates edits   # one or more categories, or a case id

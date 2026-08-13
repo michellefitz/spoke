@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run Spoke's eval suite against the live prompt.
 
-    export ANTHROPIC_API_KEY=sk-ant-...
+    export SPOKE_EVAL_API_KEY=sk-ant-...   # or ANTHROPIC_API_KEY
     python3 evals/run.py                     # everything
     python3 evals/run.py --only dates edits  # some categories
     python3 evals/run.py --repeat 3          # flakiness check
@@ -320,9 +320,12 @@ def main():
         manual_sheet(cases)
         return 0
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    # SPOKE_EVAL_API_KEY first: hosted environments may reserve
+    # ANTHROPIC_API_KEY for their own credentials, so a differently
+    # named variable is the one that reliably gets through.
+    api_key = os.environ.get("SPOKE_EVAL_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        sys.exit("ANTHROPIC_API_KEY is not set")
+        sys.exit("No API key. Set SPOKE_EVAL_API_KEY (or ANTHROPIC_API_KEY).")
 
     # Fail loudly if the prompt can no longer be read out of the Swift.
     spoke_prompt.build_assistant_prompt(_dt.date.fromisoformat(S.TODAY))
