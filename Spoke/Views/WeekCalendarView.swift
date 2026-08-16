@@ -40,9 +40,9 @@ struct WeekCalendarView: View {
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
     private let dateColumnWidth: CGFloat = 52
-    /// Matches the compact date label (26pt badge + caption), so the label
+    /// Matches the compact date label (24pt badge + caption), so the label
     /// never makes a day's first row taller than the rest.
-    private let scheduleRowMinHeight: CGFloat = 38
+    private let scheduleRowMinHeight: CGFloat = 36
     private var cal: Calendar { Calendar.current }
 
     private var weekStart: Date {
@@ -172,6 +172,9 @@ struct WeekCalendarView: View {
                     // they never push the schedule below the fold.
                     if !pinnedTasks.isEmpty {
                         pinnedHeader(maxHeight: geo.size.height * 0.45)
+                            // A soft coral wash marks the pool as week-wide
+                            // holding space, distinct from the scheduled days.
+                            .background(coral.opacity(0.05))
                         Rectangle()
                             .fill(Color(.separator).opacity(0.5))
                             .frame(height: 0.5)
@@ -198,9 +201,6 @@ struct WeekCalendarView: View {
                                     scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", doneCount: completedCount(on: day)) { dateColumn(day) }
                                 }
                             }
-
-                            dayDivider
-                            nextWeekRow
                         }
                         .listStyle(.plain)
                         .environment(\.defaultMinListRowHeight, 10)
@@ -323,7 +323,7 @@ struct WeekCalendarView: View {
                     Text(emptyText)
                         .font(.system(size: 13))
                         .italic()
-                        .foregroundStyle(Color(.quaternaryLabel))
+                        .foregroundStyle(coral.opacity(0.8))
                     Spacer(minLength: 0)
                 }
                 .opacity(dimmed ? 0.45 : 1)
@@ -347,7 +347,7 @@ struct WeekCalendarView: View {
                 }
                 .frame(minHeight: scheduleRowMinHeight)
                 .opacity(dimmed ? 0.45 : 1)
-                .rowContainer(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16), plain: plain)
+                .rowContainer(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16), plain: plain)
             }
             ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
                 let isFirstRow = events.isEmpty && index == 0
@@ -367,7 +367,7 @@ struct WeekCalendarView: View {
                 }
                 .frame(minHeight: scheduleRowMinHeight)
                 .opacity(dimmed ? 0.45 : 1)
-                .rowContainer(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16), plain: plain)
+                .rowContainer(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16), plain: plain)
             }
         }
     }
@@ -488,27 +488,6 @@ struct WeekCalendarView: View {
         .padding(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
     }
 
-    /// Tail row after Sunday: peek ahead without knowing the swipe gesture.
-    private var nextWeekRow: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) { weekOffset += 1 }
-        } label: {
-            HStack(alignment: .center, spacing: 14) {
-                Color.clear.frame(width: dateColumnWidth, height: 1)
-                Text(Self.title(forWeekOffset: weekOffset + 1))
-                    .font(.system(size: 13.5, weight: .semibold))
-                    .foregroundStyle(coral)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(coral)
-                Spacer(minLength: 0)
-            }
-        }
-        .buttonStyle(.plain)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 16, trailing: 16))
-    }
-
     private var dayDivider: some View {
         Rectangle()
             .fill(Color(.separator).opacity(0.5))
@@ -533,9 +512,9 @@ struct WeekCalendarView: View {
         // between the day's first and second items.
         return VStack(spacing: 1) {
             Text(dayNumber)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(isToday ? .white : Color(.label))
-                .frame(width: 26, height: 26)
+                .frame(width: 24, height: 24)
                 .background {
                     if isToday {
                         Circle().fill(coral)
@@ -562,9 +541,9 @@ struct WeekCalendarView: View {
     private var pinnedColumn: some View {
         VStack(spacing: 1) {
             Image(systemName: "tray")
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(coral)
-                .frame(width: 26, height: 26)
+                .frame(width: 24, height: 24)
                 .background(Circle().fill(coral.opacity(0.12)))
             Text(pinnedLabelText)
                 .font(.system(size: 8, weight: .semibold))
