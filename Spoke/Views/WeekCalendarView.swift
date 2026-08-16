@@ -116,13 +116,22 @@ struct WeekCalendarView: View {
         day < cal.startOfDay(for: .now) && !cal.isDateInToday(day)
     }
 
-    /// Tasks completed on this day — shown after the active ones so the day
-    /// reads as "still to do, then what got done".
+    /// A completed task belongs to the day it was DUE, not the day it was
+    /// ticked off — catching up on yesterday's list shouldn't make today look
+    /// productive. Tasks with no specific day fall back to when they were
+    /// completed, the only date they have.
+    private func completedAnchor(_ task: SpokeTask) -> Date? {
+        if let deadline = task.deadline, !task.deadlineIsWeek { return deadline }
+        return task.completedAt
+    }
+
+    /// Tasks belonging to this day that got done — shown after the active
+    /// ones so the day reads as "still to do, then what got done".
     private func completedTasks(on day: Date) -> [SpokeTask] {
         guard settings.showCompletedInCalendar else { return [] }
         return allCompletedTasks.filter { task in
-            guard let completedAt = task.completedAt else { return false }
-            return cal.isDate(completedAt, inSameDayAs: day)
+            guard let anchor = completedAnchor(task) else { return false }
+            return cal.isDate(anchor, inSameDayAs: day)
         }
     }
 
@@ -130,8 +139,8 @@ struct WeekCalendarView: View {
     /// even when completed tasks are hidden from the calendar.
     private func completedCount(on day: Date) -> Int {
         allCompletedTasks.count { task in
-            guard let completedAt = task.completedAt else { return false }
-            return cal.isDate(completedAt, inSameDayAs: day)
+            guard let anchor = completedAnchor(task) else { return false }
+            return cal.isDate(anchor, inSameDayAs: day)
         }
     }
 
@@ -172,9 +181,10 @@ struct WeekCalendarView: View {
                     // they never push the schedule below the fold.
                     if !pinnedTasks.isEmpty {
                         pinnedHeader(maxHeight: geo.size.height * 0.45)
-                            // A soft coral wash marks the pool as week-wide
+                            // A soft grey wash marks the pool as week-wide
                             // holding space, distinct from the scheduled days.
-                            .background(coral.opacity(0.05))
+                            // (Coral read as a warning here.)
+                            .background(Color(.secondarySystemBackground).opacity(0.7))
                         Rectangle()
                             .fill(Color(.separator).opacity(0.5))
                             .frame(height: 0.5)
@@ -198,7 +208,7 @@ struct WeekCalendarView: View {
                                 if isPast(day) {
                                     scheduleRows(tasks: tasks(on: day), emptyText: "Nothing planned", doneCount: completedCount(on: day), dimmed: true) { dateColumn(day) }
                                 } else {
-                                    scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", doneCount: completedCount(on: day)) { dateColumn(day) }
+                                    scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", emptyHighlighted: cal.isDateInToday(day), doneCount: completedCount(on: day)) { dateColumn(day) }
                                 }
                             }
                         }
@@ -298,7 +308,7 @@ struct WeekCalendarView: View {
     /// Calendar appointments render first, then tasks. `plain: true` renders
     /// with ordinary padding for use outside a List (the pinned header).
     @ViewBuilder
-    private func scheduleRows<Label: View>(events: [DayEvent] = [], eventsDay: Date = .distantPast, tasks: [SpokeTask], emptyText: String?, doneCount: Int = 0, dimmed: Bool = false, plain: Bool = false, @ViewBuilder label: @escaping () -> Label) -> some View {
+    private func scheduleRows<Label: View>(events: [DayEvent] = [], eventsDay: Date = .distantPast, tasks: [SpokeTask], emptyText: String?, emptyHighlighted: Bool = false, doneCount: Int = 0, dimmed: Bool = false, plain: Bool = false, @ViewBuilder label: @escaping () -> Label) -> some View {
         if events.isEmpty && tasks.isEmpty {
             if doneCount > 0 {
                 HStack(alignment: .center, spacing: 14) {
@@ -323,7 +333,9 @@ struct WeekCalendarView: View {
                     Text(emptyText)
                         .font(.system(size: 13))
                         .italic()
-                        .foregroundStyle(coral.opacity(0.8))
+                        // Coral only for today — a free day right now is worth
+                        // noticing; on other days it read like a warning.
+                        .foregroundStyle(emptyHighlighted ? coral.opacity(0.8) : Color(.quaternaryLabel))
                     Spacer(minLength: 0)
                 }
                 .opacity(dimmed ? 0.45 : 1)
