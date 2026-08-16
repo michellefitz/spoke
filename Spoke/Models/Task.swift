@@ -15,8 +15,11 @@ class SpokeTask {
     /// The stored date is the last day of the week, so "due by end of week" ordering
     /// and overdue checks work without special-casing.
     var deadlineIsWeek: Bool = false
+    /// An exact moment to notify ("remind me at 6"), independent of the
+    /// day-granularity deadline.
+    var remindAt: Date?
 
-    init(title: String, taskDescription: String? = nil, deadline: Date? = nil, tag: String? = nil, deadlineIsWeek: Bool = false) {
+    init(title: String, taskDescription: String? = nil, deadline: Date? = nil, tag: String? = nil, deadlineIsWeek: Bool = false, remindAt: Date? = nil) {
         self.id = UUID()
         self.title = title
         self.taskDescription = taskDescription
@@ -26,6 +29,7 @@ class SpokeTask {
         self.deadline = deadline
         self.tag = tag
         self.deadlineIsWeek = deadlineIsWeek
+        self.remindAt = remindAt
     }
 }
 

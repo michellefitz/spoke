@@ -491,6 +491,11 @@ struct ContentView: View {
             if phase == .background {
                 try? modelContext.save()
                 WidgetCenter.shared.reloadAllTimelines()
+                // Notifications only matter while the app is closed, and all
+                // edits happen in-app — so recomputing the pending set here
+                // keeps reminders and digests true with a single hook.
+                let tasks = activeTasks
+                Task { await NotificationService.shared.refresh(tasks: tasks) }
             }
         }
     }
@@ -1159,7 +1164,7 @@ struct ContentView: View {
             for action in actions {
                 switch action {
                 case .create(let parsed):
-                    let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag, deadlineIsWeek: parsed.deadlineIsWeek)
+                    let task = SpokeTask(title: parsed.title, taskDescription: parsed.description, deadline: parsed.deadline, tag: parsed.tag, deadlineIsWeek: parsed.deadlineIsWeek, remindAt: parsed.remindAt)
                     modelContext.insert(task)
                     createdCount += 1
                     if let deadline = parsed.deadline, !parsed.deadlineIsWeek {
@@ -1173,10 +1178,15 @@ struct ContentView: View {
                         existing.deadline = updates.deadline
                         existing.deadlineIsWeek = updates.deadlineIsWeek
                         existing.tag = updates.tag
+                        // A missing remind on an edit means "unchanged", not
+                        // "remove" — removal lives on the detail card.
+                        if let remindAt = updates.remindAt {
+                            existing.remindAt = remindAt
+                        }
                         editedTitles.append(updates.title)
                     } else {
                         // Fallback: create if match not found
-                        let task = SpokeTask(title: updates.title, taskDescription: updates.description, deadline: updates.deadline, tag: updates.tag, deadlineIsWeek: updates.deadlineIsWeek)
+                        let task = SpokeTask(title: updates.title, taskDescription: updates.description, deadline: updates.deadline, tag: updates.tag, deadlineIsWeek: updates.deadlineIsWeek, remindAt: updates.remindAt)
                         modelContext.insert(task)
                         createdCount += 1
                     }
@@ -1197,6 +1207,16 @@ struct ContentView: View {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         try? modelContext.save()
         WidgetCenter.shared.reloadAllTimelines()
+
+        // First voice reminder is the natural moment for the permission ask.
+        let setReminder = actions.contains { action in
+            if case .create(let p) = action { return p.remindAt != nil }
+            if case .edit(_, let u) = action { return u.remindAt != nil }
+            return false
+        }
+        if setReminder {
+            Task { await NotificationService.shared.requestAuthorizationIfNeeded() }
+        }
 
         guard !coachingActive else { return }
         let message: String?

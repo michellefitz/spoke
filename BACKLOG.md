@@ -103,3 +103,17 @@ If the real itch is cross-device sync, CloudKit sync for SwiftData is the
 more direct answer and keeps the full model. If it's ecosystem presence,
 start with 2, add 1 later. See `research-spoke-vs-apple-reminders.md` for
 the full competitive comparison.
+
+## Location-based reminders (parked 2026-08-16)
+
+Explored alongside notifications (digest + voice-timed reminders shipped).
+The right mechanism when wanted: `UNLocationNotificationTrigger` — a local
+notification with a geofence attached, iOS monitors on the app's behalf,
+"While Using" location permission suffices. Skip full `CLMonitor` region
+monitoring (needs "Always", scarier prompt, overkill). Realities: ~100m
+practical minimum radius, delivery can lag minutes, ~20 region cap per app.
+The actual work is place resolution: voice "when I'm at Tesco" → parser
+extracts place phrase → `MKLocalSearch` nearby → confirm chip in the summary
+sheet (same confirm-before-acting pattern as calendar events) — plus saved
+places (home/work) in Settings so "when I get home" needs no search. Parked
+because the shape of the feature isn't settled yet.

@@ -10,6 +10,7 @@
 		061CB711E670940715A50834 /* TaskDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC4CAC813C3E973A8D4E2DF3 /* TaskDetailView.swift */; };
 		0FE50EA79A24F4A0E062B416 /* SpokeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5E5EBF24AADF435E693DE4 /* SpokeWidget.swift */; };
 		153D8089070586358B3806BC /* AnimationTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75AA58387684AE038DC9F198 /* AnimationTokens.swift */; };
+		176A252E592341FA6BE62853 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FE38BB0CA76B00E7CD4C5F5 /* NotificationService.swift */; };
 		1A4CB5968BBCB0DBB8A87C28 /* VoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F45466236E0D0B9CC126A7D /* VoiceRecorder.swift */; };
 		1D2FC799922D2EE8BC416A37 /* SpokeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FC117A79B9FEDB31E29C8998 /* SpokeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		1FA6B1BBDA6BCEABA70CB41E /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E808A3AF60E6265518225A16 /* OnboardingView.swift */; };
@@ -29,6 +30,7 @@
 		AA3A56371496FE23703B619F /* VoiceButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = D153848E9BD8A0115C656634 /* VoiceButton.swift */; };
 		AAA4332BC55D109559366FA3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CD4E3F8E4A5CD1F6D55FEFAB /* Assets.xcassets */; };
 		ADB4A45B7EE3C7FB07DF843E /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B14AEDED788DDEE5A8A5056 /* Task.swift */; };
+		AE5394726E92B95A2EDD92FA /* OnDeviceTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D0CA48D185795F90F3F1172 /* OnDeviceTranscriber.swift */; };
 		B202B0AAB1B65EE9011576B0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF04D4396113B1353FED13C /* ContentView.swift */; };
 		B79877F5D5FFEC7D83D7C154 /* AudioWaveformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85FEDC74B870B88EF832273A /* AudioWaveformView.swift */; };
 		C1777BE632FCEE5796F0D217 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B14AEDED788DDEE5A8A5056 /* Task.swift */; };
@@ -36,7 +38,6 @@
 		D6B6743C85D97080686D59E2 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B43B812FD122C8A64E4EC4 /* CalendarService.swift */; };
 		F293693B0CF0C2F0D1882F5D /* SpokeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61697DD7E73DC52F3DBF8513 /* SpokeApp.swift */; };
 		FC4DC001032608AD6A238863 /* TaskParserLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D7826DD8178666D5171C12 /* TaskParserLogger.swift */; };
-		AB10C0DE0001F0010000A001 /* OnDeviceTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0DE0002F0020000A002 /* OnDeviceTranscriber.swift */; };
 		FD49F038E5FF3E6C0C3D8707 /* Config.swift.example in Resources */ = {isa = PBXBuildFile; fileRef = 5AE9B43530324EA0A2EA007D /* Config.swift.example */; };
 /* End PBXBuildFile section */
 
@@ -66,18 +67,19 @@
 
 /* Begin PBXFileReference section */
 		05D7826DD8178666D5171C12 /* TaskParserLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskParserLogger.swift; sourceTree = "<group>"; };
-		AB10C0DE0002F0020000A002 /* OnDeviceTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceTranscriber.swift; sourceTree = "<group>"; };
 		06091115C946D1019E81CACF /* Spoke.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Spoke.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0AA40E6992C1BF270F39FF84 /* TagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagStore.swift; sourceTree = "<group>"; };
 		0DDFE16C15B248AE931BEDEC /* TaskParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskParser.swift; sourceTree = "<group>"; };
 		11A184B9D21BFAA8AD32CEF0 /* spoke-hero.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "spoke-hero.html"; sourceTree = "<group>"; };
 		1B3957279987778F6EFA75D6 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		1F45466236E0D0B9CC126A7D /* VoiceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceRecorder.swift; sourceTree = "<group>"; };
+		4D0CA48D185795F90F3F1172 /* OnDeviceTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceTranscriber.swift; sourceTree = "<group>"; };
 		5AE9B43530324EA0A2EA007D /* Config.swift.example */ = {isa = PBXFileReference; path = Config.swift.example; sourceTree = "<group>"; };
 		5B14AEDED788DDEE5A8A5056 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
 		5E5E5EBF24AADF435E693DE4 /* SpokeWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpokeWidget.swift; sourceTree = "<group>"; };
 		61697DD7E73DC52F3DBF8513 /* SpokeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpokeApp.swift; sourceTree = "<group>"; };
 		75AA58387684AE038DC9F198 /* AnimationTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationTokens.swift; sourceTree = "<group>"; };
+		7FE38BB0CA76B00E7CD4C5F5 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		81B95A4320CE2F904187CF87 /* EventDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventDetailView.swift; sourceTree = "<group>"; };
 		850A64DDD349E06014624854 /* WeekCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekCalendarView.swift; sourceTree = "<group>"; };
 		85FEDC74B870B88EF832273A /* AudioWaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioWaveformView.swift; sourceTree = "<group>"; };
@@ -115,10 +117,11 @@
 			children = (
 				1B3957279987778F6EFA75D6 /* AppSettings.swift */,
 				D4B43B812FD122C8A64E4EC4 /* CalendarService.swift */,
+				7FE38BB0CA76B00E7CD4C5F5 /* NotificationService.swift */,
+				4D0CA48D185795F90F3F1172 /* OnDeviceTranscriber.swift */,
 				0AA40E6992C1BF270F39FF84 /* TagStore.swift */,
 				0DDFE16C15B248AE931BEDEC /* TaskParser.swift */,
 				05D7826DD8178666D5171C12 /* TaskParserLogger.swift */,
-				AB10C0DE0002F0020000A002 /* OnDeviceTranscriber.swift */,
 				1F45466236E0D0B9CC126A7D /* VoiceRecorder.swift */,
 			);
 			path = Services;
@@ -304,6 +307,8 @@
 				9D391789B1CDC9BB717A1FF3 /* Config.swift in Sources */,
 				B202B0AAB1B65EE9011576B0 /* ContentView.swift in Sources */,
 				53C868C0E781755B9BE2CE89 /* EventDetailView.swift in Sources */,
+				176A252E592341FA6BE62853 /* NotificationService.swift in Sources */,
+				AE5394726E92B95A2EDD92FA /* OnDeviceTranscriber.swift in Sources */,
 				1FA6B1BBDA6BCEABA70CB41E /* OnboardingView.swift in Sources */,
 				665E66F015F9474AA231ADCE /* RecordingLogView.swift in Sources */,
 				21FFF80255053FE7525AD8D2 /* SettingsView.swift in Sources */,
@@ -314,7 +319,6 @@
 				061CB711E670940715A50834 /* TaskDetailView.swift in Sources */,
 				CE1ADD384352B92C57C1792F /* TaskParser.swift in Sources */,
 				FC4DC001032608AD6A238863 /* TaskParserLogger.swift in Sources */,
-				AB10C0DE0001F0010000A001 /* OnDeviceTranscriber.swift in Sources */,
 				32DE61591E9C74C53CC9E426 /* TaskRowView.swift in Sources */,
 				AA3A56371496FE23703B619F /* VoiceButton.swift in Sources */,
 				1A4CB5968BBCB0DBB8A87C28 /* VoiceRecorder.swift in Sources */,

@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var isAddingTag = false
     @State private var newTagName = ""
     @State private var showRecordingLog = false
+    @State private var notificationsDenied = false
     @FocusState private var isNewTagFieldFocused: Bool
 
     private let coral = Color(red: 1.0, green: 0.38, blue: 0.28)
@@ -61,6 +62,47 @@ struct SettingsView: View {
 
                 } header: {
                     sectionHeader("Display")
+                }
+
+                // MARK: Notifications
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { settings.morningDigestEnabled },
+                        set: { enableDigest($0) }
+                    )) {
+                        Text("Morning digest")
+                    }
+                    .tint(coral)
+
+                    if settings.morningDigestEnabled {
+                        DatePicker(
+                            "Digest time",
+                            selection: Binding(
+                                get: { digestDate },
+                                set: { setDigestDate($0) }
+                            ),
+                            displayedComponents: .hourAndMinute
+                        )
+                    }
+
+                    if notificationsDenied {
+                        Text("Notifications are turned off for Spoke.")
+                            .foregroundStyle(Color(.secondaryLabel))
+                        Button {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            Text("Open iOS Settings")
+                                .foregroundStyle(coral)
+                        }
+                    }
+                } header: {
+                    sectionHeader("Notifications")
+                } footer: {
+                    Text("One summary of the day's tasks and appointments. Say \u{201C}remind me at 6\u{201D} while adding a task for a one-off reminder.")
+                        .font(.footnote)
+                        .foregroundStyle(Color(.secondaryLabel))
                 }
 
                 // MARK: Calendar connection
@@ -296,6 +338,30 @@ struct SettingsView: View {
     /// switched the integration off in here.
     private var isCalendarLinked: Bool {
         calendarService.isConnected && settings.showCalendarEvents
+    }
+
+    // MARK: - Notifications
+
+    private var digestDate: Date {
+        let cal = Calendar.current
+        return cal.date(byAdding: .minute, value: settings.digestMinutes, to: cal.startOfDay(for: .now)) ?? .now
+    }
+
+    private func setDigestDate(_ date: Date) {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        settings.digestMinutes = (components.hour ?? 8) * 60 + (components.minute ?? 30)
+    }
+
+    private func enableDigest(_ enabled: Bool) {
+        guard enabled else {
+            settings.morningDigestEnabled = false
+            return
+        }
+        Task {
+            let granted = await NotificationService.shared.requestAuthorizationIfNeeded()
+            settings.morningDigestEnabled = granted
+            notificationsDenied = !granted
+        }
     }
 
     private var calendarFooter: String {
