@@ -55,10 +55,13 @@ struct DayTimelineView: View {
                         )
                     }
                 }
-                .padding(10)
+                .padding(.horizontal, 10)
+                // Roomier than the week-view card: this one has no title, so
+                // the whitespace is what frames it.
+                .padding(.vertical, 16)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground).opacity(0.7)))
                 .padding(.horizontal, 10)
-                .padding(.bottom, 4)
+                .padding(.bottom, 10)
             }
 
             timeline
@@ -284,8 +287,15 @@ struct DayTimelineView: View {
     }()
 
     private func scrollToMorning(_ proxy: ScrollViewProxy) {
-        let firstEventHour = timedEvents.map { cal.component(.hour, from: clampedStart($0)) }.min()
-        let target = max(0, min(firstEventHour ?? 8, 8) - 1)
+        let target: Int
+        if cal.isDateInToday(day) {
+            // One full hour of context above the now line — at 13:30 the view
+            // opens with 12:00 anchored at the top, not the whole morning.
+            target = max(0, cal.component(.hour, from: .now) - 1)
+        } else {
+            let firstEventHour = timedEvents.map { cal.component(.hour, from: clampedStart($0)) }.min()
+            target = max(0, min(firstEventHour ?? 8, 8) - 1)
+        }
         proxy.scrollTo(target, anchor: .top)
     }
 
