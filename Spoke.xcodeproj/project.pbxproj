@@ -34,6 +34,7 @@
 		B202B0AAB1B65EE9011576B0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF04D4396113B1353FED13C /* ContentView.swift */; };
 		B79877F5D5FFEC7D83D7C154 /* AudioWaveformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85FEDC74B870B88EF832273A /* AudioWaveformView.swift */; };
 		C1777BE632FCEE5796F0D217 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B14AEDED788DDEE5A8A5056 /* Task.swift */; };
+		C1FEC46ECEEC6C29628A3345 /* DayTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11E3C943301C82521446899 /* DayTimelineView.swift */; };
 		CE1ADD384352B92C57C1792F /* TaskParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DDFE16C15B248AE931BEDEC /* TaskParser.swift */; };
 		D6B6743C85D97080686D59E2 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B43B812FD122C8A64E4EC4 /* CalendarService.swift */; };
 		F293693B0CF0C2F0D1882F5D /* SpokeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61697DD7E73DC52F3DBF8513 /* SpokeApp.swift */; };
@@ -86,6 +87,7 @@
 		8AD2D59C4FC68A61FF19D1B5 /* RecordingLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingLogView.swift; sourceTree = "<group>"; };
 		8B96425A91D679AC36BA7C73 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A08F2B6B5A0014D582AAA8EA /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		A11E3C943301C82521446899 /* DayTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayTimelineView.swift; sourceTree = "<group>"; };
 		B2E6DB242EB2EEC112530FBF /* TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRowView.swift; sourceTree = "<group>"; };
 		B69C6FAEAACE698F418D7AF7 /* SharedContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedContainer.swift; sourceTree = "<group>"; };
 		B94BD719EDB33D4201A39F22 /* AssistantSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantSheetView.swift; sourceTree = "<group>"; };
@@ -143,6 +145,7 @@
 				B94BD719EDB33D4201A39F22 /* AssistantSheetView.swift */,
 				85FEDC74B870B88EF832273A /* AudioWaveformView.swift */,
 				CBF04D4396113B1353FED13C /* ContentView.swift */,
+				A11E3C943301C82521446899 /* DayTimelineView.swift */,
 				81B95A4320CE2F904187CF87 /* EventDetailView.swift */,
 				EB7B10918EC2A66BC67979EB /* index.html */,
 				E808A3AF60E6265518225A16 /* OnboardingView.swift */,
@@ -306,6 +309,7 @@
 				D6B6743C85D97080686D59E2 /* CalendarService.swift in Sources */,
 				9D391789B1CDC9BB717A1FF3 /* Config.swift in Sources */,
 				B202B0AAB1B65EE9011576B0 /* ContentView.swift in Sources */,
+				C1FEC46ECEEC6C29628A3345 /* DayTimelineView.swift in Sources */,
 				53C868C0E781755B9BE2CE89 /* EventDetailView.swift in Sources */,
 				176A252E592341FA6BE62853 /* NotificationService.swift in Sources */,
 				AE5394726E92B95A2EDD92FA /* OnDeviceTranscriber.swift in Sources */,
