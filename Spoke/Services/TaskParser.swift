@@ -6,6 +6,7 @@ struct ParsedTask {
     let deadline: Date?
     let tag: String?
     var deadlineIsWeek: Bool = false
+    var remindAt: Date? = nil
 }
 
 enum ParsedAction {
@@ -290,6 +291,7 @@ enum TaskParser {
         - NEVER silently drop information. If a detail cannot fit the title, it must appear in the description. \
         - If a description needs 2 or more distinct items, use bullet format with a short intro sentence, each bullet on its OWN LINE: "Things to pick up:\\n• Milk\\n• Eggs" \
         - Dates: if the user names a specific day, resolve it relative to today as YYYY-MM-DD in "deadline". If they say something is for "this week" or "next week" WITHOUT naming a day (e.g. "sometime this week", "I need to get this done next week"), use the literal string "this-week" or "next-week" as the deadline — do NOT invent a specific day. A deadline applies only to the task it was mentioned with. \
+        - Reminders: if the user explicitly asks to be REMINDED at a clock time ("remind me at 6 to take the chicken out", "ping me at 3pm tomorrow about the invoice"), include "remind" as "YYYY-MM-DD HH:MM" (24-hour) on that task, resolved relative to today — assume today if no day is named and the time is still ahead, otherwise tomorrow. A bare deadline time ("finish by 5pm") is NOT a reminder. NEVER invent a "remind" the user didn't ask for. \
         - \(tagInstruction)
         """
     }
@@ -632,7 +634,8 @@ enum TaskParser {
                         description: mergedDesc,
                         deadline: mergedDeadline,
                         tag: mergedTag,
-                        deadlineIsWeek: mergedIsWeek
+                        deadlineIsWeek: mergedIsWeek,
+                        remindAt: parsed.remindAt
                     )
                     return .edit(matchTitle: match.title, updates: merged)
                 } else {
@@ -714,8 +717,19 @@ enum TaskParser {
         } else {
             tag = nil
         }
-        return ParsedTask(title: title, description: description?.isEmpty == true ? nil : description, deadline: deadline, tag: tag, deadlineIsWeek: deadlineIsWeek)
+        var remindAt: Date?
+        if let rs = json["remind"] as? String, !rs.isEmpty {
+            remindAt = remindFormatter.date(from: rs)
+        }
+        return ParsedTask(title: title, description: description?.isEmpty == true ? nil : description, deadline: deadline, tag: tag, deadlineIsWeek: deadlineIsWeek, remindAt: remindAt)
     }
+
+    private static let remindFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH:mm"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
 
     private static func tagPromptInstruction() -> String {
         let tags = TagStore.shared.tags

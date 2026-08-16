@@ -44,6 +44,19 @@ struct TaskDetailView: View {
         return f
     }()
 
+    private func remindLabel(for date: Date) -> String {
+        let time = Self.remindTimeFormatter.string(from: date)
+        if Calendar.current.isDateInToday(date) { return time }
+        if Calendar.current.isDateInTomorrow(date) { return "Tmrw \(time)" }
+        return "\(Self.deadlineFormatter.string(from: date)) \(time)"
+    }
+
+    private static let remindTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f
+    }()
+
     private var metadataDateString: String {
         if task.isCompleted, let completedAt = task.completedAt {
             return "Completed \(shortRelativeDate(completedAt))"
@@ -193,6 +206,26 @@ struct TaskDetailView: View {
                                         .strokeBorder(Color(.tertiaryLabel).opacity(0.5),
                                                       style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
                                 )
+                        }
+                    }
+
+                    // Set by voice ("remind me at 6"); removable here.
+                    if let remindAt = task.remindAt, !task.isCompleted {
+                        Menu {
+                            Button("Remove reminder", role: .destructive) {
+                                withAnimation(.easeInOut(duration: 0.2)) { task.remindAt = nil }
+                            }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "bell.fill")
+                                    .font(.system(size: 9))
+                                Text(remindLabel(for: remindAt))
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundStyle(coral)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(coral.opacity(0.12)))
                         }
                     }
 

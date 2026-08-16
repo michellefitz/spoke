@@ -69,6 +69,16 @@ final class AppSettings {
         didSet { defaults.set(completedExpanded, forKey: "completedExpanded") }
     }
 
+    /// One notification summarising the day, instead of an alert per task.
+    var morningDigestEnabled: Bool {
+        didSet { defaults.set(morningDigestEnabled, forKey: "morningDigestEnabled") }
+    }
+
+    /// Digest delivery time as minutes after midnight (510 = 08:30).
+    var digestMinutes: Int {
+        didSet { defaults.set(digestMinutes, forKey: "digestMinutes") }
+    }
+
     init() {
         self.showTags              = defaults.object(forKey: "showTags")              as? Bool ?? true
         self.showDueDates          = defaults.object(forKey: "showDueDates")          as? Bool ?? true
@@ -84,5 +94,7 @@ final class AppSettings {
         self.autoDeleteCompleted   = defaults.object(forKey: "autoDeleteCompleted")   as? Bool ?? true
         self.hasSeenCoaching       = defaults.bool(forKey: "hasSeenCoaching")
         self.completedExpanded     = defaults.bool(forKey: "completedExpanded")
+        self.morningDigestEnabled  = defaults.bool(forKey: "morningDigestEnabled")
+        self.digestMinutes         = defaults.object(forKey: "digestMinutes")         as? Int ?? 510
     }
 }
