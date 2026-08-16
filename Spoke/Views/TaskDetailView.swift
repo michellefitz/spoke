@@ -44,20 +44,13 @@ struct TaskDetailView: View {
         return f
     }()
 
-    private static let ordinalFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .ordinal
-        return f
-    }()
-
     private var metadataDateString: String {
         if task.isCompleted, let completedAt = task.completedAt {
             return "Completed \(shortRelativeDate(completedAt))"
         }
-        let day = Calendar.current.component(.day, from: task.createdAt)
-        let ordinal = Self.ordinalFormatter.string(from: NSNumber(value: day)) ?? "\(day)"
-        let month = task.createdAt.formatted(.dateTime.month(.abbreviated))
-        return "Added \(ordinal) \(month)"
+        // Same "Aug 12" shape as the deadline badges — two formats for one
+        // date read as a mistake.
+        return "Added \(Self.deadlineFormatter.string(from: task.createdAt))"
     }
 
     private func shortRelativeDate(_ date: Date) -> String {
@@ -74,11 +67,8 @@ struct TaskDetailView: View {
         if hours < 6 && cal.isDateInToday(date) {
             return "\(hours) hr ago"
         }
-        // Otherwise show date: "30th Mar"
-        let day = cal.component(.day, from: date)
-        let ordinal = Self.ordinalFormatter.string(from: NSNumber(value: day)) ?? "\(day)"
-        let month = date.formatted(.dateTime.month(.abbreviated))
-        return "\(ordinal) \(month)"
+        // Otherwise show date: "Mar 30"
+        return Self.deadlineFormatter.string(from: date)
     }
 
     var body: some View {
@@ -94,7 +84,7 @@ struct TaskDetailView: View {
                     dismiss()
                 } label: {
                     Text("Cancel")
-                        .font(.system(size: 15))
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Color(.secondaryLabel))
                 }
 
@@ -109,13 +99,15 @@ struct TaskDetailView: View {
                             .foregroundStyle(Color(.secondaryLabel))
                     }
 
-                    Button("Close") {
+                    Button {
                         try? modelContext.save()
                         WidgetCenter.shared.reloadAllTimelines()
                         dismiss()
+                    } label: {
+                        Text("Close")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(coral)
                     }
-                    .fontWeight(.semibold)
-                    .foregroundStyle(coral)
                 }
             }
             .padding(.horizontal, 20)
@@ -258,11 +250,10 @@ struct TaskDetailView: View {
 
                 Text(metadataDateString)
                     .font(.caption)
-                    .italic()
-                    .foregroundStyle(Color(.secondaryLabel))
+                    .foregroundStyle(Color(.tertiaryLabel))
             }
             .padding(.top, 10)
-            .padding(.bottom, 6)
+            .padding(.bottom, 14)
             .padding(.horizontal, 24)
 
             // MARK: Scrollable description area + voice button
@@ -280,6 +271,7 @@ struct TaskDetailView: View {
                                 .onChange(of: editingNotes) { _, _ in syncToModel() }
                                 .padding(.horizontal, 24)
                                 .padding(.top, 10)
+                                .padding(.bottom, 8)
                         }
 
                         // Subtask items

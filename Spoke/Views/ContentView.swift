@@ -267,9 +267,19 @@ struct ContentView: View {
                         }
                         .frame(maxWidth: .infinity)
 
-                        Menu {
-                            // Sort options only apply to the list view
-                            if !calendarMode {
+                        // Calendar mode's menu would hold only Settings, so
+                        // skip the menu hop and go straight there.
+                        if calendarMode {
+                            Button { showSettings = true } label: {
+                                Image(systemName: "gearshape")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(coral)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color(.tertiarySystemFill), in: Circle())
+                            }
+                            .frame(width: 44, height: 44)
+                        } else {
+                            Menu {
                                 Button {
                                     withAnimation(.easeInOut(duration: 0.2)) { sortMode = .dateAdded }
                                 } label: {
@@ -285,19 +295,19 @@ struct ContentView: View {
                                 }
 
                                 Divider()
-                            }
 
-                            Button { showSettings = true } label: {
-                                Label("Settings", systemImage: "gearshape")
+                                Button { showSettings = true } label: {
+                                    Label("Settings", systemImage: "gearshape")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(coral)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color(.tertiarySystemFill), in: Circle())
                             }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(coral)
-                                .frame(width: 28, height: 28)
-                                .background(Color(.tertiarySystemFill), in: Circle())
+                            .frame(width: 44, height: 44)
                         }
-                        .frame(width: 44, height: 44)
                     }
                     .padding(.horizontal, 8)
                     .padding(.top, 14)
@@ -567,6 +577,9 @@ struct ContentView: View {
                 }
                 .listStyle(.plain)
                 .listSectionSpacing(0)
+                // The plain list adds a fat default margin under the header
+                // bar before the first section label.
+                .contentMargins(.top, 0, for: .scrollContent)
             }
         }
     }
