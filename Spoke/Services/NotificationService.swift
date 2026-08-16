@@ -12,8 +12,13 @@ final class NotificationService {
 
     private let center = UNUserNotificationCenter.current()
     private let settings = AppSettings.shared
+    private let delegate = ForegroundBannerDelegate()
     /// Days of digests scheduled ahead; past that the next app open reschedules.
     private let digestHorizon = 7
+
+    private init() {
+        center.delegate = delegate
+    }
 
     /// True if notifications are usable (asks the user on first call).
     @discardableResult
@@ -117,5 +122,37 @@ final class NotificationService {
             if events.count > 1 { parts.append("+\(events.count - 1) more") }
         }
         return parts.joined(separator: " · ")
+    }
+
+    // MARK: - Dev
+
+    /// Fires today's digest a moment from now so its content and delivery can
+    /// be checked without waiting for morning. Temporary testing aid.
+    func sendTestDigest(tasks: [SpokeTask]) async {
+        guard await requestAuthorizationIfNeeded() else { return }
+        let cal = Calendar.current
+        let dueTasks = tasks.filter { task in
+            guard !task.isCompleted, let deadline = task.deadline, !task.deadlineIsWeek else { return false }
+            return cal.isDateInToday(deadline)
+        }
+        let events = digestEvents(on: .now)
+        let content = UNMutableNotificationContent()
+        content.title = digestTitle(taskCount: dueTasks.count, eventCount: events.count)
+        content.body = dueTasks.isEmpty && events.isEmpty ? "Nothing planned today." : digestBody(tasks: dueTasks, events: events)
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 2, repeats: false)
+        try? await center.add(UNNotificationRequest(identifier: "digest-test", content: content, trigger: trigger))
+    }
+}
+
+/// Shows notifications as banners even while Spoke is foregrounded — needed
+/// for the test digest, and harmless for real reminders.
+private final class ForegroundBannerDelegate: NSObject, UNUserNotificationCenterDelegate {
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 }

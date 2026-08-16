@@ -1,7 +1,11 @@
 import SwiftUI
+import SwiftData
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+
+    @Query(filter: #Predicate<SpokeTask> { $0.isCompleted == false })
+    private var activeTasks: [SpokeTask]
 
     var tagStore: TagStore
     private let settings = AppSettings.shared
@@ -96,6 +100,15 @@ struct SettingsView: View {
                             Text("Open iOS Settings")
                                 .foregroundStyle(coral)
                         }
+                    }
+
+                    // Temporary testing aid — fires today's digest right now.
+                    Button {
+                        let tasks = activeTasks
+                        Task { await NotificationService.shared.sendTestDigest(tasks: tasks) }
+                    } label: {
+                        Text("Send test digest now")
+                            .foregroundStyle(coral)
                     }
                 } header: {
                     sectionHeader("Notifications")

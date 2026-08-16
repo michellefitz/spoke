@@ -242,11 +242,11 @@ struct WeekCalendarView: View {
                 if index > 0 {
                     dayDivider.id(day)
                 }
-                // Past days collapse to what still needs attention: overdue
-                // tasks stay, finished events and completed rows fold into
-                // the "All done" summary line.
+                // Past days keep their events (dimmed) so the week still reads
+                // as a record; completed task rows fold into the "All done"
+                // summary line, and only overdue tasks stay as rows.
                 if isPast(day) {
-                    scheduleRows(tasks: tasks(on: day), emptyText: "Nothing planned", doneCount: completedCount(on: day), dimmed: true) { dateColumn(day) }
+                    scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day), emptyText: "Nothing planned", doneCount: completedCount(on: day), dimmed: true) { dateColumn(day) }
                 } else {
                     scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", emptyHighlighted: cal.isDateInToday(day), doneCount: completedCount(on: day)) { dateColumn(day) }
                 }
@@ -254,6 +254,9 @@ struct WeekCalendarView: View {
         }
         .listStyle(.plain)
         .environment(\.defaultMinListRowHeight, 10)
+        // At rest the first day starts below the veil's strong zone, so only
+        // scrolled-under content picks up the fade.
+        .contentMargins(.top, pinnedTasks.isEmpty ? 0 : 12, for: .scrollContent)
         // Days dissolve under the pinned card instead of hard-clipping at
         // its edge — same veil the list view has under the tag pills.
         .overlay(alignment: .top) {
@@ -407,7 +410,9 @@ struct WeekCalendarView: View {
                 }
                 .frame(minHeight: scheduleRowMinHeight)
                 .opacity(dimmed ? 0.45 : 1)
-                .rowContainer(EdgeInsets(top: 1, leading: sideInset, bottom: 1, trailing: sideInset), plain: plain)
+                // The event blocks' tinted background eats the visual gap, so
+                // the last one gets extra room before the tasks start.
+                .rowContainer(EdgeInsets(top: 1, leading: sideInset, bottom: index == events.count - 1 && !tasks.isEmpty ? 6 : 1, trailing: sideInset), plain: plain)
             }
             ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
                 let isFirstRow = events.isEmpty && index == 0
