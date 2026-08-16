@@ -348,6 +348,15 @@ struct WeekCalendarView: View {
     /// with ordinary padding for use outside a List (the pinned header).
     @ViewBuilder
     private func scheduleRows<Label: View>(events: [DayEvent] = [], eventsDay: Date = .distantPast, tasks: [SpokeTask], emptyText: String?, emptyHighlighted: Bool = false, doneCount: Int = 0, dimmed: Bool = false, plain: Bool = false, @ViewBuilder label: @escaping () -> Label) -> some View {
+        // Plain rows sit inside the pinned card, which is already inset 10pt
+        // from the screen edge — 6pt here keeps their content on the same
+        // 16pt grid as the day rows below.
+        let sideInset: CGFloat = plain ? 6 : 16
+        return buildScheduleRows(events: events, eventsDay: eventsDay, tasks: tasks, emptyText: emptyText, emptyHighlighted: emptyHighlighted, doneCount: doneCount, dimmed: dimmed, plain: plain, sideInset: sideInset, label: label)
+    }
+
+    @ViewBuilder
+    private func buildScheduleRows<Label: View>(events: [DayEvent], eventsDay: Date, tasks: [SpokeTask], emptyText: String?, emptyHighlighted: Bool, doneCount: Int, dimmed: Bool, plain: Bool, sideInset: CGFloat, @ViewBuilder label: @escaping () -> Label) -> some View {
         if events.isEmpty && tasks.isEmpty {
             if doneCount > 0 {
                 HStack(alignment: .center, spacing: 14) {
@@ -364,7 +373,7 @@ struct WeekCalendarView: View {
                     Spacer(minLength: 0)
                 }
                 .opacity(dimmed ? 0.45 : 1)
-                .rowContainer(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16), plain: plain)
+                .rowContainer(EdgeInsets(top: 3, leading: sideInset, bottom: 3, trailing: sideInset), plain: plain)
             } else if let emptyText {
                 HStack(alignment: .center, spacing: 14) {
                     label()
@@ -378,7 +387,7 @@ struct WeekCalendarView: View {
                     Spacer(minLength: 0)
                 }
                 .opacity(dimmed ? 0.45 : 1)
-                .rowContainer(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16), plain: plain)
+                .rowContainer(EdgeInsets(top: 3, leading: sideInset, bottom: 3, trailing: sideInset), plain: plain)
             }
         } else {
             // Every row is at least date-label height, so the first row — which
@@ -398,7 +407,7 @@ struct WeekCalendarView: View {
                 }
                 .frame(minHeight: scheduleRowMinHeight)
                 .opacity(dimmed ? 0.45 : 1)
-                .rowContainer(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16), plain: plain)
+                .rowContainer(EdgeInsets(top: 1, leading: sideInset, bottom: 1, trailing: sideInset), plain: plain)
             }
             ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
                 let isFirstRow = events.isEmpty && index == 0
@@ -418,7 +427,7 @@ struct WeekCalendarView: View {
                 }
                 .frame(minHeight: scheduleRowMinHeight)
                 .opacity(dimmed ? 0.45 : 1)
-                .rowContainer(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16), plain: plain)
+                .rowContainer(EdgeInsets(top: 1, leading: sideInset, bottom: 1, trailing: sideInset), plain: plain)
             }
         }
     }
@@ -524,7 +533,7 @@ struct WeekCalendarView: View {
             .frame(minHeight: scheduleRowMinHeight)
         }
         .buttonStyle(.plain)
-        .padding(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16))
+        .padding(EdgeInsets(top: 1, leading: 6, bottom: 1, trailing: 6))
     }
 
     private func previewToggleRow(_ title: String, action: @escaping () -> Void) -> some View {
@@ -538,7 +547,7 @@ struct WeekCalendarView: View {
             }
         }
         .buttonStyle(.plain)
-        .padding(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
+        .padding(EdgeInsets(top: 2, leading: 6, bottom: 6, trailing: 6))
     }
 
     private var dayDivider: some View {
