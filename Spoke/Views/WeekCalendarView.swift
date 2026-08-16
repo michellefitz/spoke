@@ -27,6 +27,7 @@ struct WeekCalendarView: View {
     @Environment(\.openURL) private var openURL
     @State private var selectedTask: SpokeTask?
     @State private var selectedEvent: DayEvent?
+    @State private var timelineDay: TimelineDaySelection?
     @State private var undatedExpanded = false
     // Starts at the cap and shrinks once content is measured, so the pinned
     // header hugs its rows instead of claiming the whole allowance.
@@ -228,6 +229,10 @@ struct WeekCalendarView: View {
                 .presentationDetents([.fraction(0.7), .large])
                 .presentationBackground(Color(.systemBackground))
         }
+        .sheet(item: $timelineDay) { selection in
+            DayTimelineView(day: selection.day)
+                .presentationBackground(Color(.systemBackground))
+        }
     }
 
     private func dayList(_ proxy: ScrollViewProxy) -> some View {
@@ -246,9 +251,9 @@ struct WeekCalendarView: View {
                 // as a record; completed task rows fold into the "All done"
                 // summary line, and only overdue tasks stay as rows.
                 if isPast(day) {
-                    scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day), emptyText: "Nothing planned", doneCount: completedCount(on: day), dimmed: true) { dateColumn(day) }
+                    scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day), emptyText: "Nothing planned", doneCount: completedCount(on: day), dimmed: true) { dayLabel(day) }
                 } else {
-                    scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", emptyHighlighted: cal.isDateInToday(day), doneCount: completedCount(on: day)) { dateColumn(day) }
+                    scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", emptyHighlighted: cal.isDateInToday(day), doneCount: completedCount(on: day)) { dayLabel(day) }
                 }
             }
         }
@@ -567,6 +572,16 @@ struct WeekCalendarView: View {
 
     // MARK: - Date columns
 
+    /// Date badge as a button: tapping opens the day-timeline prototype.
+    private func dayLabel(_ day: Date) -> some View {
+        Button {
+            timelineDay = TimelineDaySelection(day: day)
+        } label: {
+            dateColumn(day)
+        }
+        .buttonStyle(.plain)
+    }
+
     private func dateColumn(_ day: Date) -> some View {
         let isToday = cal.isDateInToday(day)
         let dayNumber = "\(cal.component(.day, from: day))"
@@ -665,6 +680,12 @@ struct WeekCalendarView: View {
         try? modelContext.save()
         WidgetCenter.shared.reloadAllTimelines()
     }
+}
+
+/// Date isn't Identifiable, so sheet(item:) needs this thin wrapper.
+struct TimelineDaySelection: Identifiable {
+    let id = UUID()
+    let day: Date
 }
 
 private extension View {
