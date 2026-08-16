@@ -193,31 +193,7 @@ struct WeekCalendarView: View {
                             .padding(.bottom, 8)
                     }
                     ScrollViewReader { proxy in
-                        List {
-                            if showConnectCard {
-                                connectCard
-                                    .listRowSeparator(.hidden)
-                                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 8, trailing: 16))
-                            }
-
-                            ForEach(Array(days.enumerated()), id: \.element.timeIntervalSinceReferenceDate) { index, day in
-                                if index > 0 {
-                                    dayDivider.id(day)
-                                }
-                                // Past days collapse to what still needs
-                                // attention: overdue tasks stay, finished
-                                // events and completed rows fold into the
-                                // "All done" summary line.
-                                if isPast(day) {
-                                    scheduleRows(tasks: tasks(on: day), emptyText: "Nothing planned", doneCount: completedCount(on: day), dimmed: true) { dateColumn(day) }
-                                } else {
-                                    scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", emptyHighlighted: cal.isDateInToday(day), doneCount: completedCount(on: day)) { dateColumn(day) }
-                                }
-                            }
-                        }
-                        .listStyle(.plain)
-                        .environment(\.defaultMinListRowHeight, 10)
-                        .onAppear { scrollToToday(proxy) }
+                        dayList(proxy)
                     }
                 }
             }
@@ -250,6 +226,61 @@ struct WeekCalendarView: View {
                 .presentationDetents([.fraction(0.7), .large])
                 .presentationBackground(Color(.systemBackground))
         }
+    }
+
+    private func dayList(_ proxy: ScrollViewProxy) -> some View {
+        List {
+            if showConnectCard {
+                connectCard
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 8, trailing: 16))
+            }
+
+            ForEach(Array(days.enumerated()), id: \.element.timeIntervalSinceReferenceDate) { index, day in
+                if index > 0 {
+                    dayDivider.id(day)
+                }
+                // Past days collapse to what still needs attention: overdue
+                // tasks stay, finished events and completed rows fold into
+                // the "All done" summary line.
+                if isPast(day) {
+                    scheduleRows(tasks: tasks(on: day), emptyText: "Nothing planned", doneCount: completedCount(on: day), dimmed: true) { dateColumn(day) }
+                } else {
+                    scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", emptyHighlighted: cal.isDateInToday(day), doneCount: completedCount(on: day)) { dateColumn(day) }
+                }
+            }
+        }
+        .listStyle(.plain)
+        .environment(\.defaultMinListRowHeight, 10)
+        // Days dissolve under the pinned card instead of hard-clipping at
+        // its edge — same veil the list view has under the tag pills.
+        .overlay(alignment: .top) {
+            if !pinnedTasks.isEmpty {
+                topScrollFade
+                    .frame(height: 26)
+            }
+        }
+        .onAppear { scrollToToday(proxy) }
+    }
+
+    private var topScrollFade: some View {
+        Rectangle()
+            .fill(.ultraThinMaterial)
+            .overlay(
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(.systemBackground).opacity(0.85), location: 0.0),
+                        .init(color: Color(.systemBackground).opacity(0.3), location: 0.55),
+                        .init(color: Color(.systemBackground).opacity(0), location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .mask(
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+            )
+            .allowsHitTesting(false)
     }
 
     // MARK: - Pinned header
