@@ -10,6 +10,12 @@ struct SpokeApp: App {
     private let settings = AppSettings.shared
     private let container = SharedContainer.modelContainer
 
+    init() {
+        // Installs the notification delegate before anything can fire, so
+        // banners show even while the app is foregrounded.
+        _ = NotificationService.shared
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
