@@ -180,14 +180,17 @@ struct WeekCalendarView: View {
                     // stay pinned while the days scroll underneath — capped so
                     // they never push the schedule below the fold.
                     if !pinnedTasks.isEmpty {
+                        // A soft grey card marks the pool as week-wide holding
+                        // space, distinct from the scheduled days — same
+                        // rounded-block language as the calendar events.
                         pinnedHeader(maxHeight: geo.size.height * 0.45)
-                            // A soft grey wash marks the pool as week-wide
-                            // holding space, distinct from the scheduled days.
-                            // (Coral read as a warning here.)
-                            .background(Color(.secondarySystemBackground).opacity(0.7))
-                        Rectangle()
-                            .fill(Color(.separator).opacity(0.5))
-                            .frame(height: 0.5)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.secondarySystemBackground).opacity(0.7))
+                            )
+                            .padding(.horizontal, 10)
+                            .padding(.bottom, 8)
                     }
                     ScrollViewReader { proxy in
                         List {
