@@ -82,3 +82,24 @@ Implemented as `AssistantSheetView` (custom overlay, orb stays live on top) and
 `TaskParser.parseAssistant`/`resolveClarification`/`refineActions`. Remaining
 from the prototype: sub-second "thinking" state on the orb, and tuning the
 remark/question thresholds against real usage.
+
+## Apple Reminders integration (parked 2026-08-16)
+
+Explored whether Spoke's tasks could hinge off Apple Reminders instead of
+SwiftData. Verdict: not as the backend — EventKit's `EKReminder` API exposes
+only title/notes/due date/priority/completion. No subtasks, no tags, no
+"this week" fuzzy deadline, so Reminders-as-source-of-truth would amputate
+Spoke's model to gain sync. Options from lightest to heaviest:
+
+1. **Read reminders in** like calendar events — show them in the week view,
+   maybe sync completion back. Mirrors the calendar integration pattern.
+2. **Per-task export** — "Send to Reminders" action for the things Reminders
+   does better (location alerts, shared lists). Cheapest, zero risk.
+3. **Two-way mirror** into a dedicated "Spoke" list — free Siri/widgets/iCloud
+   sync, but bidirectional sync is a forever-bug generator.
+4. **Reminders as backend** — rejected (see above).
+
+If the real itch is cross-device sync, CloudKit sync for SwiftData is the
+more direct answer and keeps the full model. If it's ecosystem presence,
+start with 2, add 1 later. See `research-spoke-vs-apple-reminders.md` for
+the full competitive comparison.
