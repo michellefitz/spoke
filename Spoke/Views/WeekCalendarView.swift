@@ -28,6 +28,9 @@ struct WeekCalendarView: View {
     @State private var selectedTask: SpokeTask?
     @State private var selectedEvent: DayEvent?
     @State private var undatedExpanded = false
+    // Starts at the cap and shrinks once content is measured, so the pinned
+    // header hugs its rows instead of claiming the whole allowance.
+    @State private var pinnedContentHeight: CGFloat = .infinity
     @State private var weekEvents: [DayEvent] = []
     @AppStorage("calUndatedCollapsed") private var undatedCollapsed = false
     @AppStorage("calPoolCollapsed") private var poolCollapsed = false
@@ -117,6 +120,15 @@ struct WeekCalendarView: View {
         }
     }
 
+    /// Unfiltered count, so a day where everything got done can say "All done"
+    /// even when completed tasks are hidden from the calendar.
+    private func completedCount(on day: Date) -> Int {
+        allCompletedTasks.count { task in
+            guard let completedAt = task.completedAt else { return false }
+            return cal.isDate(completedAt, inSameDayAs: day)
+        }
+    }
+
     /// Title for a week offset — used by ContentView's header in calendar mode.
     static func title(forWeekOffset offset: Int) -> String {
         switch offset {
@@ -139,74 +151,45 @@ struct WeekCalendarView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            if weekIsEmpty {
-                if showConnectCard {
-                    connectCard
-                        .padding(.horizontal, 16)
-                        .padding(.top, 10)
-                }
-                emptyState
-            } else {
-                List {
+        GeometryReader { geo in
+            VStack(spacing: 0) {
+                if weekIsEmpty {
                     if showConnectCard {
                         connectCard
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 8, trailing: 16))
+                            .padding(.horizontal, 16)
+                            .padding(.top, 10)
                     }
+                    emptyState
+                } else {
+                    // "Any day" and "no date" apply to the whole week, so they
+                    // stay pinned while the days scroll underneath — capped so
+                    // they never push the schedule below the fold.
+                    if !undatedTasks.isEmpty || !poolTasks.isEmpty {
+                        pinnedHeader(maxHeight: geo.size.height * 0.45)
+                        Rectangle()
+                            .fill(Color(.separator).opacity(0.5))
+                            .frame(height: 0.5)
+                    }
+                    ScrollViewReader { proxy in
+                        List {
+                            if showConnectCard {
+                                connectCard
+                                    .listRowSeparator(.hidden)
+                                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 8, trailing: 16))
+                            }
 
-                    if !undatedTasks.isEmpty {
-                        if undatedCollapsed {
-                            collapsedSectionRow(count: undatedTasks.count, label: { undatedColumn }) {
-                                withAnimation(.spokeTransition) { undatedCollapsed = false }
-                            }
-                        } else {
-                            let visible = undatedExpanded ? undatedTasks : Array(undatedTasks.prefix(undatedCap))
-                            let hiddenCount = undatedTasks.count - visible.count
-                            scheduleRows(tasks: visible, emptyText: nil) {
-                                Button {
-                                    withAnimation(.spokeTransition) { undatedCollapsed = true }
-                                } label: { undatedColumn }
-                                    .buttonStyle(.plain)
-                            }
-                            if hiddenCount > 0 {
-                                previewToggleRow("View \(hiddenCount) more") {
-                                    withAnimation(.spokeTransition) { undatedExpanded = true }
+                            ForEach(Array(days.enumerated()), id: \.element.timeIntervalSinceReferenceDate) { index, day in
+                                if index > 0 {
+                                    dayDivider.id(day)
                                 }
-                            } else if undatedExpanded && undatedTasks.count > undatedCap {
-                                previewToggleRow("Show fewer") {
-                                    withAnimation(.spokeTransition) { undatedExpanded = false }
-                                }
+                                scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", doneCount: completedCount(on: day), dimmed: isPast(day)) { dateColumn(day) }
                             }
                         }
-                        dayDivider
-                    }
-
-                    if !poolTasks.isEmpty {
-                        if poolCollapsed {
-                            collapsedSectionRow(count: poolTasks.count, label: { poolColumn }) {
-                                withAnimation(.spokeTransition) { poolCollapsed = false }
-                            }
-                        } else {
-                            scheduleRows(tasks: poolTasks, emptyText: nil) {
-                                Button {
-                                    withAnimation(.spokeTransition) { poolCollapsed = true }
-                                } label: { poolColumn }
-                                    .buttonStyle(.plain)
-                            }
-                        }
-                        dayDivider
-                    }
-
-                    ForEach(Array(days.enumerated()), id: \.element.timeIntervalSinceReferenceDate) { index, day in
-                        if index > 0 {
-                            dayDivider
-                        }
-                        scheduleRows(events: events(on: day), eventsDay: day, tasks: tasks(on: day) + completedTasks(on: day), emptyText: "Nothing planned", dimmed: isPast(day)) { dateColumn(day) }
+                        .listStyle(.plain)
+                        .environment(\.defaultMinListRowHeight, 10)
+                        .onAppear { scrollToToday(proxy) }
                     }
                 }
-                .listStyle(.plain)
-                .environment(\.defaultMinListRowHeight, 10)
             }
         }
         // Swipe left/right anywhere in the view to page between weeks. Only
@@ -239,15 +222,107 @@ struct WeekCalendarView: View {
         }
     }
 
+    // MARK: - Pinned header
+
+    /// Whole-week sections above the day schedule. Sized to content, capped at
+    /// `maxHeight`, and scrollable within itself once it overflows the cap.
+    private func pinnedHeader(maxHeight: CGFloat) -> some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                if !undatedTasks.isEmpty {
+                    if undatedCollapsed {
+                        collapsedSectionRow(count: undatedTasks.count, label: { undatedColumn }) {
+                            withAnimation(.spokeTransition) { undatedCollapsed = false }
+                        }
+                    } else {
+                        let visible = undatedExpanded ? undatedTasks : Array(undatedTasks.prefix(undatedCap))
+                        let hiddenCount = undatedTasks.count - visible.count
+                        scheduleRows(tasks: visible, emptyText: nil, plain: true) {
+                            Button {
+                                withAnimation(.spokeTransition) { undatedCollapsed = true }
+                            } label: { undatedColumn }
+                                .buttonStyle(.plain)
+                        }
+                        if hiddenCount > 0 {
+                            previewToggleRow("View \(hiddenCount) more") {
+                                withAnimation(.spokeTransition) { undatedExpanded = true }
+                            }
+                        } else if undatedExpanded && undatedTasks.count > undatedCap {
+                            previewToggleRow("Show fewer") {
+                                withAnimation(.spokeTransition) { undatedExpanded = false }
+                            }
+                        }
+                    }
+                    if !poolTasks.isEmpty {
+                        Rectangle()
+                            .fill(Color(.separator).opacity(0.5))
+                            .frame(height: 0.5)
+                            .padding(.vertical, 8)
+                    }
+                }
+
+                if !poolTasks.isEmpty {
+                    if poolCollapsed {
+                        collapsedSectionRow(count: poolTasks.count, label: { poolColumn }) {
+                            withAnimation(.spokeTransition) { poolCollapsed = false }
+                        }
+                    } else {
+                        scheduleRows(tasks: poolTasks, emptyText: nil, plain: true) {
+                            Button {
+                                withAnimation(.spokeTransition) { poolCollapsed = true }
+                            } label: { poolColumn }
+                                .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .padding(.top, 6)
+            .padding(.bottom, 8)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                pinnedContentHeight = $0
+            }
+        }
+        .frame(height: min(pinnedContentHeight, maxHeight))
+        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    /// Opening the current week jumps straight to today, so a Sunday doesn't
+    /// start with six faded days to scroll past.
+    private func scrollToToday(_ proxy: ScrollViewProxy) {
+        guard weekOffset == 0,
+              let today = days.first(where: { cal.isDateInToday($0) }),
+              today != days.first else { return }
+        DispatchQueue.main.async {
+            proxy.scrollTo(today, anchor: .top)
+        }
+    }
+
     // MARK: - Schedule rows
 
     /// Renders one day (or the pool) as schedule rows: the label column is
     /// visible on the first row only, so tasks stack beside a single date.
-    /// Calendar appointments render first, then tasks.
+    /// Calendar appointments render first, then tasks. `plain: true` renders
+    /// with ordinary padding for use outside a List (the pinned header).
     @ViewBuilder
-    private func scheduleRows<Label: View>(events: [DayEvent] = [], eventsDay: Date = .distantPast, tasks: [SpokeTask], emptyText: String?, dimmed: Bool = false, @ViewBuilder label: @escaping () -> Label) -> some View {
+    private func scheduleRows<Label: View>(events: [DayEvent] = [], eventsDay: Date = .distantPast, tasks: [SpokeTask], emptyText: String?, doneCount: Int = 0, dimmed: Bool = false, plain: Bool = false, @ViewBuilder label: @escaping () -> Label) -> some View {
         if events.isEmpty && tasks.isEmpty {
-            if let emptyText {
+            if doneCount > 0 {
+                HStack(alignment: .center, spacing: 14) {
+                    label()
+                        .frame(width: dateColumnWidth)
+                    HStack(spacing: 5) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(coral.opacity(0.75))
+                        Text("All done · \(doneCount) task\(doneCount == 1 ? "" : "s")")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color(.secondaryLabel))
+                    }
+                    Spacer(minLength: 0)
+                }
+                .opacity(dimmed ? 0.45 : 1)
+                .rowContainer(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16), plain: plain)
+            } else if let emptyText {
                 HStack(alignment: .center, spacing: 14) {
                     label()
                         .frame(width: dateColumnWidth)
@@ -258,8 +333,7 @@ struct WeekCalendarView: View {
                     Spacer(minLength: 0)
                 }
                 .opacity(dimmed ? 0.45 : 1)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
+                .rowContainer(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16), plain: plain)
             }
         } else {
             // Every row is at least date-label height, so the first row — which
@@ -279,8 +353,7 @@ struct WeekCalendarView: View {
                 }
                 .frame(minHeight: scheduleRowMinHeight)
                 .opacity(dimmed ? 0.45 : 1)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
+                .rowContainer(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16), plain: plain)
             }
             ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
                 let isFirstRow = events.isEmpty && index == 0
@@ -300,8 +373,7 @@ struct WeekCalendarView: View {
                 }
                 .frame(minHeight: scheduleRowMinHeight)
                 .opacity(dimmed ? 0.45 : 1)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
+                .rowContainer(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16), plain: plain)
             }
         }
     }
@@ -392,6 +464,7 @@ struct WeekCalendarView: View {
     }
 
     /// Collapsed section: just the badge and a light count, tap to expand.
+    /// Lives in the pinned header, so plain padding rather than list insets.
     private func collapsedSectionRow<Label: View>(count: Int, @ViewBuilder label: () -> Label, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(alignment: .center, spacing: 14) {
@@ -404,8 +477,7 @@ struct WeekCalendarView: View {
             }
         }
         .buttonStyle(.plain)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
+        .padding(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
     }
 
     private func previewToggleRow(_ title: String, action: @escaping () -> Void) -> some View {
@@ -419,8 +491,7 @@ struct WeekCalendarView: View {
             }
         }
         .buttonStyle(.plain)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
+        .padding(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
     }
 
     private var dayDivider: some View {
@@ -535,6 +606,20 @@ struct WeekCalendarView: View {
         }
         try? modelContext.save()
         WidgetCenter.shared.reloadAllTimelines()
+    }
+}
+
+private extension View {
+    /// One row, two habitats: list insets inside the day List, ordinary
+    /// padding inside the pinned header's ScrollView (where insets are inert).
+    @ViewBuilder
+    func rowContainer(_ insets: EdgeInsets, plain: Bool) -> some View {
+        if plain {
+            padding(insets)
+        } else {
+            listRowSeparator(.hidden)
+                .listRowInsets(insets)
+        }
     }
 }
 
