@@ -183,6 +183,9 @@ struct WeekCalendarView: View {
                         // A soft grey card marks the pool as week-wide holding
                         // space, distinct from the scheduled days — same
                         // rounded-block language as the calendar events.
+                        // No gap below the card: the scroll veil starts right
+                        // at its edge, so there's no white strip for content
+                        // to hard-clip against.
                         pinnedHeader(maxHeight: geo.size.height * 0.45)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .background(
@@ -190,7 +193,6 @@ struct WeekCalendarView: View {
                                     .fill(Color(.secondarySystemBackground).opacity(0.7))
                             )
                             .padding(.horizontal, 10)
-                            .padding(.bottom, 8)
                     }
                     ScrollViewReader { proxy in
                         dayList(proxy)
@@ -321,6 +323,9 @@ struct WeekCalendarView: View {
             }
         }
         .frame(height: min(pinnedContentHeight, maxHeight))
+        // The height is state-driven, so the collapse needs its own animation
+        // or the card snaps between sizes.
+        .animation(.spokeTransition, value: pinnedContentHeight)
         .scrollBounceBehavior(.basedOnSize)
     }
 
@@ -503,21 +508,23 @@ struct WeekCalendarView: View {
         .background(RoundedRectangle(cornerRadius: 14).fill(Color(.secondarySystemBackground)))
     }
 
-    /// Collapsed section: just the badge and a light count, tap to expand.
-    /// Lives in the pinned header, so plain padding rather than list insets.
+    /// Collapsed section: the badge and the to-do count, tap to expand.
+    /// Same row metrics as the expanded rows, so the badge doesn't shift
+    /// when the section opens and closes.
     private func collapsedSectionRow<Label: View>(count: Int, @ViewBuilder label: () -> Label, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(alignment: .center, spacing: 14) {
                 label()
                     .frame(width: dateColumnWidth)
-                Text("\(count) task\(count == 1 ? "" : "s") hidden")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color(.tertiaryLabel))
+                Text("\(count) task\(count == 1 ? "" : "s") to do")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color(.label).opacity(0.75))
                 Spacer(minLength: 0)
             }
+            .frame(minHeight: scheduleRowMinHeight)
         }
         .buttonStyle(.plain)
-        .padding(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
+        .padding(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16))
     }
 
     private func previewToggleRow(_ title: String, action: @escaping () -> Void) -> some View {
