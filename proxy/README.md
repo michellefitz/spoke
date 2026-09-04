@@ -42,6 +42,31 @@ Anthropic with the model and token budget pinned server-side.
    using the old `anthropicAPIKey`/`deepgramAPIKey` values — dev convenience
    only; ship builds must always set the proxy.
 
+## Changing how Spoke behaves
+
+`src/prompts.js` holds every prompt for the assistant — the rules about dates,
+when to ask a question, what counts as an event. It is the only copy: the app
+sends structured context (transcript, tasks, events, what's on screen) to
+`/v2/assist` and the wording is assembled here.
+
+That means behaviour changes ship with a deploy, not an App Store release:
+
+```sh
+# edit src/prompts.js, bump PROMPT_VERSION
+python3 ../evals/run.py --against baseline   # gate it
+npx wrangler deploy                          # live in seconds
+```
+
+Every phone already running Spoke picks it up on the next braindump, so the
+eval gate matters more than it did when a bad prompt needed a build to reach
+anyone. `PROMPT_VERSION` comes back with each response and is recorded in the
+app's recording log, so an entry from a tester can be tied to the prompt that
+produced it.
+
+**The app now needs this worker.** Without `proxyBaseURL` set, the assistant
+has no prompt and does nothing. `npx wrangler dev` plus a local `proxyBaseURL`
+works for development.
+
 ## Keep the blast radius small
 
 - Set spend caps in both the Anthropic and Deepgram dashboards — the real

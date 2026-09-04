@@ -10,8 +10,10 @@ falling back to something stale.
 from __future__ import annotations
 
 import datetime as _dt
+import json
 import os
 import re
+import subprocess
 
 SWIFT_SOURCE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -176,36 +178,57 @@ def _source() -> str:
         return fh.read()
 
 
-def build_assistant_prompt(today: _dt.date, tasks=None, events=None, tags=DEFAULT_TAGS, focus=None) -> str:
-    """The system prompt parseAssistant() sends — the app's main path."""
-    src = _source()
-    system_raw = _extract_block(src, "static func parseAssistant")
-    rules_raw = _extract_block(src, "private static func actionRules")
-
-    rules = _join_swift_lines(rules_raw).replace(
-        "\\(tagInstruction)", tag_instruction(tags)
-    )
-
-    text = _join_swift_lines(system_raw)
-    substitutions = {
-        "\\(today)": date_context(today),
-        "\\(taskList)": task_list_block(tasks or []),
-        "\\(eventList)": event_list_block(events or []),
-        "\\(focusLine)": focus_block(focus),
-        "\\(actionRules(tagInstruction: tagInstruction))": rules,
+def build_request(today: _dt.date, transcript: str = "", tasks=None, events=None,
+                  tags=DEFAULT_TAGS, focus=None, mode: str = "assistant", **extra) -> dict:
+    """The body the app posts to /v2/assist."""
+    body = {
+        "mode": mode,
+        "today": today.isoformat(),
+        "tags": list(tags or []),
+        "transcript": transcript,
+        "tasks": [
+            {k: v for k, v in (("title", t["title"]), ("description", t.get("description"))) if v}
+            for t in (tasks or [])
+        ],
+        "events": [
+            {"title": e["title"], "start": e["start"], "end": e.get("end"),
+             "allDay": bool(e.get("all_day"))}
+            for e in (events or [])
+        ],
     }
-    for token, value in substitutions.items():
-        text = text.replace(token, value)
+    if focus:
+        f = dict(focus)
+        if "all_day" in f:
+            f["allDay"] = bool(f.pop("all_day"))
+        body["focus"] = f
+    body.update(extra)
+    return body
 
-    text = _unescape(text)
 
-    leftover = re.search(r"\\\([^)]*\)", text)
-    if leftover:
+def _drive(body: dict) -> dict:
+    """Runs the worker's prompt module. Node is the only dependency, and it's
+    deliberate: re-implementing the prompt in Python would reintroduce exactly
+    the drift this whole file exists to prevent."""
+    driver = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_prompt_driver.mjs")
+    result = subprocess.run(
+        ["node", driver], input=json.dumps(body), capture_output=True, text=True,
+    )
+    if result.returncode != 0:
         raise RuntimeError(
-            f"Prompt extraction failed: unhandled interpolation {leftover.group(0)!r}. "
-            "TaskParser.swift changed — teach spoke_prompt.py about it before trusting a run."
+            "Prompt build failed — proxy/src/prompts.js could not be loaded:\n"
+            + result.stderr.strip()
         )
-    return text
+    return json.loads(result.stdout)
+
+
+def build_assistant_prompt(today: _dt.date, tasks=None, events=None, tags=DEFAULT_TAGS,
+                           focus=None) -> str:
+    """The system prompt the worker sends — the app's main path."""
+    return _drive(build_request(today, tasks=tasks, events=events, tags=tags, focus=focus))["system"]
+
+
+def prompt_version() -> str:
+    return _drive(build_request(_dt.date.today()))["promptVersion"]
 
 
 def build_create_prompt(today: _dt.date, tags=DEFAULT_TAGS) -> str:

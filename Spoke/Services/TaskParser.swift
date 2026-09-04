@@ -88,8 +88,8 @@ enum TaskParser {
             Multiple tasks: [{"title": "Call the dentist"}, {"title": "Do grocery shopping", "description": "Things to pick up:\\n• Milk\\n• Eggs"}, {"title": "Pick up Alex at 5 PM tomorrow", "deadline": "YYYY-MM-DD"}]
             """
         let user = "Transcript: \"\(transcript)\""
-        let result = await callClaudeMulti(system: system, user: user) ?? [fallback(transcript)]
-        logEntry(mode: "create", transcript: transcript, system: system, user: user, response: lastRawResponse, tasks: result, error: result.isEmpty ? "empty" : nil, start: start)
+        let result = await callClaudeMulti(system: promptLabel(), user: user) ?? [fallback(transcript)]
+        logEntry(mode: "create", transcript: transcript, system: promptLabel(), user: user, response: lastRawResponse, tasks: result, error: result.isEmpty ? "empty" : nil, start: start)
         return result
     }
 
@@ -128,8 +128,8 @@ enum TaskParser {
 
             New voice input: "\(transcript)"
             """
-        let result = await callClaude(system: system, user: user) ?? fallback(transcript)
-        logEntry(mode: "edit", transcript: transcript, system: system, user: user, response: lastRawResponse, tasks: [result], error: nil, start: start)
+        let result = await callClaude(system: promptLabel(), user: user) ?? fallback(transcript)
+        logEntry(mode: "edit", transcript: transcript, system: promptLabel(), user: user, response: lastRawResponse, tasks: [result], error: nil, start: start)
         return result
     }
 
@@ -143,52 +143,26 @@ enum TaskParser {
             logEntry(mode: "assistant", transcript: transcript, system: "(short — skipped API)", user: transcript, response: nil, tasks: [task], error: nil, start: start)
             return AssistantResponse(actions: [.create(task)], remark: nil, question: nil)
         }
-        let today = dateContext()
-        let tagInstruction = tagPromptInstruction()
-        let taskList = existingTaskListBlock(existingTasks)
-        let eventList = eventListBlock(existingEvents)
-        let focusLine = focusBlock(focus)
+        let payload = assistantPayload(
+            mode: "assistant", transcript: transcript,
+            existingTasks: existingTasks, existingEvents: existingEvents, focus: focus
+        )
+        let user = payloadSummary(payload)
+        guard let text = await callAssistant(payload) else {
 
-        let system = """
-            \(today) You are Spoke, a voice assistant for the user's to-do list. Given a voice transcript, decide what to change on the list and how to respond. \
-            \(taskList) \
-            \(eventList) \
-            \(focusLine) \
-            Return ONLY a valid JSON OBJECT with keys: "actions" (required array), "remark" (optional string), "question" (optional object). \
-            \(actionRules(tagInstruction: tagInstruction)) \
-            Remark rules: \
-            - Include "remark" ONLY when you made a judgment worth reporting: created 2 or more tasks, set or inferred a deadline, merged into an existing task, or resolved something non-obvious. One sentence, max 140 characters, natural and direct. \
-            - For a single obvious task with nothing decided, omit "remark". \
-            Question rules: \
-            - Ask AT MOST one question, as "question": {"text": "...", "options": ["...", "..."]}. \
-            - Ask when it genuinely changes what you would do: the transcript closely duplicates an existing task, you cannot find the task or event they mean, an instruction is ambiguous, or you would otherwise be guessing at something you cannot undo. \
-            - Do NOT ask about wording, phrasing, or anything you can reasonably decide yourself. A question the user could not have anticipated needing to answer is a bad question. \
-            - The question text is your own voice — say what you need and why in one plain sentence, e.g. "I can't see a dentist appointment on the 7th — is it on a different day?" \
-            - "options" is exactly 2 short tappable answers, max 4 words each. \
-            - When you include "question", return "actions": [] — final actions are decided after the user answers. \
-            Return ONLY the JSON object, no markdown, no code fences, no commentary. \
-            Examples: \
-            Simple: {"actions": [{"action": "create", "title": "Call the dentist"}]} \
-            Braindump: {"actions": [{"action": "create", "title": "Book car in for MOT", "deadline": "YYYY-MM-DD"}, {"action": "create", "title": "Sort out travel insurance", "deadline": "this-week"}, {"action": "create", "title": "Email landlord about boiler"}], "remark": "Got 3 tasks — set Friday on the MOT and put the insurance down for this week."} \
-            Appointment: {"actions": [{"action": "event", "title": "Dentist appointment", "date": "YYYY-MM-DD", "start": "11:00"}], "remark": "Sounds like a calendar event — check it over before I add it."} \
-            Reschedule: {"actions": [{"action": "edit-event", "match": "Hair appointment", "start": "14:00"}], "remark": "Moving your hair appointment to 2pm — confirm and I'll update the calendar."} \
-            Duplicate: {"actions": [], "question": {"text": "You already have \\"Call the dentist\\" — same one, or a new appointment?", "options": ["Same one", "New task"]}}
-            """
-        let user = "Transcript: \"\(transcript)\""
-        guard let text = await callClaudeRaw(system: system, user: user) else {
             lastRawResponse = nil
             let fb = fallback(transcript)
-            logEntry(mode: "assistant", transcript: transcript, system: system, user: user, response: nil, tasks: [fb], error: "api_failed", start: start)
+            logEntry(mode: "assistant", transcript: transcript, system: promptLabel(), user: user, response: nil, tasks: [fb], error: "api_failed", start: start)
             return AssistantResponse(actions: [.create(fb)], remark: nil, question: nil)
         }
         lastRawResponse = text
         let json = extractJSON(from: text)
         if let response = parseAssistantResponse(json, existingTasks: existingTasks, existingEvents: existingEvents) {
-            logEntry(mode: "assistant", transcript: transcript, system: system, user: user, response: text, tasks: response.actions.map(task(of:)), error: nil, start: start)
+            logEntry(mode: "assistant", transcript: transcript, system: promptLabel(), user: user, response: text, tasks: response.actions.map(task(of:)), error: nil, start: start)
             return response
         }
         let fb = fallback(transcript)
-        logEntry(mode: "assistant", transcript: transcript, system: system, user: user, response: text, tasks: [fb], error: "parse_failed", start: start)
+        logEntry(mode: "assistant", transcript: transcript, system: promptLabel(), user: user, response: text, tasks: [fb], error: "parse_failed", start: start)
         return AssistantResponse(actions: [.create(fb)], remark: nil, question: nil)
     }
 
@@ -197,28 +171,16 @@ enum TaskParser {
     /// failure; an empty array is a deliberate "nothing to change".
     static func resolveClarification(transcript: String, question: String, answer: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = [], focus: AssistantFocus? = nil) async -> [ParsedAction]? {
         let start = Date()
-        let today = dateContext()
-        let tagInstruction = tagPromptInstruction()
-        let taskList = existingTaskListBlock(existingTasks)
-        let eventList = eventListBlock(existingEvents)
-        let focusLine = focusBlock(focus)
-        let system = """
-            \(today) You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript, you asked a clarifying question, and the user has now answered. Produce the FINAL actions for the ENTIRE original transcript, honoring the user's answer. \
-            \(taskList) \
-            \(eventList) \
-            \(focusLine) \
-            \(actionRules(tagInstruction: tagInstruction)) \
-            - If the user's answer means nothing should change (e.g. it was a duplicate of an existing task), return []. \
-            Return ONLY a valid JSON ARRAY of action objects, no markdown, no code fences, no commentary.
-            """
-        let user = """
-            Original transcript: "\(transcript)"
-            Your question: "\(question)"
-            User's answer: "\(answer)"
-            """
-        guard let text = await callClaudeRaw(system: system, user: user) else {
+        let payload = assistantPayload(
+            mode: "clarify", transcript: transcript,
+            existingTasks: existingTasks, existingEvents: existingEvents, focus: focus,
+            extra: ["question": question, "answer": answer]
+        )
+        let user = payloadSummary(payload)
+        guard let text = await callAssistant(payload) else {
+
             lastRawResponse = nil
-            logEntry(mode: "clarify", transcript: transcript, system: system, user: user, response: nil, tasks: [], error: "api_failed", start: start)
+            logEntry(mode: "clarify", transcript: transcript, system: promptLabel(), user: user, response: nil, tasks: [], error: "api_failed", start: start)
             return nil
         }
         lastRawResponse = text
@@ -226,11 +188,11 @@ enum TaskParser {
         // "[]" is valid here, so distinguish parse failure from a deliberate no-op
         guard let data = json.data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            logEntry(mode: "clarify", transcript: transcript, system: system, user: user, response: text, tasks: [], error: "parse_failed", start: start)
+            logEntry(mode: "clarify", transcript: transcript, system: promptLabel(), user: user, response: text, tasks: [], error: "parse_failed", start: start)
             return nil
         }
         let actions = parseActions(from: array, existingTasks: existingTasks, existingEvents: existingEvents)
-        logEntry(mode: "clarify", transcript: transcript, system: system, user: user, response: text, tasks: actions.map(task(of:)), error: nil, start: start)
+        logEntry(mode: "clarify", transcript: transcript, system: promptLabel(), user: user, response: text, tasks: actions.map(task(of:)), error: nil, start: start)
         return actions
     }
 
@@ -238,32 +200,16 @@ enum TaskParser {
     /// proposed tasks. The reply is an approval, a cancellation, or a replacement set.
     static func refineActions(transcript: String, pending: [ParsedAction], correction: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = [], focus: AssistantFocus? = nil) async -> RefineOutcome {
         let start = Date()
-        let today = dateContext()
-        let tagInstruction = tagPromptInstruction()
-        let taskList = existingTaskListBlock(existingTasks)
-        let eventList = eventListBlock(existingEvents)
-        let focusLine = focusBlock(focus)
-        let system = """
-            \(today) You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript and you proposed tasks; the user is reviewing them and has spoken a follow-up. \
-            \(taskList) \
-            \(eventList) \
-            \(focusLine) \
-            Decide what the follow-up means: \
-            - Pure approval ("yes", "yep", "looks good", "go ahead"): return {"approve": true}. \
-            - Cancellation ("no", "cancel", "forget it", "discard that"): return {"cancel": true}. \
-            - Otherwise return the full REPLACEMENT set as a JSON OBJECT: "actions" (the complete final set, incorporating the corrections AND the unchanged proposed tasks), optional "remark", optional "question" (same rules as before). \
-            \(actionRules(tagInstruction: tagInstruction)) \
-            Return ONLY valid JSON, no markdown, no code fences, no commentary.
-            """
-        let user = """
-            Original transcript: "\(transcript)"
-            Proposed tasks:
-            \(serializeActions(pending))
-            User's follow-up: "\(correction)"
-            """
-        guard let text = await callClaudeRaw(system: system, user: user) else {
+        let payload = assistantPayload(
+            mode: "refine", transcript: transcript,
+            existingTasks: existingTasks, existingEvents: existingEvents, focus: focus,
+            extra: ["pending": serializeActions(pending), "correction": correction]
+        )
+        let user = payloadSummary(payload)
+        guard let text = await callAssistant(payload) else {
+
             lastRawResponse = nil
-            logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: nil, tasks: pending.map(task(of:)), error: "api_failed", start: start)
+            logEntry(mode: "refine", transcript: transcript, system: promptLabel(), user: user, response: nil, tasks: pending.map(task(of:)), error: "api_failed", start: start)
             return .response(AssistantResponse(actions: pending, remark: nil, question: nil))
         }
         lastRawResponse = text
@@ -271,19 +217,19 @@ enum TaskParser {
         if let data = json.data(using: .utf8),
            let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             if obj["approve"] as? Bool == true {
-                logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: text, tasks: pending.map(task(of:)), error: nil, start: start)
+                logEntry(mode: "refine", transcript: transcript, system: promptLabel(), user: user, response: text, tasks: pending.map(task(of:)), error: nil, start: start)
                 return .approve
             }
             if obj["cancel"] as? Bool == true {
-                logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: text, tasks: [], error: nil, start: start)
+                logEntry(mode: "refine", transcript: transcript, system: promptLabel(), user: user, response: text, tasks: [], error: nil, start: start)
                 return .cancel
             }
         }
         if let response = parseAssistantResponse(json, existingTasks: existingTasks, existingEvents: existingEvents) {
-            logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: text, tasks: response.actions.map(task(of:)), error: nil, start: start)
+            logEntry(mode: "refine", transcript: transcript, system: promptLabel(), user: user, response: text, tasks: response.actions.map(task(of:)), error: nil, start: start)
             return .response(response)
         }
-        logEntry(mode: "refine", transcript: transcript, system: system, user: user, response: text, tasks: pending.map(task(of:)), error: "parse_failed", start: start)
+        logEntry(mode: "refine", transcript: transcript, system: promptLabel(), user: user, response: text, tasks: pending.map(task(of:)), error: "parse_failed", start: start)
         return .response(AssistantResponse(actions: pending, remark: nil, question: nil))
     }
 
@@ -291,76 +237,122 @@ enum TaskParser {
 
     private static var lastRawResponse: String?
 
-    private static func actionRules(tagInstruction: String) -> String {
-        """
-        Action rules: \
-        - Each action object has an "action" field: "create", "edit" or "event". \
-        - For "create": include "title" (required), "description" (optional), "deadline" (optional), "tag" (optional). Action-oriented title, max 50 chars. Keep specific details — times, names, locations — in the title when they fit. \
-        - Use "event" ONLY for appointment-like commitments at a specific clock time on a specific day: appointments, meetings, reservations, flights, classes, calls scheduled for a set time (e.g. "I have a dentist appointment next Tuesday at 11am"). For "event": include "title" (required, the appointment name, no leading verb like "Attend"), "date" (YYYY-MM-DD, required), "start" (HH:MM 24-hour, required), "end" (HH:MM, optional — omit unless the user gave one), "location" (optional). \
-        - Something to get DONE is a task even when a time is mentioned as a deadline ("finish the report by 5pm", "call the plumber tomorrow morning") — use "create". Only a commitment to BE somewhere or attend something at a fixed time is an "event". When unsure, use "create". \
-        - If the user mentions an appointment WITHOUT a specific clock time ("dentist sometime next week"), use "create" with a deadline, not "event". \
-        - Use "edit-event" to change an EXISTING calendar event from the upcoming-events list ("move my hair appointment to 2pm", "push Friday's dentist back an hour"). Include "match" (the event's title from the list, exactly as shown) and only the fields that change: "title", "date", "start", "end", "location". When the user talks about moving or rescheduling something that appears in BOTH the task list and the upcoming-events list, they almost always mean the calendar event — prefer "edit-event". \
-        - For "edit": include "match" (the title of the existing task to edit — must closely match one from the list above) and the updated fields: "title", "description", "deadline", "tag". Merge new information with what exists — don't drop existing content. \
-        - Only use "edit" when the user clearly refers to an existing task by name or obvious reference (e.g. "add milk to the grocery list"). \
-        - If the transcript contains multiple unrelated tasks, return multiple action objects. \
-        - NEVER silently drop information. If a detail cannot fit the title, it must appear in the description. \
-        - If a description needs 2 or more distinct items, use bullet format with a short intro sentence, each bullet on its OWN LINE: "Things to pick up:\\n• Milk\\n• Eggs" \
-        - You can ONLY edit things that appear in the lists above. If the user refers to a task or event you cannot find there — a different date, a name you don't see — do NOT invent an "edit" or "edit-event" for it. Return "actions": [] and ask a question saying what you couldn't find. Silently guessing produces a change the user was told about but never got. \
-        - Dates: if the user names a specific day, resolve it relative to today as YYYY-MM-DD in "deadline". If they say something is for "this week" or "next week" WITHOUT naming a day (e.g. "sometime this week", "I need to get this done next week"), use the literal string "this-week" or "next-week" as the deadline — do NOT invent a specific day. A deadline applies only to the task it was mentioned with. \
-        - Reminders: if the user explicitly asks to be REMINDED at a clock time ("remind me at 6 to take the chicken out", "ping me at 3pm tomorrow about the invoice"), include "remind" as "YYYY-MM-DD HH:MM" (24-hour) on that task, resolved relative to today — assume today if no day is named and the time is still ahead, otherwise tomorrow. A bare deadline time ("finish by 5pm") is NOT a reminder. NEVER invent a "remind" the user didn't ask for. \
-        - \(tagInstruction)
-        """
+    /// The prompt now lives in the worker, so the log records which version
+    /// produced an entry rather than a copy of the text.
+    private static func promptLabel() -> String {
+        "server prompt \(lastPromptVersion ?? "unknown")"
     }
 
-    private static func existingTaskListBlock(_ existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)]) -> String {
-        if existingTasks.isEmpty {
-            return "There are no existing tasks."
+    /// Readable record of the context that was sent — more useful in the log
+    /// than the 6,000-character prompt it replaced.
+    private static func payloadSummary(_ payload: [String: Any]) -> String {
+        guard let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]),
+              let text = String(data: data, encoding: .utf8) else {
+            return "(context unavailable)"
         }
-        let items = existingTasks.map { t in
-            var parts = ["\"\(t.title)\""]
-            if let desc = t.description, !desc.isEmpty {
-                let preview = String(desc.prefix(80)).replacingOccurrences(of: "\n", with: " ")
-                parts.append("desc: \(preview)")
+        return text
+    }
+
+    // MARK: - Assistant transport
+    //
+    // Prompts for the assistant modes live in the worker (proxy/src/prompts.js),
+    // not here, so behaviour can be changed with a deploy instead of an App
+    // Store release. The app sends structured context; the worker assembles
+    // the wording and returns the model's raw reply, which is parsed below
+    // exactly as before.
+
+    /// Prompt version reported by the worker on the last call, recorded in the
+    /// log so a tester's entry can be tied to the prompt that produced it.
+    private(set) static var lastPromptVersion: String?
+
+    private static func assistantPayload(
+        mode: String,
+        transcript: String,
+        existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)],
+        existingEvents: [DayEvent],
+        focus: AssistantFocus?,
+        extra: [String: Any] = [:]
+    ) -> [String: Any] {
+        var payload: [String: Any] = [
+            "mode": mode,
+            // The phone knows the user's timezone; the worker runs in UTC.
+            "today": isoToday(),
+            "tags": TagStore.shared.tags,
+            "transcript": transcript,
+            "tasks": existingTasks.map { task -> [String: Any] in
+                var item: [String: Any] = ["title": task.title]
+                if let description = task.description, !description.isEmpty {
+                    item["description"] = description
+                }
+                return item
+            },
+            "events": existingEvents.map { event -> [String: Any] in
+                [
+                    "title": event.title,
+                    "start": isoDateTime(event.start),
+                    "end": isoDateTime(event.end),
+                    "allDay": event.isAllDay,
+                ]
+            },
+        ]
+        if let focus {
+            switch focus {
+            case .event(let event):
+                payload["focus"] = [
+                    "kind": "event",
+                    "title": event.title,
+                    "start": isoDateTime(event.start),
+                    "end": isoDateTime(event.end),
+                    "allDay": event.isAllDay,
+                ]
+            case .task(let title, let description):
+                var item: [String: Any] = ["kind": "task", "title": title]
+                if let description, !description.isEmpty { item["description"] = description }
+                payload["focus"] = item
             }
-            return "- " + parts.joined(separator: " | ")
         }
-        return "Existing tasks:\n" + items.joined(separator: "\n")
+        payload.merge(extra) { _, new in new }
+        return payload
     }
 
-    /// The item on screen, named so pronouns resolve to it.
-    private static func focusBlock(_ focus: AssistantFocus?) -> String {
-        guard let focus else { return "" }
-        switch focus {
-        case .event(let event):
-            let df = DateFormatter()
-            df.dateFormat = "EEE yyyy-MM-dd"
-            let tf = DateFormatter()
-            tf.dateFormat = "HH:mm"
-            let when = event.isAllDay
-                ? "\(df.string(from: event.start)) all day"
-                : "\(df.string(from: event.start)) \(tf.string(from: event.start))–\(tf.string(from: event.end))"
-            return "RIGHT NOW the user is looking at the calendar event \"\(event.title)\" (\(when)). Vague references — \"this\", \"that\", \"the name\", \"move it\" — mean THAT event unless they clearly name something else. Use \"edit-event\" with match \"\(event.title)\"."
-        case .task(let title, let description):
-            let desc = (description?.isEmpty == false) ? " (notes: \(description!.prefix(120)))" : ""
-            return "RIGHT NOW the user is looking at the task \"\(title)\"\(desc). Vague references — \"this\", \"that\", \"it\" — mean THAT task unless they clearly name something else. Use \"edit\" with match \"\(title)\"."
-        }
+    private static let isoDateTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
+    private static func isoDateTime(_ date: Date) -> String {
+        isoDateTimeFormatter.string(from: date)
     }
 
-    /// Upcoming calendar events, so "move my hair appointment to 2pm" edits
-    /// the event instead of being mis-matched onto a similarly-named task.
-    private static func eventListBlock(_ events: [DayEvent]) -> String {
-        guard !events.isEmpty else { return "There are no upcoming calendar events." }
-        let df = DateFormatter()
-        df.dateFormat = "EEE yyyy-MM-dd"
-        let tf = DateFormatter()
-        tf.dateFormat = "HH:mm"
-        let items = events.map { e in
-            let when = e.isAllDay
-                ? "\(df.string(from: e.start)) all day"
-                : "\(df.string(from: e.start)) \(tf.string(from: e.start))–\(tf.string(from: e.end))"
-            return "- \"\(e.title)\" \(when)"
+    /// Returns the model's raw reply, or nil when the worker isn't reachable.
+    private static func callAssistant(_ payload: [String: Any]) async -> String? {
+        guard !Config.proxyBaseURL.isEmpty,
+              let url = URL(string: Config.proxyBaseURL + "/v2/assist") else {
+            print("[TaskParser] proxyBaseURL is not set — the assistant needs the worker deployed")
+            return nil
         }
-        return "Upcoming calendar events (read-only list — change them ONLY via \"edit-event\"):\n" + items.joined(separator: "\n")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.setValue(Config.proxySecret, forHTTPHeaderField: "x-spoke-key")
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+                print("[TaskParser] assist failed \(code): \(String(data: data, encoding: .utf8) ?? "")")
+                return nil
+            }
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let text = json["text"] as? String else { return nil }
+            lastPromptVersion = json["promptVersion"] as? String
+            return text
+        } catch {
+            print("[TaskParser] assist error: \(error)")
+            return nil
+        }
     }
 
     private static func serializeActions(_ actions: [ParsedAction]) -> String {
@@ -525,7 +517,7 @@ enum TaskParser {
     }
 
     private static func callClaude(system: String, user: String) async -> ParsedTask? {
-        guard let text = await callClaudeRaw(system: system, user: user) else { lastRawResponse = nil; return nil }
+        guard let text = await callClaudeRaw(system: promptLabel(), user: user) else { lastRawResponse = nil; return nil }
         lastRawResponse = text
         let json = extractJSON(from: text)
         if let tasks = parseJSONArray(json), let first = tasks.first {
@@ -535,7 +527,7 @@ enum TaskParser {
     }
 
     private static func callClaudeMulti(system: String, user: String) async -> [ParsedTask]? {
-        guard let text = await callClaudeRaw(system: system, user: user) else { lastRawResponse = nil; return nil }
+        guard let text = await callClaudeRaw(system: promptLabel(), user: user) else { lastRawResponse = nil; return nil }
         lastRawResponse = text
         let json = extractJSON(from: text)
         if let tasks = parseJSONArray(json), !tasks.isEmpty {

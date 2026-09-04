@@ -16,11 +16,13 @@ Exit code is 0 only if every selected case passes, so it can gate a change.
 
 ## The one design decision worth knowing
 
-**The prompt is read out of `TaskParser.swift` at run time**, not copied here.
-`spoke_prompt.py` locates the `parseAssistant` and `actionRules` string
-blocks, resolves Swift's line continuations and escapes, and substitutes the
-same interpolations the app does. If it meets an interpolation it doesn't
-recognise it raises rather than carrying on.
+**The prompt is never copied here.** The assistant prompts live in the worker
+(`proxy/src/prompts.js`) and `spoke_prompt.py` builds them by running that
+module through Node — the same code the deployed worker runs. Nothing to keep
+in sync, because there is only one copy.
+
+(`build_create_prompt` still extracts from `TaskParser.swift`, because the
+onboarding `parse()` prompt is still compiled into the app.)
 
 This matters more than it sounds. The previous eval run in this folder
 (`eval-run-1-*`) graded a *pasted copy* of the prompt that had already drifted
@@ -95,35 +97,11 @@ applied to the list.
   and `refineActions` have their own prompts and no coverage yet.
   `spoke_prompt.build_create_prompt` exists for the onboarding path if you
   want to start there.
-# Evals
 
-Runs the task-parser system prompt against 30 voice transcripts and scores how
-many tasks come back per transcript.
+## Why SPOKE_EVAL_API_KEY
 
-## Running
-
-```sh
-export SPOKE_EVAL_API_KEY=sk-ant-...
-python3 evals/run-eval.py
-```
-
-Outputs three files next to the script: `eval-run-1.csv` (with blank Pass/Fail
-and Notes columns for manual scoring), `eval-run-1-raw.json`, and per-category
-totals on stdout. Note that a re-run overwrites the CSV and JSON in place —
-rename the previous run's files first if you want to compare.
-
-## Why not ANTHROPIC_API_KEY?
-
-Both names work, and the script checks `SPOKE_EVAL_API_KEY` first. But inside a
-Claude Code session, `ANTHROPIC_API_KEY` is reserved for the session's own auth
-and is stripped from every shell it spawns, so a key set under that name reaches
-the container but never reaches this script. Setting `SPOKE_EVAL_API_KEY` in the
-cloud environment settings sidesteps that — unreserved names pass through
-normally. Environment settings are read at session start, so a new session is
-needed after adding it.
-
-## Results so far
-
-`eval-run-1-summary.md` covers run 1 against `claude-haiku-4-5-20251001`:
-29/30 task-count accuracy. The one miss is test 20, in the rambling category,
-which split into 2 tasks where 1 was expected.
+Both names work and `SPOKE_EVAL_API_KEY` is checked first. Inside a Claude Code
+session `ANTHROPIC_API_KEY` is reserved for the session's own auth and stripped
+from the shells it spawns, so a key set under that name reaches the container
+but never reaches this script. Environment settings are read at session start,
+so a new session is needed after adding one.
