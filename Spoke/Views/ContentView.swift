@@ -1020,7 +1020,7 @@ struct ContentView: View {
                 // The speech is an answer to the open question
                 withAnimation(.spokeTransition) { assistantSheet = nil }
                 guard let actions = await TaskParser.resolveClarification(
-                    transcript: originalTranscript, question: question.text, answer: transcript, existingTasks: existingContext, existingEvents: eventContext
+                    transcript: originalTranscript, question: question.text, answer: transcript, existingTasks: existingContext, existingEvents: eventContext, focus: assistantFocus()
                 ) else {
                     recorder.finishProcessing()
                     showToast("Something went wrong. Give it another go.")
@@ -1042,7 +1042,7 @@ struct ContentView: View {
             case .summary(_, let pending, let originalTranscript):
                 // The speech is a follow-up on the proposed tasks
                 let outcome = await TaskParser.refineActions(
-                    transcript: originalTranscript, pending: pending, correction: transcript, existingTasks: existingContext, existingEvents: eventContext
+                    transcript: originalTranscript, pending: pending, correction: transcript, existingTasks: existingContext, existingEvents: eventContext, focus: assistantFocus()
                 )
                 switch outcome {
                 case .approve:
@@ -1057,7 +1057,7 @@ struct ContentView: View {
                 }
 
             case nil:
-                let response = await TaskParser.parseAssistant(transcript: transcript, existingTasks: existingContext, existingEvents: eventContext)
+                let response = await TaskParser.parseAssistant(transcript: transcript, existingTasks: existingContext, existingEvents: eventContext, focus: assistantFocus())
                 await routeAssistantResponse(response, transcript: transcript)
             }
         }
@@ -1065,13 +1065,40 @@ struct ContentView: View {
 
     /// The next few weeks of calendar events, so the parser can tell "move my
     /// hair appointment" refers to a calendar event rather than a task.
+    /// Whatever detail view is open when the user speaks. Lets "fix that
+    /// spelling" resolve to the thing in front of them instead of being
+    /// hunted for by name in a list that may not contain it.
+    private func assistantFocus() -> AssistantFocus? {
+        if let event = selectedEvent { return .event(event) }
+        if let task = selectedTask { return .task(title: task.title, description: task.taskDescription) }
+        return nil
+    }
+
     private func upcomingEventContext() -> [DayEvent] {
         let service = CalendarService.shared
         guard service.isConnected else { return [] }
         let cal = Calendar.current
         let from = cal.startOfDay(for: .now)
-        guard let to = cal.date(byAdding: .day, value: 60, to: from) else { return [] }
-        return Array(service.events(from: from, to: to).sorted { $0.start < $1.start }.prefix(40))
+        guard let to = cal.date(byAdding: .day, value: 90, to: from) else { return [] }
+        let sorted = service.events(from: from, to: to).sorted { $0.start < $1.start }
+
+        // Recurring events expand to one entry per occurrence, so a weekly
+        // class alone can eat the whole budget and push everything further
+        // out off the end of the list. Anything the model can't see, it
+        // can't edit — it just invents an action that gets dropped. Keep a
+        // few occurrences of each repeating title and spend the rest of the
+        // budget on breadth.
+        var seen: [String: Int] = [:]
+        var kept: [DayEvent] = []
+        for event in sorted {
+            let key = event.title.lowercased()
+            let count = seen[key, default: 0]
+            guard count < 3 else { continue }
+            seen[key] = count + 1
+            kept.append(event)
+            if kept.count >= 120 { break }
+        }
+        return kept
     }
 
     /// Decides which tier a response lands in: clarify sheet, summary sheet,
@@ -1089,8 +1116,11 @@ struct ContentView: View {
             recorder.finishProcessing()
             withAnimation(.spokeTransition) { assistantSheet = nil }
             // Never echo a remark describing a change that didn't happen.
+            // Say what actually went wrong. "Give it another go" invites the
+            // user to repeat themselves when the problem is that Spoke
+            // couldn't find what they meant.
             showToast(response.droppedActions
-                      ? "Couldn't make that change. Give it another go."
+                      ? "Couldn't find that one in your list or calendar."
                       : (response.remark ?? "Something went wrong. Give it another go."))
             return
         }
