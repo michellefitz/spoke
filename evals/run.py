@@ -194,7 +194,8 @@ def check(case: dict, response: dict) -> list[str]:
 def run_case(case: dict, api_key: str) -> dict:
     today = _dt.date.fromisoformat(S.TODAY)
     system = spoke_prompt.build_assistant_prompt(
-        today, tasks=case.get("tasks"), events=case.get("events")
+        today, tasks=case.get("tasks"), events=case.get("events"),
+        focus=case.get("focus"),
     )
     user = f'Transcript: "{case["transcript"]}"'
     try:

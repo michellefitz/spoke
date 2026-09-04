@@ -25,6 +25,13 @@ enum ParsedAction {
     }
 }
 
+/// What the user is looking at when they speak. Without this, "change that
+/// name" has nothing to attach to and the model has to guess from the lists.
+enum AssistantFocus {
+    case event(DayEvent)
+    case task(title: String, description: String?)
+}
+
 struct AssistantQuestion {
     let text: String
     let options: [String]
@@ -128,7 +135,7 @@ enum TaskParser {
 
     /// Main assistant entry point: parses the transcript into actions plus an optional
     /// remark (something worth telling the user) and at most one clarifying question.
-    static func parseAssistant(transcript: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = []) async -> AssistantResponse {
+    static func parseAssistant(transcript: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = [], focus: AssistantFocus? = nil) async -> AssistantResponse {
         let start = Date()
         let wordCount = transcript.split(separator: " ").count
         if wordCount <= 3 {
@@ -140,11 +147,13 @@ enum TaskParser {
         let tagInstruction = tagPromptInstruction()
         let taskList = existingTaskListBlock(existingTasks)
         let eventList = eventListBlock(existingEvents)
+        let focusLine = focusBlock(focus)
 
         let system = """
             \(today) You are Spoke, a voice assistant for the user's to-do list. Given a voice transcript, decide what to change on the list and how to respond. \
             \(taskList) \
             \(eventList) \
+            \(focusLine) \
             Return ONLY a valid JSON OBJECT with keys: "actions" (required array), "remark" (optional string), "question" (optional object). \
             \(actionRules(tagInstruction: tagInstruction)) \
             Remark rules: \
@@ -152,7 +161,9 @@ enum TaskParser {
             - For a single obvious task with nothing decided, omit "remark". \
             Question rules: \
             - Ask AT MOST one question, as "question": {"text": "...", "options": ["...", "..."]}. \
-            - Ask ONLY when the transcript closely duplicates an existing task (same intent) or an ambiguity genuinely changes what you would do. Otherwise never ask. \
+            - Ask when it genuinely changes what you would do: the transcript closely duplicates an existing task, you cannot find the task or event they mean, an instruction is ambiguous, or you would otherwise be guessing at something you cannot undo. \
+            - Do NOT ask about wording, phrasing, or anything you can reasonably decide yourself. A question the user could not have anticipated needing to answer is a bad question. \
+            - The question text is your own voice — say what you need and why in one plain sentence, e.g. "I can't see a dentist appointment on the 7th — is it on a different day?" \
             - "options" is exactly 2 short tappable answers, max 4 words each. \
             - When you include "question", return "actions": [] — final actions are decided after the user answers. \
             Return ONLY the JSON object, no markdown, no code fences, no commentary. \
@@ -184,16 +195,18 @@ enum TaskParser {
     /// Second turn after a clarifying question: produce the final actions for the
     /// original transcript, honoring the user's answer. Returns nil on API/parse
     /// failure; an empty array is a deliberate "nothing to change".
-    static func resolveClarification(transcript: String, question: String, answer: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = []) async -> [ParsedAction]? {
+    static func resolveClarification(transcript: String, question: String, answer: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = [], focus: AssistantFocus? = nil) async -> [ParsedAction]? {
         let start = Date()
         let today = dateContext()
         let tagInstruction = tagPromptInstruction()
         let taskList = existingTaskListBlock(existingTasks)
         let eventList = eventListBlock(existingEvents)
+        let focusLine = focusBlock(focus)
         let system = """
             \(today) You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript, you asked a clarifying question, and the user has now answered. Produce the FINAL actions for the ENTIRE original transcript, honoring the user's answer. \
             \(taskList) \
             \(eventList) \
+            \(focusLine) \
             \(actionRules(tagInstruction: tagInstruction)) \
             - If the user's answer means nothing should change (e.g. it was a duplicate of an existing task), return []. \
             Return ONLY a valid JSON ARRAY of action objects, no markdown, no code fences, no commentary.
@@ -223,16 +236,18 @@ enum TaskParser {
 
     /// Follow-up turn on a pending summary: the user spoke again while reviewing the
     /// proposed tasks. The reply is an approval, a cancellation, or a replacement set.
-    static func refineActions(transcript: String, pending: [ParsedAction], correction: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = []) async -> RefineOutcome {
+    static func refineActions(transcript: String, pending: [ParsedAction], correction: String, existingTasks: [(title: String, description: String?, deadline: Date?, tag: String?, deadlineIsWeek: Bool)], existingEvents: [DayEvent] = [], focus: AssistantFocus? = nil) async -> RefineOutcome {
         let start = Date()
         let today = dateContext()
         let tagInstruction = tagPromptInstruction()
         let taskList = existingTaskListBlock(existingTasks)
         let eventList = eventListBlock(existingEvents)
+        let focusLine = focusBlock(focus)
         let system = """
             \(today) You are Spoke, a voice assistant for the user's to-do list. The user spoke a transcript and you proposed tasks; the user is reviewing them and has spoken a follow-up. \
             \(taskList) \
             \(eventList) \
+            \(focusLine) \
             Decide what the follow-up means: \
             - Pure approval ("yes", "yep", "looks good", "go ahead"): return {"approve": true}. \
             - Cancellation ("no", "cancel", "forget it", "discard that"): return {"cancel": true}. \
@@ -290,6 +305,7 @@ enum TaskParser {
         - If the transcript contains multiple unrelated tasks, return multiple action objects. \
         - NEVER silently drop information. If a detail cannot fit the title, it must appear in the description. \
         - If a description needs 2 or more distinct items, use bullet format with a short intro sentence, each bullet on its OWN LINE: "Things to pick up:\\n• Milk\\n• Eggs" \
+        - You can ONLY edit things that appear in the lists above. If the user refers to a task or event you cannot find there — a different date, a name you don't see — do NOT invent an "edit" or "edit-event" for it. Return "actions": [] and ask a question saying what you couldn't find. Silently guessing produces a change the user was told about but never got. \
         - Dates: if the user names a specific day, resolve it relative to today as YYYY-MM-DD in "deadline". If they say something is for "this week" or "next week" WITHOUT naming a day (e.g. "sometime this week", "I need to get this done next week"), use the literal string "this-week" or "next-week" as the deadline — do NOT invent a specific day. A deadline applies only to the task it was mentioned with. \
         - Reminders: if the user explicitly asks to be REMINDED at a clock time ("remind me at 6 to take the chicken out", "ping me at 3pm tomorrow about the invoice"), include "remind" as "YYYY-MM-DD HH:MM" (24-hour) on that task, resolved relative to today — assume today if no day is named and the time is still ahead, otherwise tomorrow. A bare deadline time ("finish by 5pm") is NOT a reminder. NEVER invent a "remind" the user didn't ask for. \
         - \(tagInstruction)
@@ -309,6 +325,25 @@ enum TaskParser {
             return "- " + parts.joined(separator: " | ")
         }
         return "Existing tasks:\n" + items.joined(separator: "\n")
+    }
+
+    /// The item on screen, named so pronouns resolve to it.
+    private static func focusBlock(_ focus: AssistantFocus?) -> String {
+        guard let focus else { return "" }
+        switch focus {
+        case .event(let event):
+            let df = DateFormatter()
+            df.dateFormat = "EEE yyyy-MM-dd"
+            let tf = DateFormatter()
+            tf.dateFormat = "HH:mm"
+            let when = event.isAllDay
+                ? "\(df.string(from: event.start)) all day"
+                : "\(df.string(from: event.start)) \(tf.string(from: event.start))–\(tf.string(from: event.end))"
+            return "RIGHT NOW the user is looking at the calendar event \"\(event.title)\" (\(when)). Vague references — \"this\", \"that\", \"the name\", \"move it\" — mean THAT event unless they clearly name something else. Use \"edit-event\" with match \"\(event.title)\"."
+        case .task(let title, let description):
+            let desc = (description?.isEmpty == false) ? " (notes: \(description!.prefix(120)))" : ""
+            return "RIGHT NOW the user is looking at the task \"\(title)\"\(desc). Vague references — \"this\", \"that\", \"it\" — mean THAT task unless they clearly name something else. Use \"edit\" with match \"\(title)\"."
+        }
     }
 
     /// Upcoming calendar events, so "move my hair appointment to 2pm" edits

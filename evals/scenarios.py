@@ -20,6 +20,8 @@ Assertions available (all optional; omit what a case doesn't care about):
     tag_of         {title substring: "shopping"}
     event_of       {title substring: {"date":…, "start":…, "end":…}}
     matches        expected "match" values on edit / edit-event actions
+    focus          what's on screen: {"kind": "event"|"task", "title": ...,
+                   "start"/"end" for events, "description" for tasks}
     asks_question  True / False
     bullets_in     title substring whose description must be a bullet list
     preserves      strings that must survive somewhere in title+description
@@ -360,6 +362,53 @@ SCENARIOS = [
         why="A question about the list is not a new task.",
         transcript="what have I got on this week",
         expect=dict(n_actions=0),
+    ),
+
+    # ── Instructions about the thing on screen ───────────────────────────────
+    dict(
+        id="focus-01", category="focus", tasks=TASKS_TYPICAL, events=EVENTS_TYPICAL,
+        focus={"kind": "event", "title": "Hair appointment",
+               "start": "2026-08-14T10:00", "end": "2026-08-14T11:00"},
+        why="Looking at an event and saying 'move this' must edit THAT event. "
+            "Without screen context the model had to guess from the list.",
+        transcript="move this to three in the afternoon",
+        expect=dict(n_actions=1, kinds=["edit-event"], matches=["Hair appointment"],
+                    asks_question=False),
+    ),
+    dict(
+        id="focus-02", category="focus", tasks=TASKS_TYPICAL, events=EVENTS_TYPICAL,
+        focus={"kind": "event", "title": "Playdate with Cloe",
+               "start": "2026-08-15T14:00", "end": "2026-08-15T16:00"},
+        why="REGRESSION: correcting a misspelled name on the open event did "
+            "nothing at all. It must produce an edit-event retitling it.",
+        transcript="the name is spelled wrong, it should be Chloe, C H L O E",
+        expect=dict(n_actions=1, kinds=["edit-event"],
+                    matches=["Playdate with Cloe"], preserves=["Chloe"]),
+    ),
+    dict(
+        id="focus-03", category="focus", tasks=TASKS_TYPICAL,
+        focus={"kind": "task", "title": "Sort out the loft", "description": None},
+        why="Same for a task: 'push this to Friday' edits the open one.",
+        transcript="push this one to Friday",
+        expect=dict(n_actions=1, kinds=["edit"], matches=["Sort out the loft"],
+                    deadline_of={"loft": "2026-08-14"}),
+    ),
+
+    # ── Referring to something Spoke cannot see ──────────────────────────────
+    dict(
+        id="unfound-01", category="unfound", tasks=TASKS_TYPICAL, events=EVENTS_TYPICAL,
+        why="REGRESSION: the event wasn't in the list, so Spoke invented an "
+            "edit-event, said it had moved it, and silently dropped the action. "
+            "It must ask instead of guessing.",
+        transcript="move the parents evening on the seventh of September to the sixth",
+        expect=dict(n_actions=0, asks_question=True),
+    ),
+    dict(
+        id="unfound-02", category="unfound", tasks=TASKS_TYPICAL, events=EVENTS_TYPICAL,
+        why="An edit naming a task that doesn't exist shouldn't quietly become "
+            "a brand new task with a half-understood title either.",
+        transcript="change the deadline on the passport renewal to next week",
+        expect=dict(asks_question=True),
     ),
 
     # ── Tags ─────────────────────────────────────────────────────────────────

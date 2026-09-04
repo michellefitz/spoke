@@ -126,6 +126,31 @@ def task_list_block(tasks) -> str:
     return "Existing tasks:\n" + "\n".join(items)
 
 
+def focus_block(focus) -> str:
+    """Mirrors TaskParser.focusBlock — what the user is looking at."""
+    if not focus:
+        return ""
+    if focus.get("kind") == "event":
+        start = _dt.datetime.fromisoformat(focus["start"])
+        if focus.get("all_day"):
+            when = f"{start.strftime('%a %Y-%m-%d')} all day"
+        else:
+            end = _dt.datetime.fromisoformat(focus["end"])
+            when = f"{start.strftime('%a %Y-%m-%d')} {start.strftime('%H:%M')}–{end.strftime('%H:%M')}"
+        return (
+            f'RIGHT NOW the user is looking at the calendar event "{focus["title"]}" ({when}). '
+            'Vague references — "this", "that", "the name", "move it" — mean THAT event '
+            f'unless they clearly name something else. Use "edit-event" with match "{focus["title"]}".'
+        )
+    desc = focus.get("description")
+    tail = f" (notes: {desc[:120]})" if desc else ""
+    return (
+        f'RIGHT NOW the user is looking at the task "{focus["title"]}"{tail}. '
+        'Vague references — "this", "that", "it" — mean THAT task unless they clearly '
+        f'name something else. Use "edit" with match "{focus["title"]}".'
+    )
+
+
 def event_list_block(events) -> str:
     if not events:
         return "There are no upcoming calendar events."
@@ -151,7 +176,7 @@ def _source() -> str:
         return fh.read()
 
 
-def build_assistant_prompt(today: _dt.date, tasks=None, events=None, tags=DEFAULT_TAGS) -> str:
+def build_assistant_prompt(today: _dt.date, tasks=None, events=None, tags=DEFAULT_TAGS, focus=None) -> str:
     """The system prompt parseAssistant() sends — the app's main path."""
     src = _source()
     system_raw = _extract_block(src, "static func parseAssistant")
@@ -166,6 +191,7 @@ def build_assistant_prompt(today: _dt.date, tasks=None, events=None, tags=DEFAUL
         "\\(today)": date_context(today),
         "\\(taskList)": task_list_block(tasks or []),
         "\\(eventList)": event_list_block(events or []),
+        "\\(focusLine)": focus_block(focus),
         "\\(actionRules(tagInstruction: tagInstruction))": rules,
     }
     for token, value in substitutions.items():
